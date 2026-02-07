@@ -12,7 +12,7 @@
 |-------|-------------|--------|-------|---------|
 | 0 | Project Scaffolding | ✅ Complete | 6 | b9ce354 |
 | 1 | Data Layer & Core Utilities | ✅ Complete | 178 | b767541 |
-| 2 | Risk Scoring Engine | ⏳ Pending | - | - |
+| 2 | Risk Scoring Engine | ✅ Complete | 43 | 05b361d |
 | 3 | Checklist Generator | ⏳ Pending | - | - |
 | 4 | Alert System | ⏳ Pending | - | - |
 | 5 | UI Components (Primitives) | ⏳ Pending | - | - |
@@ -140,9 +140,49 @@ b767541 feat(data): implement complete regulatory data layer
 
 ### Session 3
 
-**Date:** [YYYY-MM-DD HH:MM]
+**Date:** 2025-02-07 11:15
+**Duration:** ~20 minutes
+**Phase(s) Worked:** Phase 2 (Risk Scoring Engine)
 
-[Template continues...]
+#### Objectives
+- [x] Write unit tests for calculateRiskScore (TDD)
+- [x] Implement CBAM risk factor logic
+- [x] Implement ESG risk factor logic
+- [x] Implement certification/FTA/MSME factors
+- [x] Implement score normalization (0-100)
+- [x] Regression test Phase 0-1
+
+#### Completed
+- calculateRiskScore() with multi-factor analysis
+- CBAM: +30 for covered products, +5 for monitoring
+- ESG: +15 Scope 3, +10 CSRD/SEC
+- Certifications: +15/+8/+3 based on count
+- FTA: -5 for active agreements (positive)
+- MSME: +10 for micro/small companies
+- Special: EUDR (+10), UFLPA (+5)
+- Helper functions: getRiskLevel, getRiskColor, calculateMultiCountryRisk
+
+#### Tests Added
+| Test File | Tests | Passing |
+|-----------|-------|---------|
+| src/utils/risk-scoring.test.ts | 43 | ✅ 43 |
+| **Cumulative** | **227** | **✅ 227** |
+
+#### Git Commits
+```
+05b361d feat(utils): implement risk scoring engine
+```
+
+#### Regression Testing
+| Previous Phase | Tests Run | Status |
+|----------------|-----------|--------|
+| Phase 0-1 | 184 | ✅ All passing |
+
+#### Challenges
+- ESLint no-explicit-any for edge case testing
+
+#### Next Session
+- Phase 3: Checklist Generator
 
 ---
 
@@ -152,8 +192,8 @@ b767541 feat(data): implement complete regulatory data layer
 
 | Module | Tests | Passing | Coverage |
 |--------|-------|---------|----------|
-| regulatory-db | - | - | - |
-| risk-scoring | - | - | - |
+| regulatory-db | 61 | ✅ 61 | - |
+| risk-scoring | 43 | ✅ 43 | - |
 | checklist-generator | - | - | - |
 | alert-generator | - | - | - |
 | UI Components | - | - | - |
