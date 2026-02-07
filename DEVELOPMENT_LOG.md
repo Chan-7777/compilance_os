@@ -11,7 +11,7 @@
 | Phase | Description | Status | Tests | Commits |
 |-------|-------------|--------|-------|---------|
 | 0 | Project Scaffolding | ✅ Complete | 6 | b9ce354 |
-| 1 | Data Layer & Core Utilities | ⏳ Pending | - | - |
+| 1 | Data Layer & Core Utilities | ✅ Complete | 178 | b767541 |
 | 2 | Risk Scoring Engine | ⏳ Pending | - | - |
 | 3 | Checklist Generator | ⏳ Pending | - | - |
 | 4 | Alert System | ⏳ Pending | - | - |
@@ -88,30 +88,47 @@ b9ce354 chore(phase-0): project scaffolding complete
 
 ### Session 2
 
-**Date:** [YYYY-MM-DD HH:MM]
-**Duration:** [X hours]
-**Phase(s) Worked:** [Phase X]
+**Date:** 2025-02-07 09:15
+**Duration:** ~25 minutes
+**Phase(s) Worked:** Phase 1 (Data Layer & Core Utilities)
 
 #### Objectives
-- [ ]
+- [x] Write unit tests for data structure integrity (TDD - tests first)
+- [x] Create regulatory-db.ts with REGULATORY_DB (6 countries)
+- [x] Create products.ts with PRODUCT_CATEGORIES (9 products)
+- [x] Create fta.ts with FTA_DATABASE
+- [x] Create indian-schemes.ts with INDIAN_EXPORT_SCHEMES
+- [x] Regression test Phase 0
 
 #### Completed
--
+- Full regulatory database ported from prototype with TypeScript types
+- 6 country profiles: EU, US, UK, UAE, Japan, Australia
+- 9 product categories with HS code prefix mapping
+- FTA status for all countries (3 active, 2 negotiating, 1 none)
+- 8 Indian export schemes documented
+- Helper functions: getProductById, getActiveFTAs, getCertifications, etc.
 
 #### Tests Added
 | Test File | Tests | Passing |
 |-----------|-------|---------|
+| src/data/regulatory-db.test.ts | 61 | ✅ 61 |
+| src/data/products.test.ts | 50 | ✅ 50 |
+| src/data/fta.test.ts | 30 | ✅ 30 |
+| src/data/indian-schemes.test.ts | 37 | ✅ 37 |
+| **Total New** | **178** | **✅ 178** |
 
 #### Git Commits
 ```
+b767541 feat(data): implement complete regulatory data layer
 ```
 
 #### Regression Testing
 | Previous Phase | Tests Run | Status |
 |----------------|-----------|--------|
+| Phase 0 | 6 | ✅ All passing |
 
 #### Challenges
--
+- TypeScript union type for CBAM (active vs inactive) - simplified to single interface with optional fields
 
 #### Learnings
 -
