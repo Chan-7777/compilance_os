@@ -19,7 +19,7 @@ export interface RegulationChange {
 export interface CBAMConfig {
   active: boolean
   phase: string
-  coveredSectors: string[]
+  coveredSectors?: string[]
   reportingFrequency?: string
   penaltyPerTonne?: string
   keyDates?: KeyDate[]
@@ -40,7 +40,7 @@ export interface ESGConfig {
 export interface CountryRegulation {
   name: string
   flag: string
-  cbam: CBAMConfig | { active: false; phase: string; notes?: string }
+  cbam: CBAMConfig
   esg: ESGConfig
   certifications: Record<string, string[]>
   packaging: string[]
