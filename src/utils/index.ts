@@ -11,3 +11,15 @@ export {
   calculateMultiCountryRisk,
   getOverallRisk,
 } from './risk-scoring'
+
+export {
+  generateChecklist,
+  getChecklistByCategory,
+  getChecklistProgress,
+  filterChecklistByPhase,
+  filterChecklistByPriority,
+  getCategories,
+  countByPriority,
+  countByPhase,
+  getPendingCriticalItems,
+} from './checklist-generator'
