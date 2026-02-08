@@ -186,6 +186,7 @@ export type ViewType =
   | 'alerts'
   | 'fta'
   | 'shipments'
+  | 'settings'
 
 export interface AppState {
   currentView: ViewType

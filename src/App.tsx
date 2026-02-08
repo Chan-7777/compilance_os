@@ -11,6 +11,7 @@ import {
   Alerts,
   FTASchemes,
   Shipments,
+  Settings,
 } from '@/components/views'
 import {
   calculateMultiCountryRisk,
@@ -44,11 +45,11 @@ function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
 
   // Selections
-  const [selectedProduct] = useState<string>('steel')
-  const [selectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
+  const [selectedProduct, setSelectedProduct] = useState<string>('steel')
+  const [selectedCountries, setSelectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
 
   // Profile
-  const [companyProfile] = useState<CompanyProfile>(DEFAULT_PROFILE)
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(DEFAULT_PROFILE)
 
   // Checklist state
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
@@ -153,6 +154,20 @@ function App() {
     console.log('Selected shipment:', shipmentId)
   }, [])
 
+  const handleUpdateProfile = useCallback((profile: CompanyProfile) => {
+    setCompanyProfile(profile)
+  }, [])
+
+  const handleSelectProduct = useCallback((productId: string) => {
+    setSelectedProduct(productId)
+  }, [])
+
+  const handleToggleCountry = useCallback((country: CountryCode) => {
+    setSelectedCountries(prev =>
+      prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]
+    )
+  }, [])
+
   // -------------------------------------------------------------------------
   // Render Current View
   // -------------------------------------------------------------------------
@@ -210,6 +225,18 @@ function App() {
             selectedCountries={selectedCountries}
             onAddShipment={handleAddShipment}
             onSelectShipment={handleSelectShipment}
+          />
+        )
+
+      case 'settings':
+        return (
+          <Settings
+            companyProfile={companyProfile}
+            selectedProduct={selectedProduct}
+            selectedCountries={selectedCountries}
+            onUpdateProfile={handleUpdateProfile}
+            onSelectProduct={handleSelectProduct}
+            onToggleCountry={handleToggleCountry}
           />
         )
 

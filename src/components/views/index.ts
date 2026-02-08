@@ -19,3 +19,6 @@ export type { FTASchemesProps } from './FTASchemes'
 
 export { Shipments } from './Shipments'
 export type { ShipmentsProps } from './Shipments'
+
+export { Settings } from './Settings'
+export type { SettingsProps } from './Settings'
