@@ -24,7 +24,8 @@
       "@data/*": ["src/data/*"],
       "@utils/*": ["src/utils/*"],
       "@hooks/*": ["src/hooks/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@theme/*": ["src/theme/*"]
     },
 
     /* Linting */
