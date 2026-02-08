@@ -23,3 +23,16 @@ export {
   countByPhase,
   getPendingCriticalItems,
 } from './checklist-generator'
+
+export {
+  generateAlerts,
+  sortAlertsBySeverity,
+  filterAlertsBySeverity,
+  filterAlertsByCountry,
+  filterAlertsByType,
+  getAlertCounts,
+  getHighestSeverity,
+  getUpcomingDeadlines,
+  groupAlertsByCountry,
+  groupAlertsByType,
+} from './alert-generator'
