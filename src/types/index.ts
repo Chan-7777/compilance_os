@@ -130,11 +130,13 @@ export type ChecklistPhase =
   | 'quarterly'
 
 export interface ChecklistItem {
-  id: number
+  id: number | string
   category: string
   item: string
   priority: ChecklistPriority
   phase: ChecklistPhase
+  required?: boolean
+  details?: string
 }
 
 // ----------------------------------------------------------------------------
@@ -159,17 +161,18 @@ export interface Alert {
 // Shipment Types
 // ----------------------------------------------------------------------------
 
-export type ShipmentStatus = 'preparing' | 'in_transit' | 'delivered'
+export type ShipmentStatus = 'pending' | 'in_progress' | 'preparing' | 'in_transit' | 'delivered'
 
 export interface Shipment {
-  id: number
+  id: string
   name: string
   product: string
   country: string
   date: string
   status: ShipmentStatus
-  checklist: ChecklistItem[]
-  completed: number
+  riskScore?: number
+  checklist?: ChecklistItem[]
+  completed?: number
 }
 
 // ----------------------------------------------------------------------------
