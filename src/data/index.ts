@@ -39,3 +39,9 @@ export {
   isValidScheme,
   getSchemesByStatus,
 } from './indian-schemes'
+
+// FTA Compliance Details (scraped from Trade Connect)
+export {
+  FTA_COMPLIANCE_DETAILS,
+  type HSComplianceDetail,
+} from './fta_compliance_details'

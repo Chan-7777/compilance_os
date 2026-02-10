@@ -58,3 +58,10 @@ reference/
 .eslintcache
 .prettierignore
 *.pem
+
+# Scraper output files (personal use)
+fta_data_*.json
+fta_data_*.csv
+india_uae_fta_*.json
+india_uae_fta_*.csv
+__pycache__/
