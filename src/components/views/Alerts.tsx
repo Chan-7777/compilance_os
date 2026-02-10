@@ -2,9 +2,11 @@
 // Alerts View - Regulatory alerts with filtering
 // ============================================================================
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
+import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing, borderRadius } from '@theme/index'
 import type { Alert, AlertSeverity } from '@/types'
 
@@ -22,6 +24,9 @@ const filterOptions: Array<{ id: 'all' | AlertSeverity; label: string }> = [
 ]
 
 export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
+  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
   // Count alerts by severity
   const counts = {
     critical: alerts.filter(a => a.severity === 'critical').length,
@@ -29,10 +34,16 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     info: alerts.filter(a => a.severity === 'info').length,
   }
 
-  // Filter and sort alerts
+  // Filter by severity and search
   const filteredAlerts =
     activeFilter === 'all' ? alerts : alerts.filter(a => a.severity === activeFilter)
-  const sortedAlerts = [...filteredAlerts].sort((a, b) => {
+  const searchedAlerts = searchQuery
+    ? filteredAlerts.filter(a =>
+      a.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.countryName.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    : filteredAlerts
+  const sortedAlerts = [...searchedAlerts].sort((a, b) => {
     const severityOrder = { critical: 0, warning: 1, info: 2 }
     return severityOrder[a.severity] - severityOrder[b.severity]
   })
@@ -175,54 +186,129 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div style={filterBarStyle}>
-        {filterOptions.map(option => (
-          <Button
-            key={option.id}
-            variant={activeFilter === option.id ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => onFilterChange(option.id)}
-          >
-            {option.label}
-          </Button>
-        ))}
+      {/* Search + Filter Bar */}
+      <div style={{ marginBottom: spacing.lg }}>
+        <input
+          type="text"
+          placeholder="Search alerts..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: spacing.sm,
+            border: `1px solid ${colors.border}`,
+            borderRadius: borderRadius.md,
+            fontSize: '0.875rem',
+            marginBottom: spacing.sm,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        <div style={filterBarStyle}>
+          {filterOptions.map(option => (
+            <Button
+              key={option.id}
+              variant={activeFilter === option.id ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => onFilterChange(option.id)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Alert List */}
       {alerts.length === 0 ? (
-        <div style={emptyStyle}>
-          <p>No alerts at this time</p>
-        </div>
+        <EmptyState
+          icon="🔔"
+          title="No regulatory alerts"
+          description="We'll notify you when new regulations affecting your selected markets and products are announced. Make sure you've configured your target markets in Settings."
+          actionLabel="Go to Settings"
+          onAction={() => window.location.hash = '#settings'}
+        />
       ) : sortedAlerts.length === 0 ? (
         <div style={emptyStyle}>
           <p>No {activeFilter} alerts</p>
         </div>
       ) : (
         <div style={alertListStyle}>
-          {sortedAlerts.map(alert => (
-            <div key={alert.id} style={alertCardStyle} data-testid="alert-card">
-              <span style={alertIconStyle}>{alert.flag}</span>
-              <div style={alertContentStyle}>
-                <div style={alertHeaderStyle}>
-                  <span style={{ fontWeight: 600 }}>{alert.countryName}</span>
-                  <Badge
-                    variant={getSeverityVariant(alert.severity)}
-                    size="sm"
-                    data-testid={`severity-${alert.severity}`}
-                  >
-                    {alert.severity}
-                  </Badge>
+          {sortedAlerts.map(alert => {
+            const isExpanded = expandedId === alert.id
+            return (
+              <div
+                key={alert.id}
+                style={{
+                  ...alertCardStyle,
+                  cursor: 'pointer',
+                  flexDirection: 'column',
+                  borderColor: isExpanded ? colors.primary : colors.border,
+                }}
+                data-testid="alert-card"
+                onClick={() => setExpandedId(isExpanded ? null : alert.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    setExpandedId(isExpanded ? null : alert.id)
+                  }
+                }}
+                aria-expanded={isExpanded}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, width: '100%' }}>
+                  <span style={alertIconStyle}>{alert.flag}</span>
+                  <div style={alertContentStyle}>
+                    <div style={alertHeaderStyle}>
+                      <span style={{ fontWeight: 600 }}>{alert.countryName}</span>
+                      <Badge
+                        variant={getSeverityVariant(alert.severity)}
+                        size="sm"
+                        data-testid={`severity-${alert.severity}`}
+                      >
+                        {alert.severity}
+                      </Badge>
+                    </div>
+                    <div style={alertMessageStyle}>{alert.message}</div>
+                    <div style={alertMetaStyle}>
+                      <span style={alertTypeStyle}>{formatAlertType(alert.type)}</span>
+                      <span>•</span>
+                      <span>{alert.date}</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
+                    ▼
+                  </span>
                 </div>
-                <div style={alertMessageStyle}>{alert.message}</div>
-                <div style={alertMetaStyle}>
-                  <span style={alertTypeStyle}>{formatAlertType(alert.type)}</span>
-                  <span>•</span>
-                  <span>{alert.date}</span>
-                </div>
+                {isExpanded && (
+                  <div style={{
+                    width: '100%',
+                    marginTop: spacing.md,
+                    paddingTop: spacing.md,
+                    borderTop: `1px solid ${colors.border}`,
+                  }}>
+                    <div style={{ fontSize: '0.875rem', marginBottom: spacing.sm }}>
+                      <strong>Impact Assessment:</strong>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: colors.text, marginBottom: spacing.sm }}>
+                      {alert.severity === 'critical'
+                        ? 'This requires immediate attention. Non-compliance may result in shipment delays, fines, or rejection at customs.'
+                        : alert.severity === 'warning'
+                          ? 'Action recommended within 30 days. This may affect future shipments to this destination.'
+                          : 'For informational purposes. Monitor for updates that may change compliance requirements.'
+                      }
+                    </div>
+                    <div style={{ display: 'flex', gap: spacing.sm, fontSize: '0.75rem', color: colors.textMuted }}>
+                      <span>Type: {formatAlertType(alert.type)}</span>
+                      <span>•</span>
+                      <span>Market: {alert.countryName}</span>
+                      <span>•</span>
+                      <span>Date: {alert.date}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

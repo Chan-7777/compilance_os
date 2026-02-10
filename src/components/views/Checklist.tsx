@@ -3,10 +3,13 @@
 // ============================================================================
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
+import { Button } from '@/components/Button'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
-import { colors, spacing, borderRadius } from '@theme/index'
+import { EmptyState } from '@/components/EmptyState'
+import { Toast } from '@/components/Toast'
+import { useToast } from '@/hooks/useToast'
+import { colors, spacing, borderRadius } from '@/theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import type { ChecklistItem, CountryCode } from '@/types'
 
@@ -26,6 +29,17 @@ export function Checklist({
   onToggleItem,
 }: ChecklistProps) {
   const [activeTab, setActiveTab] = useState(0)
+  const { toasts, removeToast, success } = useToast()
+
+  const handleToggle = (itemId: string | number) => {
+    const isCurrentlyChecked = checkedItems[String(itemId)]
+    onToggleItem(itemId)
+
+    if (!isCurrentlyChecked) {
+      const item = checklist.find(i => i.id === itemId)
+      success(`✓ ${item?.item || 'Item'} completed!`)
+    }
+  }
 
   // Group items by category
   const categories = [...new Set(checklist.map(item => item.category))]
@@ -148,11 +162,41 @@ export function Checklist({
         <div style={headerStyle}>
           <h2 style={titleStyle}>Compliance Checklist</h2>
         </div>
-        <div style={emptyStyle}>
-          <p>No items in checklist</p>
-        </div>
+        <EmptyState
+          icon="✓"
+          title="No checklist items yet"
+          description="Your compliance checklist will appear here based on your selected markets and products. Start by configuring your target markets in Settings."
+          actionLabel="Go to Settings"
+          onAction={() => window.location.hash = '#settings'}
+        />
       </div>
     )
+  }
+
+  const handleMarkCategory = (category: string, checked: boolean) => {
+    const categoryItems = checklist.filter(item => item.category === category)
+    categoryItems.forEach(item => {
+      const isCurrentlyChecked = !!checkedItems[String(item.id)]
+      if (isCurrentlyChecked !== checked) {
+        onToggleItem(item.id)
+      }
+    })
+    success(checked ? `Marked all ${category} items complete` : `Reset all ${category} items`)
+  }
+
+  const handleExportChecklist = () => {
+    const lines = categories.map(category => {
+      const categoryItems = checklist.filter(item => item.category === category)
+      const itemLines = categoryItems.map(item => {
+        const checked = checkedItems[String(item.id)] ? '✓' : '☐'
+        return `  ${checked} [${item.priority}] ${item.item} (${item.phase})`
+      })
+      return `${category}:\n${itemLines.join('\n')}`
+    })
+    const text = `Compliance Checklist - ${selectedProduct}\nProgress: ${completedCount}/${checklist.length} (${progress}%)\n\n${lines.join('\n\n')}`
+    navigator.clipboard.writeText(text).then(() => {
+      success('Checklist copied to clipboard!')
+    })
   }
 
   const renderChecklist = () => (
@@ -160,14 +204,24 @@ export function Checklist({
       {categories.map(category => {
         const categoryItems = checklist.filter(item => item.category === category)
         const categoryComplete = categoryItems.filter(item => checkedItems[String(item.id)]).length
+        const allComplete = categoryComplete === categoryItems.length
 
         return (
           <div key={category} style={categoryStyle}>
-            <div style={categoryTitleStyle}>
-              <span>{category}</span>
-              <Badge variant="default" size="sm">
-                {categoryComplete}/{categoryItems.length}
-              </Badge>
+            <div style={{ ...categoryTitleStyle, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                <span>{category}</span>
+                <Badge variant={allComplete ? 'success' : 'default'} size="sm">
+                  {categoryComplete}/{categoryItems.length}
+                </Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleMarkCategory(category, !allComplete)}
+              >
+                {allComplete ? 'Reset All' : 'Mark All'}
+              </Button>
             </div>
             <div style={itemListStyle}>
               {categoryItems.map(item => {
@@ -181,7 +235,7 @@ export function Checklist({
                     <input
                       type="checkbox"
                       checked={isChecked}
-                      onChange={() => onToggleItem(item.id)}
+                      onChange={() => handleToggle(item.id)}
                       style={checkboxStyle}
                       aria-label={item.item}
                     />
@@ -204,8 +258,11 @@ export function Checklist({
 
   return (
     <div style={containerStyle}>
-      <div style={headerStyle}>
+      <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={titleStyle}>Compliance Checklist</h2>
+        <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
+          Copy to Clipboard
+        </Button>
       </div>
 
       {/* Progress Bar */}
@@ -242,6 +299,16 @@ export function Checklist({
       ) : (
         renderChecklist()
       )}
+
+      {/* Toast Notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
     </div>
   )
 }

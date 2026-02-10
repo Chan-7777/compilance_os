@@ -2,8 +2,9 @@
 // ComplianceOS - Main Application
 // ============================================================================
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import {
   Dashboard,
   RiskAnalysis,
@@ -41,8 +42,9 @@ function App() {
   // Application State
   // -------------------------------------------------------------------------
 
-  // Navigation
+  // Navigation with loading state
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
+  const [isPending, startTransition] = useTransition()
 
   // Selections
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
@@ -98,12 +100,9 @@ function App() {
     return calculateMultiCountryRisk(
       selectedProduct,
       selectedCountries,
-      companyProfile.size
-    ).map((result, index) => ({
-      ...result,
-      country: selectedCountries[index],
-    }))
-  }, [selectedProduct, selectedCountries, companyProfile.size])
+      companyProfile
+    )
+  }, [selectedProduct, selectedCountries, companyProfile])
 
   // Generate checklist for selected countries
   const checklist = useMemo(() => {
@@ -130,13 +129,16 @@ function App() {
   // -------------------------------------------------------------------------
 
   const handleNavigate = useCallback((view: ViewType) => {
-    setCurrentView(view)
-  }, [])
+    startTransition(() => {
+      setCurrentView(view)
+    })
+  }, [startTransition])
 
-  const handleToggleChecklistItem = useCallback((itemId: string) => {
+  const handleToggleChecklistItem = useCallback((itemId: string | number) => {
+    const key = String(itemId)
     setCheckedItems(prev => ({
       ...prev,
-      [itemId]: !prev[itemId],
+      [key]: !prev[key],
     }))
   }, [])
 
@@ -167,6 +169,39 @@ function App() {
       prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]
     )
   }, [])
+
+  // -------------------------------------------------------------------------
+  // Keyboard Shortcuts
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea/select
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      const viewKeys: Record<string, ViewType> = {
+        '1': 'dashboard',
+        '2': 'risk',
+        '3': 'checklist',
+        '4': 'alerts',
+        '5': 'fta',
+        '6': 'shipments',
+      }
+
+      if (viewKeys[e.key]) {
+        e.preventDefault()
+        handleNavigate(viewKeys[e.key])
+      } else if (e.key === ',' || (e.key === 's' && e.metaKey)) {
+        // comma or Cmd+S for settings
+        if (e.key === 's') e.preventDefault()
+        handleNavigate('settings')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleNavigate])
 
   // -------------------------------------------------------------------------
   // Render Current View
@@ -215,7 +250,7 @@ function App() {
         )
 
       case 'fta':
-        return <FTASchemes selectedCountries={selectedCountries} />
+        return <FTASchemes selectedCountries={selectedCountries} selectedProduct={selectedProduct as any} />
 
       case 'shipments':
         return (

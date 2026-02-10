@@ -6,10 +6,13 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
+import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import type { Shipment, CountryCode } from '@/types'
+
+type ProductInfo = (typeof PRODUCT_CATEGORIES)[number]
 
 export interface ShipmentsProps {
   shipments: Shipment[]
@@ -27,6 +30,7 @@ export function Shipments({
   onSelectShipment,
 }: ShipmentsProps) {
   const [showForm, setShowForm] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     product: selectedProduct || '',
@@ -290,30 +294,105 @@ export function Shipments({
           {shipments.map(shipment => {
             const country = REGULATORY_DB[shipment.country as CountryCode]
             const product = PRODUCT_CATEGORIES.find(p => p.id === shipment.product)
+            const isExpanded = expandedId === shipment.id
 
             return (
-              <div
-                key={shipment.id}
-                style={shipmentCardStyle}
-                onClick={() => onSelectShipment(shipment.id)}
-              >
-                <span style={{ fontSize: '1.5rem' }}>{country?.flag || '📦'}</span>
-                <div style={shipmentContentStyle}>
-                  <div style={shipmentNameStyle}>{shipment.name}</div>
-                  <div style={shipmentMetaStyle}>
-                    <span>{product?.label || shipment.product}</span>
-                    <span>→</span>
-                    <span>{country?.name || shipment.country}</span>
-                    <span>•</span>
-                    <span>{shipment.date}</span>
-                    <Badge variant={getStatusVariant(shipment.status)} size="sm">
-                      {formatStatus(shipment.status)}
-                    </Badge>
+              <div key={shipment.id}>
+                <div
+                  style={{
+                    ...shipmentCardStyle,
+                    borderColor: isExpanded ? colors.primary : colors.border,
+                    borderBottomLeftRadius: isExpanded ? 0 : borderRadius.lg,
+                    borderBottomRightRadius: isExpanded ? 0 : borderRadius.lg,
+                  }}
+                  onClick={() => {
+                    setExpandedId(isExpanded ? null : shipment.id)
+                    onSelectShipment(shipment.id)
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setExpandedId(isExpanded ? null : shipment.id)
+                      onSelectShipment(shipment.id)
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                >
+                  <span style={{ fontSize: '1.5rem' }}>{country?.flag || '📦'}</span>
+                  <div style={shipmentContentStyle}>
+                    <div style={shipmentNameStyle}>{shipment.name}</div>
+                    <div style={shipmentMetaStyle}>
+                      <span>{product?.label || shipment.product}</span>
+                      <span>→</span>
+                      <span>{country?.name || shipment.country}</span>
+                      <span>•</span>
+                      <span>{shipment.date}</span>
+                      <Badge variant={getStatusVariant(shipment.status)} size="sm">
+                        {formatStatus(shipment.status)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    {shipment.riskScore !== undefined && (
+                      <div style={{ ...riskScoreStyle, color: getRiskColor(shipment.riskScore) }}>
+                        {shipment.riskScore}
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      ▼
+                    </span>
                   </div>
                 </div>
-                {shipment.riskScore !== undefined && (
-                  <div style={{ ...riskScoreStyle, color: getRiskColor(shipment.riskScore) }}>
-                    {shipment.riskScore}
+                {isExpanded && (
+                  <div style={{
+                    padding: spacing.lg,
+                    backgroundColor: colors.surface,
+                    border: `1px solid ${colors.primary}`,
+                    borderTop: 'none',
+                    borderBottomLeftRadius: borderRadius.lg,
+                    borderBottomRightRadius: borderRadius.lg,
+                  }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md, marginBottom: spacing.md }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Product</div>
+                        <div style={{ fontWeight: 500 }}>{product?.icon} {product?.label || shipment.product}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Destination</div>
+                        <div style={{ fontWeight: 500 }}>{country?.flag} {country?.name || shipment.country}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Ship Date</div>
+                        <div style={{ fontWeight: 500 }}>{shipment.date}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacing.md, marginBottom: spacing.md }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Status</div>
+                        <Badge variant={getStatusVariant(shipment.status)}>{formatStatus(shipment.status)}</Badge>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Risk Score</div>
+                        <div style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: getRiskColor(shipment.riskScore) }}>
+                          {shipment.riskScore !== undefined ? `${shipment.riskScore}/100` : 'N/A'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>HS Code Prefix</div>
+                        <div style={{ fontWeight: 500 }}>{product?.hsPrefix?.join(', ') || 'N/A'}</div>
+                      </div>
+                    </div>
+                    {country?.cbam?.active && (
+                      <div style={{ padding: spacing.sm, backgroundColor: `${colors.risk.high}11`, border: `1px solid ${colors.risk.high}33`, borderRadius: borderRadius.md, fontSize: '0.875rem', marginBottom: spacing.sm }}>
+                        <strong>CBAM Notice:</strong> This destination has active CBAM requirements. Ensure carbon emissions data is prepared.
+                      </div>
+                    )}
+                    {country?.packaging && country.packaging.length > 0 && (
+                      <div style={{ fontSize: '0.875rem', color: colors.textMuted }}>
+                        <strong>Packaging:</strong> {country.packaging.join(' · ')}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

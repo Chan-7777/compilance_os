@@ -61,6 +61,8 @@ export interface ProductCategory {
   hsPrefix: string[]
 }
 
+export type ProductCode = 'food' | 'textiles' | 'chemicals' | 'electronics' | 'steel' | 'pharma' | 'automotive' | 'machinery' | 'general'
+
 // ----------------------------------------------------------------------------
 // FTA Types
 // ----------------------------------------------------------------------------

@@ -2,9 +2,10 @@
 // Risk Analysis View - Per-country risk breakdown
 // ============================================================================
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
+import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { RiskGauge } from '@/components/RiskGauge'
+import { RiskScoreLegend } from '@/components/RiskScoreLegend'
 import { colors, spacing } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
@@ -154,6 +155,8 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
           {productLabel} · {riskResults.length} market{riskResults.length !== 1 ? 's' : ''}
         </p>
       </div>
+
+      <RiskScoreLegend />
 
       <div style={gridStyle}>
         {sortedResults.map(result => {

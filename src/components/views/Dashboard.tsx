@@ -2,10 +2,11 @@
 // Dashboard View - Main compliance overview
 // ============================================================================
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
+import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { RiskGauge } from '@/components/RiskGauge'
+import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
@@ -32,12 +33,12 @@ export function Dashboard({
   const overallRisk =
     riskResults.length > 0
       ? {
-          score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
-          level: (() => {
-            const avg = riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length
-            return avg >= 60 ? 'high' : avg >= 30 ? 'medium' : 'low'
-          })() as 'high' | 'medium' | 'low',
-        }
+        score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
+        level: (() => {
+          const avg = riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length
+          return avg >= 60 ? 'high' : avg >= 30 ? 'medium' : 'low'
+        })() as 'high' | 'medium' | 'low',
+      }
       : null
 
   const criticalAlerts = alerts.filter(a => a.severity === 'critical')
@@ -62,8 +63,9 @@ export function Dashboard({
 
   const subtitleStyle: React.CSSProperties = {
     color: colors.textMuted,
-    fontSize: '0.875rem',
+    fontSize: '1rem',
     margin: 0,
+    opacity: 0.85,
   }
 
   const gridStyle: React.CSSProperties = {
@@ -78,7 +80,8 @@ export function Dashboard({
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
-    color: colors.textMuted,
+    color: colors.text,
+    opacity: 0.7,
     marginBottom: spacing.sm,
   }
 
@@ -127,110 +130,177 @@ export function Dashboard({
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div style={gridStyle}>
-        {/* Overall Risk */}
-        <Card>
-          <CardContent>
-            <div style={cardLabelStyle}>Overall Risk</div>
-            {overallRisk ? (
-              <RiskGauge score={overallRisk.score} level={overallRisk.level} size="sm" />
-            ) : (
-              <div style={{ color: colors.textMuted }}>No risk data</div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Empty State for First-Time Users */}
+      {(selectedCountries.length === 0 || !selectedProduct) && (
+        <EmptyState
+          icon="🚀"
+          title="Welcome to ComplianceOS!"
+          description="Let's get started by setting up your compliance profile. Select your target markets and products to see personalized risk analysis, checklists, and FTA opportunities."
+          actionLabel="Configure Settings"
+          onAction={() => onNavigate('settings')}
+        />
+      )}
 
-        {/* Critical Alerts */}
-        <Card>
-          <CardContent>
-            <div style={cardLabelStyle}>Critical Alerts</div>
-            <div
-              data-testid="critical-count"
-              style={{
-                ...largeNumberStyle,
-                color: criticalAlerts.length > 0 ? colors.risk.high : colors.risk.low,
-              }}
-            >
-              {criticalAlerts.length}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
-              {alerts.length} total alerts
-            </div>
-          </CardContent>
-        </Card>
+      {/* Show Dashboard Content Only When Configured */}
+      {selectedCountries.length > 0 && selectedProduct && (
+        <>
+          {/* Summary Cards */}
+          <div style={gridStyle}>
+            {/* Overall Risk */}
+            <Card>
+              <CardContent>
+                <div style={cardLabelStyle}>Overall Risk</div>
+                {overallRisk ? (
+                  <RiskGauge score={overallRisk.score} level={overallRisk.level} size="sm" />
+                ) : (
+                  <div style={{ color: colors.textMuted }}>No risk data</div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Markets */}
-        <Card>
-          <CardContent>
-            <div style={cardLabelStyle}>Markets</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.xs }}>
-              {selectedCountries.map(c => (
-                <Badge key={c} variant="info">
-                  {REGULATORY_DB[c]?.flag} {c}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            {/* Critical Alerts */}
+            <Card>
+              <CardContent>
+                <div style={cardLabelStyle}>Critical Alerts</div>
+                <div
+                  data-testid="critical-count"
+                  style={{
+                    ...largeNumberStyle,
+                    color: criticalAlerts.length > 0 ? colors.risk.high : colors.risk.low,
+                  }}
+                >
+                  {criticalAlerts.length}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                  {alerts.length} total alerts
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Active FTAs */}
-        <Card>
-          <CardContent>
-            <div style={cardLabelStyle}>Active FTAs</div>
-            <div style={largeNumberStyle}>
-              {selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
-              of {selectedCountries.length} markets
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Markets */}
+            <Card>
+              <CardContent>
+                <div style={cardLabelStyle}>Markets</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.xs }}>
+                  {selectedCountries.map(c => (
+                    <Badge key={c} variant="info">
+                      {REGULATORY_DB[c]?.flag} {c}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Quick Actions */}
-      <div style={quickActionsStyle}>
-        <Button variant="primary" onClick={() => onNavigate('risk')}>
-          Risk Analysis
-        </Button>
-        <Button variant="secondary" onClick={() => onNavigate('checklist')}>
-          View Checklist
-        </Button>
-        <Button variant="secondary" onClick={() => onNavigate('alerts')}>
-          View Alerts
-        </Button>
-      </div>
+            {/* Active FTAs */}
+            <Card>
+              <CardContent>
+                <div style={cardLabelStyle}>Active FTAs</div>
+                <div style={largeNumberStyle}>
+                  {selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                  of {selectedCountries.length} markets
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Recent Alerts */}
-      <div>
-        <h3 style={sectionTitleStyle}>Recent Alerts</h3>
-        <div style={alertListStyle}>
-          {alerts.slice(0, 5).map(alert => (
-            <div key={alert.id} style={alertItemStyle}>
-              <span>{alert.flag}</span>
-              <Badge
-                variant={
-                  alert.severity === 'critical'
-                    ? 'danger'
-                    : alert.severity === 'warning'
-                      ? 'warning'
-                      : 'info'
-                }
-                size="sm"
-              >
-                {alert.severity}
-              </Badge>
-              <span style={{ flex: 1 }}>{alert.message}</span>
-              <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>{alert.date}</span>
-            </div>
-          ))}
-          {alerts.length === 0 && (
-            <div style={{ color: colors.textMuted, padding: spacing.md }}>
-              No alerts at this time
+          {/* Quick Actions */}
+          <div style={quickActionsStyle}>
+            <Button variant="primary" onClick={() => onNavigate('risk')}>
+              Risk Analysis
+            </Button>
+            <Button variant="secondary" onClick={() => onNavigate('checklist')}>
+              View Checklist
+            </Button>
+            <Button variant="secondary" onClick={() => onNavigate('alerts')}>
+              View Alerts
+            </Button>
+          </div>
+
+          {/* Priority Actions */}
+          {criticalAlerts.length > 0 && (
+            <div style={{ marginBottom: spacing.xl }}>
+              <h3 style={sectionTitleStyle}>Priority Actions</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                {criticalAlerts.slice(0, 3).map(alert => (
+                  <div
+                    key={alert.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      padding: spacing.md,
+                      backgroundColor: `${colors.risk.high}08`,
+                      border: `1px solid ${colors.risk.high}33`,
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => onNavigate('alerts')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onNavigate('alerts') }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>{"⚠"}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{alert.countryName}: {alert.message}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                        {alert.date} · Requires immediate action
+                      </div>
+                    </div>
+                    <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>→</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
-      </div>
+
+          {/* Recent Alerts */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+              <h3 style={{ ...sectionTitleStyle, marginBottom: 0 }}>Recent Alerts</h3>
+              {alerts.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => onNavigate('alerts')}>
+                  View All →
+                </Button>
+              )}
+            </div>
+            <div style={alertListStyle}>
+              {alerts.slice(0, 5).map(alert => (
+                <div
+                  key={alert.id}
+                  style={{ ...alertItemStyle, cursor: 'pointer' }}
+                  onClick={() => onNavigate('alerts')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onNavigate('alerts') }}
+                >
+                  <span>{alert.flag}</span>
+                  <Badge
+                    variant={
+                      alert.severity === 'critical'
+                        ? 'danger'
+                        : alert.severity === 'warning'
+                          ? 'warning'
+                          : 'info'
+                    }
+                    size="sm"
+                  >
+                    {alert.severity}
+                  </Badge>
+                  <span style={{ flex: 1 }}>{alert.message}</span>
+                  <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>{alert.date}</span>
+                </div>
+              ))}
+              {alerts.length === 0 && (
+                <div style={{ color: colors.textMuted, padding: spacing.md }}>
+                  No alerts at this time
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

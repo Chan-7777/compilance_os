@@ -77,6 +77,19 @@ export const fontWeight = {
   bold: '700',
 } as const
 
+export const lineHeight = {
+  tight: '1.2',
+  base: '1.5',
+  relaxed: '1.7',
+} as const
+
+export const letterSpacing = {
+  tight: '-0.02em',
+  normal: '0',
+  wide: '0.02em',
+  wider: '0.05em',
+} as const
+
 export const shadow = {
   sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
   md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
@@ -96,6 +109,8 @@ export const theme = {
   borderRadius,
   fontSize,
   fontWeight,
+  lineHeight,
+  letterSpacing,
   shadow,
   transition,
 } as const
