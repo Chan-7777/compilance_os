@@ -137,7 +137,7 @@ describe('Dashboard', () => {
 
     it('shows alert messages', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getByText(/CBAM deadline/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/CBAM deadline/i).length).toBeGreaterThan(0)
     })
   })
 

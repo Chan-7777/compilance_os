@@ -1,10 +1,12 @@
 // ============================================================================
 // ComplianceOS - Main Application
+// Phase 2: API-first architecture — all data fetched from FastAPI backend
 // ============================================================================
 
 import { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
-import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { Auth } from '@/components/Auth'
+import { Spinner } from '@/components/Spinner'
 import {
   Dashboard,
   RiskAnalysis,
@@ -14,13 +16,10 @@ import {
   Shipments,
   Settings,
 } from '@/components/views'
-import {
-  calculateMultiCountryRisk,
-  generateChecklist,
-  generateAlerts,
-  getAlertCounts,
-} from '@/utils'
 import { getProductById } from '@/data'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
+import { fetchBatchRiskScore, fetchChecklist, fetchAlerts } from '@/lib/api'
 import { colors } from '@theme/index'
 import type {
   ViewType,
@@ -31,35 +30,33 @@ import type {
   RiskResult,
 } from '@/types'
 
-// Default company profile
+// Check if Supabase is configured
+const SUPABASE_ENABLED = !!(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+)
+
+// Default company profile (used when Supabase is not configured)
 const DEFAULT_PROFILE: CompanyProfile = {
   name: 'My Company',
   size: 'small',
 }
 
 function App() {
+  const auth = useAuth()
+
   // -------------------------------------------------------------------------
   // Application State
   // -------------------------------------------------------------------------
 
-  // Navigation with loading state
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
   const [isPending, startTransition] = useTransition()
 
-  // Selections
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
   const [selectedCountries, setSelectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
-
-  // Profile
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(DEFAULT_PROFILE)
-
-  // Checklist state
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
-
-  // Alert filter
   const [activeAlertFilter, setActiveAlertFilter] = useState<'all' | AlertSeverity>('all')
 
-  // Shipments
   const [shipments, setShipments] = useState<Shipment[]>([
     {
       id: 'ship-1',
@@ -82,93 +79,319 @@ function App() {
   ])
 
   // -------------------------------------------------------------------------
-  // Computed Data
+  // API-fetched data (replaces static utils from Phase 1)
   // -------------------------------------------------------------------------
 
-  // Get product display info
+  const [riskResults, setRiskResults] = useState<any[]>([])
+  const [checklist, setChecklist] = useState<any[]>([])
+  const [alerts, setAlerts] = useState<any[]>([])
+  const [alertCounts, setAlertCounts] = useState({ critical: 0, warning: 0, info: 0 })
+
+  const [riskLoading, setRiskLoading] = useState(false)
+  const [checklistLoading, setChecklistLoading] = useState(false)
+  const [alertsLoading, setAlertsLoading] = useState(false)
+
+  // Product info (UI labels only — stays client-side)
   const productInfo = useMemo(() => {
     const product = getProductById(selectedProduct)
     return product || { id: selectedProduct, label: selectedProduct, icon: '📦', hsPrefix: [] }
   }, [selectedProduct])
 
-  // Calculate risk results for selected countries
-  const riskResults = useMemo(() => {
-    if (!selectedProduct || selectedCountries.length === 0) {
-      return []
+  // Fetch risk scores from API
+  useEffect(() => {
+    if (!selectedProduct || selectedCountries.length === 0 || !auth.user) {
+      setRiskResults([])
+      return
     }
 
-    return calculateMultiCountryRisk(
-      selectedProduct,
-      selectedCountries,
-      companyProfile
-    )
-  }, [selectedProduct, selectedCountries, companyProfile])
+    let cancelled = false
+    setRiskLoading(true)
 
-  // Generate checklist for selected countries
-  const checklist = useMemo(() => {
-    if (!selectedProduct || selectedCountries.length === 0) {
-      return []
+    fetchBatchRiskScore(selectedProduct, selectedCountries, companyProfile.size)
+      .then(data => {
+        if (!cancelled) setRiskResults(data.results)
+      })
+      .catch(err => {
+        console.error('Risk score fetch failed:', err)
+        if (!cancelled) setRiskResults([])
+      })
+      .finally(() => {
+        if (!cancelled) setRiskLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [selectedProduct, selectedCountries, companyProfile.size, auth.user])
+
+  // Fetch checklist from API
+  useEffect(() => {
+    if (!selectedProduct || selectedCountries.length === 0 || !auth.user) {
+      setChecklist([])
+      return
     }
 
-    // Generate checklist for first selected country (simplified)
-    return generateChecklist(selectedProduct, selectedCountries[0])
-  }, [selectedProduct, selectedCountries])
+    let cancelled = false
+    setChecklistLoading(true)
 
-  // Generate alerts
-  const alerts = useMemo(() => {
-    return generateAlerts(selectedProduct, selectedCountries)
-  }, [selectedProduct, selectedCountries])
+    fetchChecklist(selectedProduct, selectedCountries[0])
+      .then(data => {
+        if (!cancelled) setChecklist(data.items || [])
+      })
+      .catch(err => {
+        console.error('Checklist fetch failed:', err)
+        if (!cancelled) setChecklist([])
+      })
+      .finally(() => {
+        if (!cancelled) setChecklistLoading(false)
+      })
 
-  // Alert counts
-  const alertCounts = useMemo(() => {
-    return getAlertCounts(alerts)
-  }, [alerts])
+    return () => { cancelled = true }
+  }, [selectedProduct, selectedCountries, auth.user])
+
+  // Fetch alerts from API
+  useEffect(() => {
+    if (selectedCountries.length === 0 || !auth.user) {
+      setAlerts([])
+      setAlertCounts({ critical: 0, warning: 0, info: 0 })
+      return
+    }
+
+    let cancelled = false
+    setAlertsLoading(true)
+
+    fetchAlerts(selectedCountries, selectedProduct)
+      .then(data => {
+        if (!cancelled) {
+          setAlerts(data.alerts || [])
+          setAlertCounts(data.counts || { critical: 0, warning: 0, info: 0 })
+        }
+      })
+      .catch(err => {
+        console.error('Alerts fetch failed:', err)
+        if (!cancelled) {
+          setAlerts([])
+          setAlertCounts({ critical: 0, warning: 0, info: 0 })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAlertsLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [selectedProduct, selectedCountries, auth.user])
+
+  // -------------------------------------------------------------------------
+  // Load persisted data from Supabase when authenticated
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!SUPABASE_ENABLED || !auth.profile) return
+
+    // Load company profile
+    if (auth.profile.company) {
+      setCompanyProfile({
+        name: auth.profile.company.name,
+        size: auth.profile.company.size as CompanyProfile['size'],
+        iec: auth.profile.company.iec ?? undefined,
+      })
+    }
+
+    // Load user settings (selected product/countries)
+    supabase
+      .from('user_settings')
+      .select('*')
+      .eq('company_id', auth.profile.company_id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setSelectedProduct(data.selected_product)
+          setSelectedCountries(data.selected_countries as CountryCode[])
+        }
+      })
+
+    // Load shipments
+    supabase
+      .from('shipments')
+      .select('*')
+      .eq('company_id', auth.profile.company_id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setShipments(
+            data.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              product: s.product,
+              country: s.country,
+              date: s.date,
+              status: s.status,
+              riskScore: s.risk_score,
+            }))
+          )
+        }
+      })
+
+    // Load checklist progress
+    supabase
+      .from('checklist_progress')
+      .select('checked_items')
+      .eq('company_id', auth.profile.company_id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const merged: Record<string, boolean> = {}
+          for (const row of data) {
+            const items = row.checked_items as Record<string, boolean>
+            Object.assign(merged, items)
+          }
+          setCheckedItems(merged)
+        }
+      })
+  }, [auth.profile])
+
+  // -------------------------------------------------------------------------
+  // Persist changes to Supabase
+  // -------------------------------------------------------------------------
+
+  const persistSettings = useCallback(
+    async (product: string, countries: CountryCode[]) => {
+      if (!SUPABASE_ENABLED || !auth.profile) return
+      await supabase
+        .from('user_settings')
+        .upsert(
+          {
+            company_id: auth.profile.company_id,
+            selected_product: product,
+            selected_countries: countries,
+          },
+          { onConflict: 'company_id' }
+        )
+    },
+    [auth.profile]
+  )
+
+  const persistProfile = useCallback(
+    async (profile: CompanyProfile) => {
+      if (!SUPABASE_ENABLED || !auth.profile) return
+      await supabase
+        .from('companies')
+        .update({ name: profile.name, size: profile.size, iec: profile.iec })
+        .eq('id', auth.profile.company_id)
+    },
+    [auth.profile]
+  )
 
   // -------------------------------------------------------------------------
   // Event Handlers
   // -------------------------------------------------------------------------
 
-  const handleNavigate = useCallback((view: ViewType) => {
-    startTransition(() => {
-      setCurrentView(view)
-    })
-  }, [startTransition])
+  const handleNavigate = useCallback(
+    (view: ViewType) => {
+      startTransition(() => {
+        setCurrentView(view)
+      })
+    },
+    [startTransition]
+  )
 
-  const handleToggleChecklistItem = useCallback((itemId: string | number) => {
-    const key = String(itemId)
-    setCheckedItems(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }))
+  const handleToggleChecklistItem = useCallback(
+    (itemId: string | number) => {
+      const key = String(itemId)
+      setCheckedItems(prev => {
+        const updated = { ...prev, [key]: !prev[key] }
+
+        // Persist to Supabase
+        if (SUPABASE_ENABLED && auth.profile) {
+          supabase
+            .from('checklist_progress')
+            .upsert(
+              {
+                company_id: auth.profile.company_id,
+                country_code: selectedCountries[0] || 'EU',
+                product: selectedProduct,
+                checked_items: updated,
+              },
+              { onConflict: 'company_id,shipment_id,country_code' }
+            )
+        }
+
+        return updated
+      })
+    },
+    [auth.profile, selectedCountries, selectedProduct]
+  )
+
+  const handleAddShipment = useCallback(
+    async (shipment: Omit<Shipment, 'id' | 'status'>) => {
+      if (SUPABASE_ENABLED && auth.profile) {
+        const { data } = await supabase
+          .from('shipments')
+          .insert({
+            company_id: auth.profile.company_id,
+            name: shipment.name,
+            product: shipment.product,
+            country: shipment.country,
+            date: shipment.date,
+          })
+          .select()
+          .single()
+
+        if (data) {
+          setShipments(prev => [
+            {
+              id: data.id,
+              name: data.name,
+              product: data.product,
+              country: data.country,
+              date: data.date,
+              status: data.status,
+              riskScore: data.risk_score,
+            },
+            ...prev,
+          ])
+        }
+      } else {
+        const newShipment: Shipment = {
+          ...shipment,
+          id: `ship-${Date.now()}`,
+          status: 'pending',
+        }
+        setShipments(prev => [newShipment, ...prev])
+      }
+    },
+    [auth.profile]
+  )
+
+  const handleSelectShipment = useCallback((_shipmentId: string) => {
+    // Expand shipment detail — handled in Shipments view
   }, [])
 
-  const handleAddShipment = useCallback((shipment: Omit<Shipment, 'id' | 'status'>) => {
-    const newShipment: Shipment = {
-      ...shipment,
-      id: `ship-${Date.now()}`,
-      status: 'pending',
-    }
-    setShipments(prev => [...prev, newShipment])
-  }, [])
+  const handleUpdateProfile = useCallback(
+    (profile: CompanyProfile) => {
+      setCompanyProfile(profile)
+      persistProfile(profile)
+    },
+    [persistProfile]
+  )
 
-  const handleSelectShipment = useCallback((shipmentId: string) => {
-    // Could navigate to shipment detail view
-    console.log('Selected shipment:', shipmentId)
-  }, [])
+  const handleSelectProduct = useCallback(
+    (productId: string) => {
+      setSelectedProduct(productId)
+      persistSettings(productId, selectedCountries)
+    },
+    [selectedCountries, persistSettings]
+  )
 
-  const handleUpdateProfile = useCallback((profile: CompanyProfile) => {
-    setCompanyProfile(profile)
-  }, [])
-
-  const handleSelectProduct = useCallback((productId: string) => {
-    setSelectedProduct(productId)
-  }, [])
-
-  const handleToggleCountry = useCallback((country: CountryCode) => {
-    setSelectedCountries(prev =>
-      prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]
-    )
-  }, [])
+  const handleToggleCountry = useCallback(
+    (country: CountryCode) => {
+      setSelectedCountries(prev => {
+        const updated = prev.includes(country)
+          ? prev.filter(c => c !== country)
+          : [...prev, country]
+        persistSettings(selectedProduct, updated)
+        return updated
+      })
+    },
+    [selectedProduct, persistSettings]
+  )
 
   // -------------------------------------------------------------------------
   // Keyboard Shortcuts
@@ -176,7 +399,6 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if user is typing in an input/textarea/select
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
@@ -193,7 +415,6 @@ function App() {
         e.preventDefault()
         handleNavigate(viewKeys[e.key])
       } else if (e.key === ',' || (e.key === 's' && e.metaKey)) {
-        // comma or Cmd+S for settings
         if (e.key === 's') e.preventDefault()
         handleNavigate('settings')
       }
@@ -204,7 +425,33 @@ function App() {
   }, [handleNavigate])
 
   // -------------------------------------------------------------------------
-  // Render Current View
+  // Auth Gate — show login if Supabase is configured but user is not authed
+  // -------------------------------------------------------------------------
+
+  if (SUPABASE_ENABLED) {
+    if (auth.loading) {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            backgroundColor: colors.background,
+          }}
+        >
+          <Spinner />
+        </div>
+      )
+    }
+
+    if (!auth.user) {
+      return <Auth onSignIn={auth.signIn} onSignUp={auth.signUp} />
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Render
   // -------------------------------------------------------------------------
 
   const renderView = () => {
@@ -220,7 +467,6 @@ function App() {
             onNavigate={handleNavigate}
           />
         )
-
       case 'risk':
         return (
           <RiskAnalysis
@@ -228,7 +474,6 @@ function App() {
             riskResults={riskResults as Array<RiskResult & { country: CountryCode }>}
           />
         )
-
       case 'checklist':
         return (
           <Checklist
@@ -239,7 +484,6 @@ function App() {
             onToggleItem={handleToggleChecklistItem}
           />
         )
-
       case 'alerts':
         return (
           <Alerts
@@ -248,10 +492,13 @@ function App() {
             onFilterChange={setActiveAlertFilter}
           />
         )
-
       case 'fta':
-        return <FTASchemes selectedCountries={selectedCountries} selectedProduct={selectedProduct as any} />
-
+        return (
+          <FTASchemes
+            selectedCountries={selectedCountries}
+            selectedProduct={selectedProduct as any}
+          />
+        )
       case 'shipments':
         return (
           <Shipments
@@ -262,7 +509,6 @@ function App() {
             onSelectShipment={handleSelectShipment}
           />
         )
-
       case 'settings':
         return (
           <Settings
@@ -274,40 +520,25 @@ function App() {
             onToggleCountry={handleToggleCountry}
           />
         )
-
       default:
         return null
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Styles
-  // -------------------------------------------------------------------------
-
-  const appContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    minHeight: '100vh',
-    backgroundColor: colors.background,
-  }
-
-  const mainContentStyle: React.CSSProperties = {
-    flex: 1,
-    marginLeft: '240px', // Sidebar width
-    overflow: 'auto',
-  }
-
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
-
   return (
-    <div style={appContainerStyle} data-testid="app-container">
+    <div
+      style={{ display: 'flex', minHeight: '100vh', backgroundColor: colors.background }}
+      data-testid="app-container"
+    >
       <Sidebar
         currentView={currentView}
         onNavigate={handleNavigate}
         alertCount={alertCounts.critical}
       />
-      <main style={mainContentStyle} data-testid="main-content">
+      <main
+        style={{ flex: 1, marginLeft: '240px', overflow: 'auto' }}
+        data-testid="main-content"
+      >
         {renderView()}
       </main>
     </div>

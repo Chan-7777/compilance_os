@@ -152,7 +152,7 @@ describe('Checklist', () => {
   describe('Empty State', () => {
     it('shows message when no checklist items', () => {
       render(<Checklist {...defaultProps} checklist={[]} />)
-      expect(screen.getByText(/no items/i)).toBeInTheDocument()
+      expect(screen.getByText(/no checklist items/i)).toBeInTheDocument()
     })
   })
 })

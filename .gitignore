@@ -65,3 +65,7 @@ fta_data_*.csv
 india_uae_fta_*.json
 india_uae_fta_*.csv
 __pycache__/
+.venv/
+.mypy_cache/
+.pytest_cache/
+*.pyc

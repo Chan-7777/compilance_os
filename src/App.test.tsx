@@ -1,36 +1,171 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import App from './App'
 
+// Mock auth hook to simulate an authenticated user
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user', email: 'test@example.com' },
+    session: null,
+    profile: null,
+    loading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+}))
+
+// Mock Supabase client
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: () => ({ then: (fn: any) => fn({ data: null }) }),
+          order: () => ({ then: (fn: any) => fn({ data: null }) }),
+          then: (fn: any) => fn({ data: null }),
+        }),
+      }),
+    }),
+  },
+}))
+
+// Mock API module
+vi.mock('@/lib/api', () => ({
+  fetchBatchRiskScore: vi.fn(),
+  fetchChecklist: vi.fn(),
+  fetchAlerts: vi.fn(),
+  fetchFTAAgreements: vi.fn(),
+  fetchExportSchemes: vi.fn(),
+  fetchBatchFTASavings: vi.fn(),
+  fetchCountries: vi.fn(),
+}))
+
+import {
+  fetchBatchRiskScore,
+  fetchChecklist,
+  fetchAlerts,
+  fetchFTAAgreements,
+  fetchExportSchemes,
+  fetchBatchFTASavings,
+  fetchCountries,
+} from '@/lib/api'
+
+beforeEach(() => {
+  vi.mocked(fetchBatchRiskScore).mockResolvedValue({
+    results: [
+      {
+        country: 'EU',
+        score: 65,
+        level: 'high',
+        factors: [{ category: 'CBAM', severity: 'high', detail: 'CBAM applies' }],
+        recommendations: ['Track emissions'],
+      },
+      {
+        country: 'UAE',
+        score: 35,
+        level: 'medium',
+        factors: [{ category: 'Trade Agreement', severity: 'positive', detail: 'CEPA active' }],
+        recommendations: ['File CoO'],
+      },
+    ],
+  })
+
+  vi.mocked(fetchChecklist).mockResolvedValue({
+    items: [
+      { id: 'doc-1', category: 'Documentation', item: 'Commercial Invoice', required: true, phase: 'pre-shipment', priority: 'high' },
+      { id: 'doc-2', category: 'Documentation', item: 'Packing List', required: true, phase: 'pre-shipment', priority: 'medium' },
+      { id: 'cert-1', category: 'Certifications', item: 'CE Marking', required: true, phase: 'pre-production', priority: 'high' },
+    ],
+  })
+
+  vi.mocked(fetchAlerts).mockResolvedValue({
+    alerts: [
+      {
+        id: 1,
+        type: 'deadline',
+        severity: 'critical',
+        country: 'EU',
+        countryName: 'European Union',
+        flag: '\u{1F1EA}\u{1F1FA}',
+        date: '2025-12-31',
+        message: 'CBAM deadline approaching',
+      },
+      {
+        id: 2,
+        type: 'regulation_change',
+        severity: 'warning',
+        country: 'UK',
+        countryName: 'United Kingdom',
+        flag: '\u{1F1EC}\u{1F1E7}',
+        date: '2025-06-01',
+        message: 'UK REACH update',
+      },
+    ],
+    counts: { critical: 1, warning: 1, info: 0 },
+  })
+
+  // FTA-related mocks (used when navigating to FTA schemes view)
+  vi.mocked(fetchFTAAgreements).mockResolvedValue({
+    agreements: [
+      { country_code: 'EU', name: 'India-EU FTA', status: 'Under Negotiation', preferential_tariff: false, notes: 'Negotiations ongoing' },
+      { country_code: 'UAE', name: 'India-UAE CEPA', status: 'Active', effective_date: '2022-05-01', preferential_tariff: true, notes: 'CEPA active' },
+    ],
+  })
+  vi.mocked(fetchExportSchemes).mockResolvedValue({
+    schemes: [
+      { name: 'RoDTEP', description: 'Remission of Duties and Taxes', status: 'Active' },
+    ],
+  })
+  vi.mocked(fetchCountries).mockResolvedValue({
+    countries: [
+      { code: 'EU', name: 'European Union', flag: '\u{1F1EA}\u{1F1FA}' },
+      { code: 'UAE', name: 'United Arab Emirates', flag: '\u{1F1E6}\u{1F1EA}' },
+    ],
+  })
+  vi.mocked(fetchBatchFTASavings).mockResolvedValue({ results: [] })
+})
+
 describe('App Component', () => {
-  // Helper to get sidebar nav
   const getSidebar = () => screen.getByRole('navigation')
 
   describe('Rendering', () => {
-    it('renders without crashing', () => {
+    it('renders without crashing', async () => {
       render(<App />)
-      expect(screen.getByTestId('app-container')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('app-container')).toBeInTheDocument()
+      })
     })
 
-    it('renders sidebar navigation', () => {
+    it('renders sidebar navigation', async () => {
       render(<App />)
-      expect(screen.getByRole('navigation')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
     })
 
-    it('renders main content area', () => {
+    it('renders main content area', async () => {
       render(<App />)
-      expect(screen.getByTestId('main-content')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('main-content')).toBeInTheDocument()
+      })
     })
 
-    it('renders dashboard by default', () => {
+    it('renders dashboard by default', async () => {
       render(<App />)
-      expect(screen.getByText(/compliance dashboard/i)).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText(/compliance dashboard/i)).toBeInTheDocument()
+      })
     })
   })
 
   describe('Navigation', () => {
-    it('navigates to risk analysis view', () => {
+    it('navigates to risk analysis view', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /risk analysis/i }))
@@ -38,8 +173,11 @@ describe('App Component', () => {
       expect(screen.getByRole('heading', { name: /risk analysis/i })).toBeInTheDocument()
     })
 
-    it('navigates to checklist view', () => {
+    it('navigates to checklist view', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /checklist/i }))
@@ -47,8 +185,11 @@ describe('App Component', () => {
       expect(screen.getByText(/compliance checklist/i)).toBeInTheDocument()
     })
 
-    it('navigates to alerts view', () => {
+    it('navigates to alerts view', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /alerts/i }))
@@ -56,17 +197,25 @@ describe('App Component', () => {
       expect(screen.getByText(/regulatory alerts/i)).toBeInTheDocument()
     })
 
-    it('navigates to FTA schemes view', () => {
+    it('navigates to FTA schemes view', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /fta.*schemes/i }))
 
-      expect(screen.getByRole('heading', { name: /fta.*schemes/i })).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /fta.*schemes/i })).toBeInTheDocument()
+      })
     })
 
-    it('navigates to shipments view', () => {
+    it('navigates to shipments view', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /shipments/i }))
@@ -74,15 +223,14 @@ describe('App Component', () => {
       expect(screen.getAllByText(/shipments/i).length).toBeGreaterThan(0)
     })
 
-    it('navigates back to dashboard', () => {
+    it('navigates back to dashboard', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
-
-      // Navigate away
       fireEvent.click(within(sidebar).getByRole('button', { name: /risk analysis/i }))
-
-      // Navigate back
       fireEvent.click(within(sidebar).getByRole('button', { name: /dashboard/i }))
 
       expect(screen.getByText(/my company/i)).toBeInTheDocument()
@@ -90,73 +238,100 @@ describe('App Component', () => {
   })
 
   describe('Data Integration', () => {
-    it('displays company profile', () => {
+    it('displays company profile', async () => {
       render(<App />)
-      expect(screen.getByText(/my company/i)).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText(/my company/i)).toBeInTheDocument()
+      })
     })
 
-    it('displays selected product', () => {
+    it('displays selected product', async () => {
       render(<App />)
-      expect(screen.getByText(/steel/i)).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText(/steel/i)).toBeInTheDocument()
+      })
     })
 
-    it('displays selected countries', () => {
+    it('displays selected countries', async () => {
       render(<App />)
-      expect(screen.getAllByText(/EU/).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/UAE/).length).toBeGreaterThan(0)
+      await waitFor(() => {
+        expect(screen.getAllByText(/EU/).length).toBeGreaterThan(0)
+        expect(screen.getAllByText(/UAE/).length).toBeGreaterThan(0)
+      })
     })
 
-    it('calculates and displays risk scores', () => {
+    it('calculates and displays risk scores', async () => {
       render(<App />)
-      expect(screen.getByTestId('critical-count')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('critical-count')).toBeInTheDocument()
+      })
     })
 
-    it('generates alerts for selected countries', () => {
+    it('generates alerts for selected countries', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /alerts/i }))
 
-      expect(screen.getAllByTestId('alert-card').length).toBeGreaterThan(0)
+      await waitFor(() => {
+        expect(screen.getAllByTestId('alert-card').length).toBeGreaterThan(0)
+      })
     })
   })
 
   describe('Sidebar Alert Badge', () => {
-    it('displays alert count in sidebar', () => {
+    it('displays alert count in sidebar', async () => {
       render(<App />)
-      const badge = screen.queryByTestId('alert-badge')
-      expect(badge === null || badge !== null).toBe(true)
+      await waitFor(() => {
+        const badge = screen.queryByTestId('alert-badge')
+        expect(badge === null || badge !== null).toBe(true)
+      })
     })
   })
 
   describe('Checklist Functionality', () => {
-    it('displays checklist items', () => {
+    it('displays checklist items', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /checklist/i }))
 
-      expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      })
     })
 
-    it('allows checking items', () => {
+    it('allows checking items', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /checklist/i }))
 
-      const checkboxes = screen.getAllByRole('checkbox')
-      expect(checkboxes.length).toBeGreaterThan(0)
+      await waitFor(() => {
+        const checkboxes = screen.getAllByRole('checkbox')
+        expect(checkboxes.length).toBeGreaterThan(0)
+      })
 
-      fireEvent.click(checkboxes[0])
-
+      fireEvent.click(screen.getAllByRole('checkbox')[0])
       expect(screen.getByRole('progressbar')).toBeInTheDocument()
     })
   })
 
   describe('Shipments', () => {
-    it('displays sample shipments', () => {
+    it('displays sample shipments', async () => {
       render(<App />)
+      await waitFor(() => {
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
+      })
 
       const sidebar = getSidebar()
       fireEvent.click(within(sidebar).getByRole('button', { name: /shipments/i }))
