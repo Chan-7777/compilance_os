@@ -164,6 +164,7 @@ export interface Alert {
 // ----------------------------------------------------------------------------
 
 export type ShipmentStatus = 'pending' | 'in_progress' | 'preparing' | 'in_transit' | 'delivered'
+export type GateStatus = 'pending' | 'approved' | 'blocked'
 
 export interface Shipment {
   id: string
@@ -175,6 +176,73 @@ export interface Shipment {
   riskScore?: number
   checklist?: ChecklistItem[]
   completed?: number
+  hsCode?: string
+  shipmentValue?: number
+  gateStatus?: GateStatus
+}
+
+// ----------------------------------------------------------------------------
+// Compliance Gate Types
+// ----------------------------------------------------------------------------
+
+export interface HSValidationResult {
+  valid: boolean
+  hs_code: string
+  description: string
+  suggestions: string[]
+}
+
+export interface FTAEligibilityResult {
+  eligible: boolean
+  agreement: string
+  mfn_rate: number
+  preferential_rate: number
+  potential_savings: number
+}
+
+export interface COORequirement {
+  required: boolean
+  agreement_name: string
+  issuing_authority: string
+  document_type: string
+}
+
+export interface RulesOfOriginResult {
+  applicable: boolean
+  rule_text: string
+}
+
+export interface ChecklistProgressResult {
+  total_items: number
+  completed_items: number
+  critical_pending: number
+  completion_percentage: number
+}
+
+export interface GateCheckResult {
+  shipment_id: string
+  gate_status: GateStatus
+  blocking_reasons: string[]
+  hs_validation: HSValidationResult
+  fta_eligibility: FTAEligibilityResult
+  coo_requirement: COORequirement
+  rules_of_origin: RulesOfOriginResult
+  checklist_progress: ChecklistProgressResult
+  checked_at: string
+}
+
+// ----------------------------------------------------------------------------
+// API Key Types
+// ----------------------------------------------------------------------------
+
+export interface APIKeyInfo {
+  id: string
+  name: string
+  key_prefix: string
+  created_at: string
+  last_used_at?: string
+  rate_limit: number
+  permissions: string[]
 }
 
 // ----------------------------------------------------------------------------
@@ -213,3 +281,4 @@ export type CountryCode = 'EU' | 'US' | 'UK' | 'UAE' | 'Japan' | 'Australia'
 
 export type RegulatoryDatabase = Record<CountryCode, CountryRegulation>
 export type FTADatabase = Record<CountryCode, FTAStatus>
+

@@ -37,6 +37,8 @@ async def create_shipment(
         "country": shipment.country,
         "date": str(shipment.date),
         "notes": shipment.notes,
+        "hs_code": shipment.hs_code,
+        "shipment_value": shipment.shipment_value,
     }
     result = supabase.table("shipments").insert(data).execute()
 

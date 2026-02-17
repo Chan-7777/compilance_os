@@ -1,18 +1,15 @@
 // ============================================================================
-// Shipments View - Shipment tracking with CRUD
+// Shipments View - Shipment tracking with CRUD + Pre-Shipment Compliance Gate
 // ============================================================================
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
-import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
-import type { Shipment, CountryCode } from '@/types'
-
-type ProductInfo = (typeof PRODUCT_CATEGORIES)[number]
+import { runGateCheck, downloadCOOPdf } from '@/lib/api'
+import type { Shipment, CountryCode, GateCheckResult } from '@/types'
 
 export interface ShipmentsProps {
   shipments: Shipment[]
@@ -31,12 +28,23 @@ export function Shipments({
 }: ShipmentsProps) {
   const [showForm, setShowForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    product: string
+    country: string
+    date: string
+    hsCode: string
+    shipmentValue: string
+  }>({
     name: '',
     product: selectedProduct || '',
     country: selectedCountries[0] || '',
     date: '',
+    hsCode: '',
+    shipmentValue: '',
   })
+  const [gateResults, setGateResults] = useState<Record<string, GateCheckResult>>({})
+  const [gateLoading, setGateLoading] = useState<Record<string, boolean>>({})
 
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
@@ -144,12 +152,6 @@ export function Shipments({
     justifyContent: 'flex-end',
   }
 
-  const emptyStyle: React.CSSProperties = {
-    textAlign: 'center',
-    padding: spacing['2xl'],
-    color: colors.textMuted,
-  }
-
   const getStatusVariant = (status: Shipment['status']) => {
     switch (status) {
       case 'delivered':
@@ -161,6 +163,17 @@ export function Shipments({
         return 'warning' as const
       default:
         return 'default' as const
+    }
+  }
+
+  const getGateVariant = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return 'success' as const
+      case 'blocked':
+        return 'danger' as const
+      default:
+        return 'warning' as const
     }
   }
 
@@ -184,15 +197,166 @@ export function Shipments({
         product: formData.product,
         country: formData.country,
         date: formData.date,
+        hsCode: formData.hsCode || undefined,
+        shipmentValue: formData.shipmentValue ? parseFloat(formData.shipmentValue) : undefined,
       })
       setFormData({
         name: '',
         product: selectedProduct || '',
         country: selectedCountries[0] || '',
         date: '',
+        hsCode: '',
+        shipmentValue: '',
       })
       setShowForm(false)
     }
+  }
+
+  const handleRunGateCheck = async (shipmentId: string) => {
+    setGateLoading(prev => ({ ...prev, [shipmentId]: true }))
+    try {
+      const result = await runGateCheck(shipmentId)
+      setGateResults(prev => ({ ...prev, [shipmentId]: result }))
+    } catch (err) {
+      console.error('Gate check failed:', err)
+    } finally {
+      setGateLoading(prev => ({ ...prev, [shipmentId]: false }))
+    }
+  }
+
+  const handleDownloadCOO = async (shipmentId: string) => {
+    try {
+      const blob = await downloadCOOPdf(shipmentId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `coo_${shipmentId}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('CoO PDF download failed:', err)
+    }
+  }
+
+  const renderGateCheckPanel = (shipment: Shipment) => {
+    const gate = gateResults[shipment.id]
+    const loading = gateLoading[shipment.id]
+
+    return (
+      <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.md, border: `1px solid ${colors.border}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>🛡️ Pre-Shipment Compliance Gate</h4>
+          <Button
+            variant="primary"
+            onClick={() => handleRunGateCheck(shipment.id)}
+            disabled={loading}
+          >
+            {loading ? '⏳ Running...' : '▶ Run Compliance Check'}
+          </Button>
+        </div>
+
+        {gate && (
+          <>
+            {/* Gate Status */}
+            <div style={{ marginBottom: spacing.md, padding: spacing.sm, borderRadius: borderRadius.md, backgroundColor: gate.gate_status === 'approved' ? '#dcfce7' : gate.gate_status === 'blocked' ? '#fee2e2' : '#fef9c3' }}>
+              <strong>Gate Status: </strong>
+              <Badge variant={getGateVariant(gate.gate_status)} size="sm">
+                {gate.gate_status.toUpperCase()}
+              </Badge>
+            </div>
+
+            {/* 5 Check Items */}
+            <div style={{ display: 'grid', gap: spacing.sm }}>
+              {/* HS Validation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
+                <span>{gate.hs_validation?.valid ? '✅' : '❌'}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>HS Code Validation</strong>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {gate.hs_validation?.description || 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* FTA Eligibility */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
+                <span>{gate.fta_eligibility?.eligible ? '✅' : '⚠️'}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>FTA Eligibility</strong>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {gate.fta_eligibility?.agreement || 'No FTA'} — MFN: {gate.fta_eligibility?.mfn_rate}% → Pref: {gate.fta_eligibility?.preferential_rate}%
+                  </div>
+                </div>
+              </div>
+
+              {/* FTA Savings Highlight */}
+              {gate.fta_eligibility?.potential_savings > 0 && (
+                <div style={{ padding: spacing.sm, borderRadius: borderRadius.md, backgroundColor: '#dcfce7', border: '1px solid #86efac', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#166534' }}>
+                    💰 Potential Savings: ₹{gate.fta_eligibility.potential_savings.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+
+              {/* CoO Requirement */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
+                <span>{gate.coo_requirement?.required ? '📄' : '➖'}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>Certificate of Origin</strong>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {gate.coo_requirement?.required
+                      ? `Required — ${gate.coo_requirement.issuing_authority} (${gate.coo_requirement.document_type})`
+                      : 'Not required'}
+                  </div>
+                </div>
+                {gate.coo_requirement?.required && (
+                  <Button variant="ghost" onClick={() => handleDownloadCOO(shipment.id)}>
+                    📥 Download CoO PDF
+                  </Button>
+                )}
+              </div>
+
+              {/* Rules of Origin */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
+                <span>{gate.rules_of_origin?.applicable ? '✅' : '➖'}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>Rules of Origin</strong>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {gate.rules_of_origin?.rule_text || 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Checklist Progress */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
+                <span>{(gate.checklist_progress?.completion_percentage ?? 0) >= 100 ? '✅' : '⏳'}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>Checklist Completion</strong>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {gate.checklist_progress?.completed_items}/{gate.checklist_progress?.total_items} items ({gate.checklist_progress?.completion_percentage}%)
+                    {gate.checklist_progress?.critical_pending > 0 && (
+                      <span style={{ color: colors.risk.high }}> — {gate.checklist_progress.critical_pending} critical pending</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Blocking Reasons */}
+            {gate.blocking_reasons && gate.blocking_reasons.length > 0 && (
+              <div style={{ marginTop: spacing.md, padding: spacing.sm, borderRadius: borderRadius.md, backgroundColor: '#fee2e2', border: '1px solid #fca5a5' }}>
+                <strong style={{ color: '#991b1b' }}>⚠️ Blocking Reasons:</strong>
+                <ul style={{ margin: `${spacing.xs} 0 0 ${spacing.md}`, paddingLeft: 0, listStyle: 'disc inside', color: '#991b1b', fontSize: '0.875rem' }}>
+                  {gate.blocking_reasons.map((reason: string, i: number) => (
+                    <li key={i}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -269,6 +433,32 @@ export function Shipments({
                 onChange={e => setFormData(d => ({ ...d, date: e.target.value }))}
               />
             </div>
+            <div style={formFieldStyle}>
+              <label style={labelStyle} htmlFor="shipment-hs-code">
+                HS Code
+              </label>
+              <input
+                id="shipment-hs-code"
+                type="text"
+                style={inputStyle}
+                value={formData.hsCode}
+                onChange={e => setFormData(d => ({ ...d, hsCode: e.target.value }))}
+                placeholder="e.g., 7208.51"
+              />
+            </div>
+            <div style={formFieldStyle}>
+              <label style={labelStyle} htmlFor="shipment-value">
+                Shipment Value (INR)
+              </label>
+              <input
+                id="shipment-value"
+                type="number"
+                style={inputStyle}
+                value={formData.shipmentValue}
+                onChange={e => setFormData(d => ({ ...d, shipmentValue: e.target.value }))}
+                placeholder="e.g., 500000"
+              />
+            </div>
           </div>
           <div style={formActionsStyle}>
             <Button variant="ghost" onClick={() => setShowForm(false)}>
@@ -283,7 +473,7 @@ export function Shipments({
 
       {/* Shipment List */}
       {shipments.length === 0 ? (
-        <div style={emptyStyle}>
+        <div style={{ textAlign: 'center', padding: spacing['2xl'], color: colors.textMuted }}>
           <p>No shipments yet</p>
           <Button variant="primary" onClick={() => setShowForm(true)}>
             Create your first shipment
@@ -331,6 +521,11 @@ export function Shipments({
                       <Badge variant={getStatusVariant(shipment.status)} size="sm">
                         {formatStatus(shipment.status)}
                       </Badge>
+                      {shipment.gateStatus && (
+                        <Badge variant={getGateVariant(shipment.gateStatus)} size="sm">
+                          🛡️ {shipment.gateStatus}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
@@ -379,20 +574,29 @@ export function Shipments({
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>HS Code Prefix</div>
-                        <div style={{ fontWeight: 500 }}>{product?.hsPrefix?.join(', ') || 'N/A'}</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>HS Code</div>
+                        <div style={{ fontWeight: 500, fontFamily: "'JetBrains Mono', monospace" }}>{shipment.hsCode || product?.hsPrefix?.join(', ') || 'N/A'}</div>
                       </div>
                     </div>
+                    {shipment.shipmentValue && (
+                      <div style={{ marginBottom: spacing.md }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: colors.textMuted, marginBottom: spacing.xs }}>Shipment Value</div>
+                        <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>₹{shipment.shipmentValue.toLocaleString('en-IN')}</div>
+                      </div>
+                    )}
                     {country?.cbam?.active && (
                       <div style={{ padding: spacing.sm, backgroundColor: `${colors.risk.high}11`, border: `1px solid ${colors.risk.high}33`, borderRadius: borderRadius.md, fontSize: '0.875rem', marginBottom: spacing.sm }}>
                         <strong>CBAM Notice:</strong> This destination has active CBAM requirements. Ensure carbon emissions data is prepared.
                       </div>
                     )}
                     {country?.packaging && country.packaging.length > 0 && (
-                      <div style={{ fontSize: '0.875rem', color: colors.textMuted }}>
+                      <div style={{ fontSize: '0.875rem', color: colors.textMuted, marginBottom: spacing.sm }}>
                         <strong>Packaging:</strong> {country.packaging.join(' · ')}
                       </div>
                     )}
+
+                    {/* Pre-Shipment Compliance Gate Panel */}
+                    {renderGateCheckPanel(shipment)}
                   </div>
                 )}
               </div>

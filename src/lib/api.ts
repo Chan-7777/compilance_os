@@ -197,3 +197,68 @@ export function triggerScraper(scraperName: string) {
     method: 'POST',
   })
 }
+
+// ─── Blob Fetch Helper ───────────────────────────────────────
+async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  }
+
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail || `API error: ${res.status}`)
+  }
+
+  return res.blob()
+}
+
+// ─── Compliance Gate ──────────────────────────────────────────
+export function runGateCheck(shipmentId: string) {
+  return apiFetch<any>(`/api/v1/shipments/${shipmentId}/gate-check`, {
+    method: 'POST',
+  })
+}
+
+export function getGateStatus(shipmentId: string) {
+  return apiFetch<any>(`/api/v1/shipments/${shipmentId}/gate-check`)
+}
+
+export function downloadCOOPdf(shipmentId: string): Promise<Blob> {
+  return apiFetchBlob(`/api/v1/shipments/${shipmentId}/coo-pdf`)
+}
+
+export function validateHSCode(hsCode: string, product?: string) {
+  return apiFetch<any>('/api/v1/hs-validate', {
+    method: 'POST',
+    body: JSON.stringify({ hs_code: hsCode, product }),
+  })
+}
+
+// ─── API Keys ─────────────────────────────────────────────────
+export function fetchAPIKeys() {
+  return apiFetch<any[]>('/api/v1/api-keys')
+}
+
+export function createAPIKey(name: string) {
+  return apiFetch<{ key: string; id: string }>('/api/v1/api-keys', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function revokeAPIKey(id: string) {
+  return apiFetch<void>(`/api/v1/api-keys/${id}`, { method: 'DELETE' })
+}

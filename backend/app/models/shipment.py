@@ -10,6 +10,8 @@ class ShipmentCreate(BaseModel):
     country: str
     date: date
     notes: Optional[str] = None
+    hs_code: Optional[str] = None
+    shipment_value: Optional[float] = None
 
 
 class ShipmentUpdate(BaseModel):
@@ -17,6 +19,8 @@ class ShipmentUpdate(BaseModel):
     status: Optional[str] = None
     risk_score: Optional[int] = None
     notes: Optional[str] = None
+    hs_code: Optional[str] = None
+    shipment_value: Optional[float] = None
 
 
 class ShipmentResponse(BaseModel):
@@ -29,5 +33,8 @@ class ShipmentResponse(BaseModel):
     status: str
     risk_score: Optional[int] = None
     notes: Optional[str] = None
+    hs_code: Optional[str] = None
+    shipment_value: Optional[float] = None
+    gate_status: Optional[str] = None
     created_at: str
     updated_at: str

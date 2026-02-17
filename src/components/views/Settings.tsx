@@ -1,14 +1,15 @@
 // ============================================================================
-// Settings View - Configuration for product and market selection
+// Settings View - Configuration for product and market selection + API Keys
 // ============================================================================
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
-import { REGULATORY_DB } from '@/data/regulatory-db'
-import type { CountryCode, CompanyProfile, CompanySize } from '@/types'
+import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
+import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
 
 export interface SettingsProps {
   companyProfile: CompanyProfile
@@ -43,6 +44,43 @@ export function Settings({
   onSelectProduct,
   onToggleCountry,
 }: SettingsProps) {
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
+  const [newKeyName, setNewKeyName] = useState('')
+  const [newKeyPlaintext, setNewKeyPlaintext] = useState<string | null>(null)
+  const [apiKeysLoading, setApiKeysLoading] = useState(false)
+
+  useEffect(() => {
+    setApiKeysLoading(true)
+    fetchAPIKeys()
+      .then(keys => setApiKeys(keys || []))
+      .catch(err => console.error('Failed to load API keys:', err))
+      .finally(() => setApiKeysLoading(false))
+  }, [])
+
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) return
+    try {
+      const result = await createAPIKey(newKeyName.trim())
+      setNewKeyPlaintext(result.key)
+      setNewKeyName('')
+      // Refresh keys list
+      const keys = await fetchAPIKeys()
+      setApiKeys(keys || [])
+    } catch (err) {
+      console.error('Failed to create API key:', err)
+    }
+  }
+
+  const handleRevokeKey = async (id: string) => {
+    try {
+      await revokeAPIKey(id)
+      setApiKeys(prev => prev.filter(k => k.id !== id))
+    } catch (err) {
+      console.error('Failed to revoke API key:', err)
+    }
+  }
+
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
   }
@@ -238,6 +276,94 @@ export function Settings({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* API Keys Section */}
+      <div style={sectionStyle}>
+        <h3 style={sectionTitleStyle}>🔑 API Keys</h3>
+        <Card>
+          <CardContent>
+            {/* Create new key */}
+            <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
+              <input
+                type="text"
+                value={newKeyName}
+                onChange={e => setNewKeyName(e.target.value)}
+                placeholder="Key name (e.g., Production, Staging)"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
+                Generate Key
+              </Button>
+            </div>
+
+            {/* Show newly created key */}
+            {newKeyPlaintext && (
+              <div style={{
+                padding: spacing.md,
+                marginBottom: spacing.md,
+                backgroundColor: '#dcfce7',
+                border: '1px solid #86efac',
+                borderRadius: borderRadius.md,
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
+                  {newKeyPlaintext}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
+                  ⚠️ Copy this key now — it will never be shown again!
+                </div>
+                <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            {/* Keys list */}
+            {apiKeysLoading ? (
+              <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
+            ) : apiKeys.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
+                No API keys yet. Generate one to enable third-party integrations.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                {apiKeys.map(key => (
+                  <div
+                    key={key.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.md,
+                      padding: spacing.sm,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{key.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
+                        {key.key_prefix}••••••••
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
+                        Created: {new Date(key.created_at).toLocaleDateString()}
+                        {key.last_used_at && ` • Last used: ${new Date(key.last_used_at).toLocaleDateString()}`}
+                        {` • Limit: ${key.rate_limit}/day`}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleRevokeKey(key.id)}
+                      style={{ color: colors.risk.high }}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

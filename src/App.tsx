@@ -225,6 +225,9 @@ function App() {
               date: s.date,
               status: s.status,
               riskScore: s.risk_score,
+              hsCode: s.hs_code,
+              shipmentValue: s.shipment_value ? parseFloat(s.shipment_value) : undefined,
+              gateStatus: s.gate_status,
             }))
           )
         }
@@ -320,17 +323,21 @@ function App() {
   )
 
   const handleAddShipment = useCallback(
-    async (shipment: Omit<Shipment, 'id' | 'status'>) => {
+    async (shipment: Omit<Shipment, 'id' | 'status' | 'riskScore'>) => {
       if (SUPABASE_ENABLED && auth.profile) {
+        const insertData: any = {
+          company_id: auth.profile.company_id,
+          name: shipment.name,
+          product: shipment.product,
+          country: shipment.country,
+          date: shipment.date,
+        }
+        if (shipment.hsCode) insertData.hs_code = shipment.hsCode
+        if (shipment.shipmentValue) insertData.shipment_value = shipment.shipmentValue
+
         const { data } = await supabase
           .from('shipments')
-          .insert({
-            company_id: auth.profile.company_id,
-            name: shipment.name,
-            product: shipment.product,
-            country: shipment.country,
-            date: shipment.date,
-          })
+          .insert(insertData)
           .select()
           .single()
 
@@ -344,6 +351,9 @@ function App() {
               date: data.date,
               status: data.status,
               riskScore: data.risk_score,
+              hsCode: data.hs_code,
+              shipmentValue: data.shipment_value ? parseFloat(data.shipment_value) : undefined,
+              gateStatus: data.gate_status,
             },
             ...prev,
           ])
@@ -536,11 +546,31 @@ function App() {
         alertCount={alertCounts.critical}
       />
       <main
-        style={{ flex: 1, marginLeft: '240px', overflow: 'auto' }}
+        style={{ flex: 1, marginLeft: '240px', overflow: 'auto', paddingBottom: '48px' }}
         data-testid="main-content"
       >
         {renderView()}
       </main>
+
+      {/* Legal Disclaimer Footer */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: '240px',
+          right: 0,
+          backgroundColor: '#1e293b',
+          color: '#94a3b8',
+          fontSize: '0.7rem',
+          padding: '8px 16px',
+          textAlign: 'center',
+          zIndex: 50,
+          borderTop: '1px solid #334155',
+        }}
+        data-testid="disclaimer-footer"
+      >
+        ⚖️ ComplianceOS provides informational guidance only and does not constitute legal, tax, or trade compliance advice. Always consult qualified professionals before making compliance decisions.
+      </div>
     </div>
   )
 }

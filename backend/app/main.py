@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import risk, checklist, alerts, fta, shipments, public, admin
+from app.routers import compliance_gate, api_keys, cbam
+from app.middleware.audit_logger import AuditLogMiddleware
 from app.scrapers.scheduler import setup_scheduler, shutdown_scheduler
 
 logger = logging.getLogger("complianceos")
@@ -37,6 +39,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Audit log middleware (logs POST/PATCH/DELETE)
+app.add_middleware(AuditLogMiddleware)
+
 # Register routers
 app.include_router(risk.router)
 app.include_router(checklist.router)
@@ -45,6 +50,9 @@ app.include_router(fta.router)
 app.include_router(shipments.router)
 app.include_router(public.router)
 app.include_router(admin.router)
+app.include_router(compliance_gate.router)
+app.include_router(api_keys.router)
+app.include_router(cbam.router)
 
 
 @app.get("/")
