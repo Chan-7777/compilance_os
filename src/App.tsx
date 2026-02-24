@@ -15,6 +15,7 @@ import {
   FTASchemes,
   Shipments,
   Settings,
+  LabelValidator,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
@@ -528,6 +529,13 @@ function App() {
             onUpdateProfile={handleUpdateProfile}
             onSelectProduct={handleSelectProduct}
             onToggleCountry={handleToggleCountry}
+          />
+        )
+      case 'label-validator':
+        return (
+          <LabelValidator
+            selectedProduct={selectedProduct}
+            selectedCountries={selectedCountries}
           />
         )
       default:

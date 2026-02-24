@@ -22,3 +22,6 @@ export type { ShipmentsProps } from './Shipments'
 
 export { Settings } from './Settings'
 export type { SettingsProps } from './Settings'
+
+export { LabelValidator } from './LabelValidator'
+export type { LabelValidatorProps } from './LabelValidator'

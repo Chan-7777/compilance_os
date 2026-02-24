@@ -257,6 +257,7 @@ export type ViewType =
   | 'fta'
   | 'shipments'
   | 'settings'
+  | 'label-validator'
 
 export interface AppState {
   currentView: ViewType
@@ -281,4 +282,47 @@ export type CountryCode = 'EU' | 'US' | 'UK' | 'UAE' | 'Japan' | 'Australia'
 
 export type RegulatoryDatabase = Record<CountryCode, CountryRegulation>
 export type FTADatabase = Record<CountryCode, FTAStatus>
+
+// ----------------------------------------------------------------------------
+// Label Validation Types
+// ----------------------------------------------------------------------------
+
+export type LabelRuleCategory =
+  | 'Language'
+  | 'Nutrition'
+  | 'Safety'
+  | 'Origin'
+  | 'Product-Specific'
+  | 'Religious'
+  | 'Environmental'
+  | 'Identification'
+
+export type LabelRuleSeverity = 'mandatory' | 'recommended'
+
+export interface LabelingRule {
+  id: string
+  rule: string
+  category: LabelRuleCategory
+  appliesTo: ProductCode | 'all'
+  severity: LabelRuleSeverity
+  reference: string
+  guidance: string
+}
+
+export interface LabelRuleResult {
+  rule: LabelingRule
+  status: 'pass' | 'fail' | 'skipped'
+}
+
+export interface LabelValidationResult {
+  score: number
+  totalRules: number
+  passedRules: number
+  failedRules: number
+  skippedRules: number
+  results: LabelRuleResult[]
+  overallStatus: 'compliant' | 'partially_compliant' | 'non_compliant'
+}
+
+export type LabelRulesDatabase = Record<CountryCode, LabelingRule[]>
 

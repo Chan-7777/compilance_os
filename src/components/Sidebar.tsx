@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { id: 'alerts', label: 'Alerts', icon: '⚡' },
   { id: 'fta', label: 'FTA & Schemes', icon: '🤝' },
   { id: 'shipments', label: 'Shipments', icon: '📦' },
+  { id: 'label-validator', label: 'Label Validator', icon: '🏷️' },
 ]
 
 export interface SidebarProps {
