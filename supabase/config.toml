@@ -1,0 +1,58 @@
+
+[functions.document-ocr]
+enabled = true
+verify_jwt = true
+import_map = "./functions/document-ocr/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/document-ocr/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/document-ocr/*.html" ]
+
+[functions.whatsapp-vendor-outreach]
+enabled = true
+verify_jwt = true
+import_map = "./functions/whatsapp-vendor-outreach/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/whatsapp-vendor-outreach/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/whatsapp-vendor-outreach/*.html" ]
+
+[functions.treds-financing]
+enabled = true
+verify_jwt = true
+import_map = "./functions/treds-financing/deno.json"
+entrypoint = "./functions/treds-financing/index.ts"
+
+[functions.zonos-classify]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/zonos-classify/index.ts"
+
+[functions.zonos-landed-cost]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/zonos-landed-cost/index.ts"
+
+[functions.climatiq-emissions]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/climatiq-emissions/index.ts"
+
+[functions.label-vision]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/label-vision/index.ts"
+
+[functions.regulatory-alerts]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/regulatory-alerts/index.ts"
+
+[functions.customs-filing]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/customs-filing/index.ts"

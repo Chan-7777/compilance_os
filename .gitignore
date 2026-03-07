@@ -54,6 +54,9 @@ vite.config.ts.timestamp-*
 # Reference files (original prototype - not part of build)
 reference/
 
+# Supabase local temp
+supabase/.temp/
+
 # Misc
 .eslintcache
 .prettierignore
