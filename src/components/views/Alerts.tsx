@@ -3,7 +3,6 @@
 // ============================================================================
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'

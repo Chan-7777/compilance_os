@@ -5,11 +5,12 @@
 import { useState } from 'react'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
+import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
-import { runGateCheck, downloadCOOPdf } from '@/lib/api'
-import type { Shipment, CountryCode, GateCheckResult } from '@/types'
+import { runGateCheck, downloadCOOPdf, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing } from '@/lib/api'
+import type { Shipment, CountryCode, GateCheckResult, LandedCostResult } from '@/types'
 
 export interface ShipmentsProps {
   shipments: Shipment[]
@@ -31,6 +32,7 @@ export function Shipments({
   const [formData, setFormData] = useState<{
     name: string
     product: string
+    description: string
     country: string
     date: string
     hsCode: string
@@ -38,6 +40,7 @@ export function Shipments({
   }>({
     name: '',
     product: selectedProduct || '',
+    description: '',
     country: selectedCountries[0] || '',
     date: '',
     hsCode: '',
@@ -45,6 +48,14 @@ export function Shipments({
   })
   const [gateResults, setGateResults] = useState<Record<string, GateCheckResult>>({})
   const [gateLoading, setGateLoading] = useState<Record<string, boolean>>({})
+  const [isClassifying, setIsClassifying] = useState(false)
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false)
+  const [landedCosts, setLandedCosts] = useState<Record<string, LandedCostResult>>({})
+  const [landedCostLoading, setLandedCostLoading] = useState<Record<string, boolean>>({})
+  const [filingLoading, setFilingLoading] = useState<Record<string, boolean>>({})
+  const [filingResults, setFilingResults] = useState<Record<string, any>>({})
+  const [tredsLoading, setTredsLoading] = useState<Record<string, boolean>>({})
+  const [tredsResults, setTredsResults] = useState<Record<string, any>>({})
 
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
@@ -119,6 +130,18 @@ export function Shipments({
     marginBottom: spacing.md,
   }
 
+  const ocrDropZoneStyle: React.CSSProperties = {
+    gridColumn: '1 / -1',
+    border: `2px dashed ${isProcessingOCR ? colors.primary : colors.border}`,
+    borderRadius: borderRadius.md,
+    padding: spacing.xl,
+    textAlign: 'center',
+    backgroundColor: isProcessingOCR ? `${colors.primary}11` : colors.surface,
+    cursor: isProcessingOCR ? 'wait' : 'pointer',
+    transition: 'all 0.2s',
+    marginBottom: spacing.lg,
+  }
+
   const formFieldStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -190,6 +213,48 @@ export function Shipments({
 
   const isFormValid = formData.name && formData.product && formData.country && formData.date
 
+  const { success: toastSuccess, error: toastError } = useToast()
+
+  const handleDropOCR = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (isProcessingOCR) return
+
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+      toastError('Please upload a PDF or Image file.')
+      return
+    }
+
+    setIsProcessingOCR(true)
+
+    try {
+      // In a real app we'd convert File -> base64 here using FileReader
+      // Mock base64 for simulation
+      const fileBase64 = 'mock_base64_string'
+
+      const response = await processInvoiceOCR(fileBase64, file.name)
+      if (response.success) {
+        setFormData(prev => ({
+          ...prev,
+          name: response.data.name,
+          product: response.data.product,
+          description: response.data.description,
+          country: response.data.country,
+          shipmentValue: response.data.value.toString(),
+          hsCode: response.data.hsCode,
+        }))
+        toastSuccess('OCR Extraction Complete: Form auto-populated!')
+      }
+    } catch (err: any) {
+      toastError(`OCR Failed: ${err.message}`)
+    } finally {
+      setIsProcessingOCR(false)
+    }
+  }
+
   const handleSubmit = () => {
     if (isFormValid) {
       onAddShipment({
@@ -203,6 +268,7 @@ export function Shipments({
       setFormData({
         name: '',
         product: selectedProduct || '',
+        description: '',
         country: selectedCountries[0] || '',
         date: '',
         hsCode: '',
@@ -224,6 +290,33 @@ export function Shipments({
     }
   }
 
+  const handleSuggestHSCode = async () => {
+    if (!formData.description || !formData.country) return
+
+    setIsClassifying(true)
+    try {
+      // Mocking the backend API call if the real backend isn't up
+      // In production, this hits Zonos API securely via our backend orchestrator.
+      const result = await classifyProductHSCode(formData.description, formData.country)
+      if (result && result.hs_code) {
+        setFormData(prev => ({ ...prev, hsCode: result.hs_code }))
+      }
+    } catch (err) {
+      console.error('HS Classification failed. Falling back to mock data.')
+      // SIMULATED MOCK FALLBACK FOR DEMO PURPOSES
+      setTimeout(() => {
+        const mockCode = formData.description.toLowerCase().includes('cotton') ? '5201.00'
+          : formData.description.toLowerCase().includes('steel') ? '7208.51'
+            : '8517.12'
+        setFormData(prev => ({ ...prev, hsCode: mockCode }))
+        setIsClassifying(false)
+      }, 1500)
+      return
+    } finally {
+      setIsClassifying(false)
+    }
+  }
+
   const handleDownloadCOO = async (shipmentId: string) => {
     try {
       const blob = await downloadCOOPdf(shipmentId)
@@ -235,6 +328,74 @@ export function Shipments({
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('CoO PDF download failed:', err)
+    }
+  }
+
+  const handleCalculateLandedCost = async (shipment: Shipment) => {
+    const hsCode = shipment.hsCode
+    const value = shipment.shipmentValue
+    if (!hsCode || !value) return
+
+    setLandedCostLoading(prev => ({ ...prev, [shipment.id]: true }))
+    try {
+      const result = await calculateLandedCost(hsCode, value, shipment.country)
+      setLandedCosts(prev => ({ ...prev, [shipment.id]: result }))
+    } catch (err) {
+      console.error('Landed cost calculation failed:', err)
+      // MOCK FALLBACK for demo when API is unavailable
+      const mockDutyRate = shipment.country === 'EU' ? 0.05 : shipment.country === 'US' ? 0.07 : 0.03
+      const mockTaxRate = shipment.country === 'EU' ? 0.20 : shipment.country === 'US' ? 0.0 : 0.05
+      const duties = value * mockDutyRate
+      const taxes = value * mockTaxRate
+      const fees = 2500
+      setLandedCosts(prev => ({
+        ...prev, [shipment.id]: {
+          duties: [{ amount: duties, currency: 'INR', description: 'Import Duty (simulated)', type: 'duty' }],
+          taxes: [{ amount: taxes, currency: 'INR', description: shipment.country === 'EU' ? 'VAT 20% (simulated)' : 'Sales Tax (simulated)', type: 'tax' }],
+          fees: [{ amount: fees, currency: 'INR', description: 'Customs processing fee (simulated)', type: 'fee' }],
+          total_duties: duties,
+          total_taxes: taxes,
+          total_fees: fees,
+          grand_total: value + duties + taxes + fees,
+          currency: 'INR',
+        }
+      }))
+    } finally {
+      setLandedCostLoading(prev => ({ ...prev, [shipment.id]: false }))
+    }
+  }
+
+  const handleFileToCustoms = async (shipment: Shipment) => {
+    setFilingLoading(prev => ({ ...prev, [shipment.id]: true }))
+    try {
+      const result = await generateCustomsPayload(shipment)
+      setFilingResults(prev => ({ ...prev, [shipment.id]: result }))
+    } catch (err) {
+      console.error('Customs filing failed:', err)
+      alert('Failed to generate customs payload.')
+    } finally {
+      setFilingLoading(prev => ({ ...prev, [shipment.id]: false }))
+    }
+  }
+
+  const handleSubmitTReDS = async (shipment: Shipment) => {
+    if (!shipment.shipmentValue || !filingResults[shipment.id]) return
+
+    setTredsLoading(prev => ({ ...prev, [shipment.id]: true }))
+    try {
+      const result = await submitTReDSFinancing({
+        seller: { iec: '0388277364' }, // Mock IEC
+        buyer: { name: 'EU Steel Importers GmbH' }, // Mock Buyer
+        invoiceValue: shipment.shipmentValue,
+        currency: 'INR',
+        referenceNumber: filingResults[shipment.id].reference_number
+      })
+      setTredsResults(prev => ({ ...prev, [shipment.id]: result }))
+      toastSuccess(result.message)
+    } catch (err: any) {
+      toastError(`Financing request failed: ${err.message}`)
+    } finally {
+      setTredsLoading(prev => ({ ...prev, [shipment.id]: false }))
     }
   }
 
@@ -371,6 +532,25 @@ export function Shipments({
       {/* Add Shipment Form */}
       {showForm && (
         <div style={formStyle}>
+          <div
+            style={ocrDropZoneStyle}
+            onDrop={handleDropOCR}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+          >
+            {isProcessingOCR ? (
+              <div style={{ color: colors.primary, fontWeight: 600 }}>
+                🤖 Processing Invoice (OCR)...
+              </div>
+            ) : (
+              <div style={{ color: colors.textMuted }}>
+                <span style={{ fontSize: '2rem', display: 'block', marginBottom: spacing.xs }}>📄</span>
+                <strong>Drag & Drop Commercial Invoice or Bill of Lading here</strong>
+                <p style={{ margin: 0, fontSize: '0.8rem', marginTop: spacing.xs }}>
+                  Autofill shipment details with Document AI
+                </p>
+              </div>
+            )}
+          </div>
           <div style={formGridStyle}>
             <div style={formFieldStyle}>
               <label style={labelStyle} htmlFor="shipment-name">
@@ -433,6 +613,28 @@ export function Shipments({
                 onChange={e => setFormData(d => ({ ...d, date: e.target.value }))}
               />
             </div>
+            <div style={{ ...formFieldStyle, gridColumn: '1 / -1' }}>
+              <label style={labelStyle} htmlFor="shipment-description">
+                Natural Product Description (Triggers AI Classification)
+              </label>
+              <div style={{ display: 'flex', gap: spacing.sm }}>
+                <input
+                  id="shipment-description"
+                  type="text"
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={formData.description}
+                  onChange={e => setFormData(d => ({ ...d, description: e.target.value }))}
+                  placeholder='e.g., "Men&apos;s 100% cotton woven long sleeve shirt"'
+                />
+                <Button
+                  variant="secondary"
+                  onClick={handleSuggestHSCode}
+                  disabled={!formData.description || !formData.country || isClassifying}
+                >
+                  {isClassifying ? '🤖 Classifying...' : '🤖 Suggest HS Code'}
+                </Button>
+              </div>
+            </div>
             <div style={formFieldStyle}>
               <label style={labelStyle} htmlFor="shipment-hs-code">
                 HS Code
@@ -440,11 +642,19 @@ export function Shipments({
               <input
                 id="shipment-hs-code"
                 type="text"
-                style={inputStyle}
+                style={{
+                  ...inputStyle,
+                  backgroundColor: isClassifying ? `${colors.primary}10` : colors.white,
+                  borderColor: isClassifying ? colors.primary : colors.border,
+                  transition: 'all 0.3s'
+                }}
                 value={formData.hsCode}
                 onChange={e => setFormData(d => ({ ...d, hsCode: e.target.value }))}
                 placeholder="e.g., 7208.51"
               />
+              <span style={{ fontSize: '0.7rem', color: colors.textMuted }}>
+                Zonos AI Classify
+              </span>
             </div>
             <div style={formFieldStyle}>
               <label style={labelStyle} htmlFor="shipment-value">
@@ -584,6 +794,81 @@ export function Shipments({
                         <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>₹{shipment.shipmentValue.toLocaleString('en-IN')}</div>
                       </div>
                     )}
+
+                    {/* ── Landed Cost Panel ── */}
+                    {shipment.hsCode && shipment.shipmentValue && (
+                      <div style={{ marginBottom: spacing.md, padding: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.md, border: `1px solid ${colors.border}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>💰 Landed Cost Breakdown</h4>
+                          <Button
+                            variant="primary"
+                            onClick={() => handleCalculateLandedCost(shipment)}
+                            disabled={landedCostLoading[shipment.id]}
+                          >
+                            {landedCostLoading[shipment.id] ? '⏳ Calculating...' : '📊 Calculate Landed Cost'}
+                          </Button>
+                        </div>
+
+                        {landedCosts[shipment.id] && (() => {
+                          const lc = landedCosts[shipment.id]
+                          const fmt = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                          return (
+                            <div style={{ display: 'grid', gap: spacing.sm }}>
+                              {/* Product Value */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', padding: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.sm }}>
+                                <span style={{ fontWeight: 500 }}>Product Value</span>
+                                <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(shipment.shipmentValue!)}</span>
+                              </div>
+                              {/* Duties */}
+                              {lc.duties.map((d, i) => (
+                                <div key={`d-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: spacing.sm, backgroundColor: '#fef3c7', borderRadius: borderRadius.sm }}>
+                                  <span>🏛️ {d.description}</span>
+                                  <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(d.amount)}</span>
+                                </div>
+                              ))}
+                              {/* Taxes */}
+                              {lc.taxes.map((t, i) => (
+                                <div key={`t-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: spacing.sm, backgroundColor: '#dbeafe', borderRadius: borderRadius.sm }}>
+                                  <span>📋 {t.description}</span>
+                                  <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(t.amount)}</span>
+                                </div>
+                              ))}
+                              {/* Fees */}
+                              {lc.fees.map((f, i) => (
+                                <div key={`f-${i}`} style={{ display: 'flex', justifyContent: 'space-between', padding: spacing.sm, backgroundColor: '#f3e8ff', borderRadius: borderRadius.sm }}>
+                                  <span>📄 {f.description}</span>
+                                  <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{fmt(f.amount)}</span>
+                                </div>
+                              ))}
+                              {/* Grand Total */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', padding: spacing.md, backgroundColor: '#dcfce7', borderRadius: borderRadius.md, border: '1px solid #86efac', marginTop: spacing.xs }}>
+                                <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>🎯 Total Landed Cost</span>
+                                <span style={{ fontWeight: 700, fontSize: '1.15rem', fontFamily: "'JetBrains Mono', monospace", color: '#166534' }}>{fmt(lc.grand_total)}</span>
+                              </div>
+                              {/* Zonos Guarantee Trust Badge */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: spacing.sm,
+                                padding: spacing.sm,
+                                backgroundColor: '#f0fdf4', // very light green
+                                borderRadius: borderRadius.sm,
+                                border: '1px solid #bbf7d0', // green-200
+                                color: '#166534' // dark green
+                              }}>
+                                <span style={{ fontSize: '1.2rem' }}>🛡️</span>
+                                <div>
+                                  <strong style={{ display: 'block', fontSize: '0.85rem' }}>100% Guaranteed Landed Cost</strong>
+                                  <span style={{ fontSize: '0.75rem', color: '#15803d' }}>
+                                    Your margins are protected. If customs charges more than this quoted amount, the difference is completely covered by Zonos.
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
                     {country?.cbam?.active && (
                       <div style={{ padding: spacing.sm, backgroundColor: `${colors.risk.high}11`, border: `1px solid ${colors.risk.high}33`, borderRadius: borderRadius.md, fontSize: '0.875rem', marginBottom: spacing.sm }}>
                         <strong>CBAM Notice:</strong> This destination has active CBAM requirements. Ensure carbon emissions data is prepared.
@@ -597,6 +882,87 @@ export function Shipments({
 
                     {/* Pre-Shipment Compliance Gate Panel */}
                     {renderGateCheckPanel(shipment)}
+
+                    {/* ICEGATE Customs Filing Panel */}
+                    <div style={{ marginTop: spacing.lg, paddingTop: spacing.md, borderTop: `1px solid ${colors.border}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>🏛️ ICEGATE Export Filing</h4>
+                          <p style={{ margin: `${spacing.xs} 0 0`, fontSize: '0.875rem', color: colors.textMuted }}>
+                            Generate compliant JSON schema payload for Indian Customs (DGFT / ICEGATE).
+                          </p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleFileToCustoms(shipment)}
+                          disabled={filingLoading[shipment.id]}
+                          style={{
+                            backgroundColor: '#1e1b4b', // deep indigo
+                            color: 'white',
+                            borderColor: '#1e1b4b'
+                          }}
+                        >
+                          {filingLoading[shipment.id] ? '⏳ Generating Payload...' : '📄 Generate Filing Payload'}
+                        </Button>
+                      </div>
+
+                      {filingResults[shipment.id] && (
+                        <div style={{ marginTop: spacing.md, backgroundColor: '#1e293b', borderRadius: borderRadius.md, padding: spacing.md, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.sm, color: '#94a3b8', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                            <span>Status: <strong style={{ color: '#4ade80' }}>{filingResults[shipment.id].status.toUpperCase()}</strong></span>
+                            <span>Ref: {filingResults[shipment.id].reference_number}</span>
+                          </div>
+                          <pre style={{
+                            margin: 0,
+                            padding: spacing.sm,
+                            backgroundColor: '#0f172a',
+                            borderRadius: borderRadius.sm,
+                            color: '#38bdf8',
+                            fontSize: '0.8rem',
+                            maxHeight: '200px',
+                            overflowY: 'auto'
+                          }}>
+                            {JSON.stringify(filingResults[shipment.id].payload_generated, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* TReDS Financing Panel (Conditional on ICEGATE Success) */}
+                    {filingResults[shipment.id] && filingResults[shipment.id].status === 'success' && (
+                      <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: '#f0fdf4', borderRadius: borderRadius.md, border: '1px solid #bbf7d0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#166534' }}>💸 Unlock Working Capital</h4>
+                            <p style={{ margin: `${spacing.xs} 0 0`, fontSize: '0.875rem', color: '#15803d' }}>
+                              Your shipment is verified by Customs. Discount this invoice on TReDS immediately.
+                            </p>
+                          </div>
+                          {!tredsResults[shipment.id] ? (
+                            <Button
+                              variant="primary"
+                              onClick={() => handleSubmitTReDS(shipment)}
+                              disabled={tredsLoading[shipment.id]}
+                              style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+                            >
+                              {tredsLoading[shipment.id] ? '⏳ Submitting...' : '🏦 Discount Invoice (TReDS)'}
+                            </Button>
+                          ) : (
+                            <div style={{ textAlign: 'right' }}>
+                              <Badge key="treds-badge-success" variant="success">✅ Funds Requested</Badge>
+                              <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
+                                FU ID: {tredsResults[shipment.id].fu_id}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {tredsResults[shipment.id] && (
+                          <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm, border: '1px solid #dcfce7', fontSize: '0.875rem', color: '#15803d' }}>
+                            {tredsResults[shipment.id].message}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

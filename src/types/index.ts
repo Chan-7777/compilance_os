@@ -232,6 +232,28 @@ export interface GateCheckResult {
 }
 
 // ----------------------------------------------------------------------------
+// Landed Cost Types
+// ----------------------------------------------------------------------------
+
+export interface LandedCostLineItem {
+  amount: number
+  currency: string
+  description: string
+  type: string
+}
+
+export interface LandedCostResult {
+  duties: LandedCostLineItem[]
+  taxes: LandedCostLineItem[]
+  fees: LandedCostLineItem[]
+  total_duties: number
+  total_taxes: number
+  total_fees: number
+  grand_total: number
+  currency: string
+}
+
+// ----------------------------------------------------------------------------
 // API Key Types
 // ----------------------------------------------------------------------------
 

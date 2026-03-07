@@ -10,6 +10,7 @@ import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import { getLabelRulesForProduct, getLabelRuleCategories } from '@/data/label-rules'
 import { validateLabel, groupResultsByCategory } from '@/utils/label-validator'
+import { analyzeLabelVision } from '@/lib/api'
 import type { CountryCode } from '@/types'
 
 export interface LabelValidatorProps {
@@ -22,6 +23,9 @@ export function LabelValidator({ selectedProduct, selectedCountries }: LabelVali
     const [activeProduct, setActiveProduct] = useState(selectedProduct || 'food')
     const [answers, setAnswers] = useState<Record<string, boolean>>({})
     const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({})
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+    const [isDragOver, setIsDragOver] = useState(false)
+    const [isScanning, setIsScanning] = useState(false)
 
     // Get applicable rules
     const rules = useMemo(
@@ -80,6 +84,56 @@ export function LabelValidator({ selectedProduct, selectedCountries }: LabelVali
         setActiveProduct(product)
         setAnswers({})
         setExpandedRules({})
+    }
+
+    // AI Vision Handlers
+    const handleFileUpload = (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file (JPG, PNG).')
+            return
+        }
+
+        const reader = new FileReader()
+        reader.onloadend = () => {
+            setUploadedImage(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+    }
+
+    const handleScanLabel = async () => {
+        if (!uploadedImage) return
+
+        setIsScanning(true)
+        try {
+            // Prepare rules payload
+            const simplifiedRules = rules.map(r => ({ id: r.id, rule: r.rule, guidance: r.guidance }))
+
+            const result = await analyzeLabelVision(
+                uploadedImage,
+                simplifiedRules,
+                activeCountry,
+                activeProduct
+            )
+
+            // Apply AI answers
+            setAnswers(result.answers)
+
+            // Auto-expand failed rules
+            const newExpanded: Record<string, boolean> = { ...expandedRules }
+            Object.entries(result.answers).forEach(([id, compliant]) => {
+                if (!compliant) newExpanded[id] = true
+            })
+            setExpandedRules(newExpanded)
+
+            if (result.mock) {
+                console.warn('Vision API returned mock data because no API key was configured.')
+            }
+        } catch (error) {
+            console.error('Scan failed:', error)
+            alert('Failed to scan label with AI. Please try answering manually.')
+        } finally {
+            setIsScanning(false)
+        }
     }
 
     // Score display helpers
@@ -189,6 +243,105 @@ export function LabelValidator({ selectedProduct, selectedCountries }: LabelVali
                             </button>
                         ))}
                     </div>
+                </div>
+            </div>
+
+            {/* Upload Area */}
+            <div style={{ marginBottom: spacing.xl }}>
+                <div
+                    style={{
+                        padding: spacing.xl,
+                        border: `2px dashed ${isDragOver ? colors.primary : colors.border}`,
+                        borderRadius: borderRadius.lg,
+                        backgroundColor: isDragOver ? `${colors.primary}08` : colors.surface,
+                        textAlign: 'center',
+                        transition: `all ${transition.normal}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: spacing.md,
+                    }}
+                    onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={e => {
+                        e.preventDefault()
+                        setIsDragOver(false)
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                            handleFileUpload(e.dataTransfer.files[0])
+                        }
+                    }}
+                >
+                    {uploadedImage ? (
+                        <div style={{ width: '100%', maxWidth: 400, position: 'relative' }}>
+                            <img
+                                src={uploadedImage}
+                                alt="Uploaded label"
+                                style={{ width: '100%', borderRadius: borderRadius.md, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <button
+                                onClick={() => setUploadedImage(null)}
+                                style={{
+                                    position: 'absolute',
+                                    top: -10,
+                                    right: -10,
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    backgroundColor: colors.white,
+                                    border: `1px solid ${colors.border}`,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ fontSize: '3rem', color: colors.textMuted }}>📸</div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text }}>Upload Label Artwork</h3>
+                                <p style={{ margin: `${spacing.xs} 0 0`, color: colors.textMuted, fontSize: '0.875rem' }}>
+                                    Drag and drop a label image here, or upload from your computer to automatically verify compliance using AI.
+                                </p>
+                            </div>
+                            <label style={{ cursor: 'pointer' }}>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg, image/png, image/webp"
+                                    style={{ display: 'none' }}
+                                    onChange={e => e.target.files && handleFileUpload(e.target.files[0])}
+                                />
+                                <div style={{
+                                    padding: `${spacing.sm} ${spacing.xl}`,
+                                    backgroundColor: colors.white,
+                                    border: `1px solid ${colors.border}`,
+                                    borderRadius: borderRadius.md,
+                                    fontWeight: 600,
+                                    color: colors.text,
+                                    transition: `all ${transition.fast}`,
+                                }}>
+                                    Browse Files
+                                </div>
+                            </label>
+                        </>
+                    )}
+
+                    {uploadedImage && (
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            onClick={handleScanLabel}
+                            disabled={isScanning}
+                            style={{ marginTop: spacing.md, width: '100%', maxWidth: 400 }}
+                        >
+                            {isScanning ? '✨ Scanning with AI...' : '✨ Verify with AI Vision'}
+                        </Button>
+                    )}
                 </div>
             </div>
 

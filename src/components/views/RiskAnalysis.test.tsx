@@ -44,7 +44,7 @@ describe('RiskAnalysis', () => {
 
     it('displays product name', () => {
       render(<RiskAnalysis {...defaultProps} />)
-      expect(screen.getByText(/steel/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/steel/i).length).toBeGreaterThan(0)
     })
   })
 

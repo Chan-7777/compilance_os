@@ -108,7 +108,7 @@ describe('Dashboard', () => {
 
     it('displays selected countries', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getByText(/EU/)).toBeInTheDocument()
+      expect(screen.getAllByText(/EU/).length).toBeGreaterThan(0)
       expect(screen.getByText(/UAE/)).toBeInTheDocument()
     })
   })

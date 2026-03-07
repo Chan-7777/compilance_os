@@ -137,12 +137,6 @@ export function Checklist({
     color: checked ? colors.textMuted : colors.text,
   })
 
-  const emptyStyle: React.CSSProperties = {
-    textAlign: 'center',
-    padding: spacing['2xl'],
-    color: colors.textMuted,
-  }
-
   const getPriorityVariant = (priority: ChecklistItem['priority']) => {
     switch (priority) {
       case 'critical':

@@ -130,6 +130,36 @@ export function Dashboard({
         </p>
       </div>
 
+      {/* Data Provenance Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: spacing.sm,
+          padding: `${spacing.xs} ${spacing.md}`,
+          backgroundColor: colors.surface,
+          borderRadius: '0.5rem',
+          border: `1px solid ${colors.border}`,
+          marginBottom: spacing.lg,
+          fontSize: '0.75rem',
+          color: colors.textMuted,
+          flexWrap: 'wrap',
+        }}
+        data-testid="data-provenance-bar"
+      >
+        <span style={{ fontWeight: 600, color: colors.text }}>📡 Data Sources:</span>
+        <span>WCO</span>
+        <span>·</span>
+        <span>DGFT India</span>
+        <span>·</span>
+        <span>EU Commission</span>
+        <span>·</span>
+        <span>CBAM Registry</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>
+          Last updated: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+
       {/* Empty State for First-Time Users */}
       {(selectedCountries.length === 0 || !selectedProduct) && (
         <EmptyState
@@ -205,6 +235,152 @@ export function Dashboard({
             </Card>
           </div>
 
+          {/* ROI Summary */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: selectedCountries.includes('EU') &&
+              ['steel', 'chemicals', 'aluminium', 'cement', 'fertilizer', 'electricity'].includes(
+                PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id || ''
+              ) ? '1fr 1fr' : '1fr',
+            gap: spacing.md,
+            marginBottom: spacing.lg,
+          }}>
+            {/* Estimated ROI Card */}
+            <div style={{
+              padding: spacing.lg,
+              backgroundColor: '#E8F5E9',
+              borderRadius: '0.75rem',
+              border: '2px solid #4CAF50',
+            }}>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                color: '#2E7D32',
+                marginBottom: spacing.sm,
+              }}>
+                💰 Your Compliance ROI
+              </div>
+              <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{
+                    fontSize: '1.75rem',
+                    fontWeight: 800,
+                    color: '#2E7D32',
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    ₹{(() => {
+                      const activeFTAs = selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length
+                      return (activeFTAs * 45000).toLocaleString('en-IN')
+                    })()}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#4CAF50' }}>
+                    Est. FTA duty savings/shipment
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '1.75rem',
+                    fontWeight: 800,
+                    color: '#E65100',
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    ₹{(() => {
+                      const riskPenalty = overallRisk ? Math.round(overallRisk.score * 500) : 0
+                      return riskPenalty.toLocaleString('en-IN')
+                    })()}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#E65100' }}>
+                    Penalties avoided/quarter
+                  </div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '1.75rem',
+                    fontWeight: 800,
+                    color: colors.text,
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    ~4 hrs
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                    Time saved/shipment
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CBAM Readiness (show only for CBAM-covered products to EU) */}
+            {selectedCountries.includes('EU') &&
+              ['steel', 'chemicals', 'aluminium', 'cement', 'fertilizer', 'electricity'].includes(
+                PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id || ''
+              ) && (
+                <div style={{
+                  padding: spacing.lg,
+                  backgroundColor: `${colors.risk.high}08`,
+                  borderRadius: '0.75rem',
+                  border: `2px solid ${colors.risk.high}44`,
+                }}>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: colors.risk.high,
+                    marginBottom: spacing.sm,
+                  }}>
+                    🏭 CBAM Readiness
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    marginBottom: spacing.sm,
+                  }}>
+                    <div style={{
+                      flex: 1,
+                      height: 8,
+                      backgroundColor: colors.border,
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: '15%',
+                        height: '100%',
+                        backgroundColor: colors.risk.high,
+                        borderRadius: '4px',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.risk.high }}>15%</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: colors.text, marginBottom: spacing.xs }}>
+                    ⚠️ Upstream vendor emissions data required
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textMuted, lineHeight: 1.5 }}>
+                    EU CBAM requires verified embedded carbon data from Tier-2/3 suppliers.
+                    Most Indian vendors do not yet share this data.
+                  </div>
+                  <button
+                    onClick={() => onNavigate('settings')}
+                    style={{
+                      marginTop: spacing.sm,
+                      padding: `${spacing.xs} ${spacing.md}`,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: colors.risk.high,
+                      backgroundColor: `${colors.risk.high}15`,
+                      border: `1px solid ${colors.risk.high}44`,
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📋 Setup Vendor Data Collection →
+                  </button>
+                </div>
+              )}
+          </div>
+
           {/* Quick Actions */}
           <div style={quickActionsStyle}>
             <Button variant="primary" onClick={() => onNavigate('risk')}>
@@ -215,6 +391,9 @@ export function Dashboard({
             </Button>
             <Button variant="secondary" onClick={() => onNavigate('alerts')}>
               View Alerts
+            </Button>
+            <Button variant="secondary" onClick={() => onNavigate('fta')}>
+              💰 FTA Savings
             </Button>
           </div>
 

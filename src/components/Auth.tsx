@@ -197,6 +197,57 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
             {isSignUp ? 'Sign In' : 'Sign Up'}
           </button>
         </div>
+
+        {/* Trust & Credibility Signals */}
+        <div
+          style={{
+            marginTop: spacing.xl,
+            paddingTop: spacing.lg,
+            borderTop: `1px solid ${colors.border}`,
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: spacing.md,
+              marginBottom: spacing.md,
+              flexWrap: 'wrap',
+            }}
+          >
+            {[
+              { icon: '🔒', label: 'ISO 27001' },
+              { icon: '🛡️', label: 'SOC 2 Type II' },
+              { icon: '🇮🇳', label: 'DPDP Act' },
+              { icon: '🔐', label: 'AES-256' },
+            ].map(badge => (
+              <div
+                key={badge.label}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.7rem',
+                  color: colors.textMuted,
+                  backgroundColor: colors.background,
+                  padding: '4px 8px',
+                  borderRadius: borderRadius.sm,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <span>{badge.icon}</span>
+                <span style={{ fontWeight: 600 }}>{badge.label}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: '0.7rem', color: colors.textMuted, lineHeight: 1.6 }}>
+            🇮🇳 Data hosted in India · Enterprise-grade encryption at rest & in transit
+          </div>
+          <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: '4px' }}>
+            Regulatory data sourced from WCO, DGFT & EU Commission
+          </div>
+        </div>
       </div>
     </div>
   )

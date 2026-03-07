@@ -9,16 +9,17 @@ export type NavItem = {
   id: ViewType | 'settings'
   label: string
   icon: string
+  tier?: 'free' | 'pro'
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◉' },
-  { id: 'risk', label: 'Risk Analysis', icon: '△' },
-  { id: 'checklist', label: 'Checklists', icon: '☑' },
-  { id: 'alerts', label: 'Alerts', icon: '⚡' },
-  { id: 'fta', label: 'FTA & Schemes', icon: '🤝' },
-  { id: 'shipments', label: 'Shipments', icon: '📦' },
-  { id: 'label-validator', label: 'Label Validator', icon: '🏷️' },
+  { id: 'dashboard', label: 'Dashboard', icon: '◉', tier: 'free' },
+  { id: 'risk', label: 'Risk Analysis', icon: '△', tier: 'free' },
+  { id: 'checklist', label: 'Checklists', icon: '☑', tier: 'free' },
+  { id: 'alerts', label: 'Alerts', icon: '⚡', tier: 'free' },
+  { id: 'fta', label: 'FTA & Schemes', icon: '🤝', tier: 'pro' },
+  { id: 'shipments', label: 'Shipments', icon: '📦', tier: 'pro' },
+  { id: 'label-validator', label: 'Label Validator', icon: '🏷️', tier: 'pro' },
 ]
 
 export interface SidebarProps {
@@ -102,6 +103,21 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0 }: SidebarProp
           >
             <span style={iconStyle}>{item.icon}</span>
             <span>{item.label}</span>
+            {item.tier === 'pro' && (
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                color: colors.orange,
+                backgroundColor: `${colors.orange}15`,
+                padding: '1px 5px',
+                borderRadius: borderRadius.sm,
+                border: `1px solid ${colors.orange}33`,
+                letterSpacing: '0.5px',
+              }}>
+                PRO
+              </span>
+            )}
             {item.id === 'alerts' && alertCount > 0 && (
               <span data-testid="alert-badge" style={badgeStyle}>
                 {alertCount}

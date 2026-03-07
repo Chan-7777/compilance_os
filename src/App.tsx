@@ -50,7 +50,7 @@ function App() {
   // -------------------------------------------------------------------------
 
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
   const [selectedCountries, setSelectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
@@ -88,10 +88,6 @@ function App() {
   const [alerts, setAlerts] = useState<any[]>([])
   const [alertCounts, setAlertCounts] = useState({ critical: 0, warning: 0, info: 0 })
 
-  const [riskLoading, setRiskLoading] = useState(false)
-  const [checklistLoading, setChecklistLoading] = useState(false)
-  const [alertsLoading, setAlertsLoading] = useState(false)
-
   // Product info (UI labels only — stays client-side)
   const productInfo = useMemo(() => {
     const product = getProductById(selectedProduct)
@@ -106,7 +102,6 @@ function App() {
     }
 
     let cancelled = false
-    setRiskLoading(true)
 
     fetchBatchRiskScore(selectedProduct, selectedCountries, companyProfile.size)
       .then(data => {
@@ -117,7 +112,7 @@ function App() {
         if (!cancelled) setRiskResults([])
       })
       .finally(() => {
-        if (!cancelled) setRiskLoading(false)
+        // loading complete
       })
 
     return () => { cancelled = true }
@@ -131,7 +126,6 @@ function App() {
     }
 
     let cancelled = false
-    setChecklistLoading(true)
 
     fetchChecklist(selectedProduct, selectedCountries[0])
       .then(data => {
@@ -142,7 +136,7 @@ function App() {
         if (!cancelled) setChecklist([])
       })
       .finally(() => {
-        if (!cancelled) setChecklistLoading(false)
+        // loading complete
       })
 
     return () => { cancelled = true }
@@ -157,13 +151,19 @@ function App() {
     }
 
     let cancelled = false
-    setAlertsLoading(true)
 
-    fetchAlerts(selectedCountries, selectedProduct)
+    fetchAlerts(selectedCountries, [selectedProduct])
       .then(data => {
         if (!cancelled) {
           setAlerts(data.alerts || [])
-          setAlertCounts(data.counts || { critical: 0, warning: 0, info: 0 })
+
+          // Recompute counts natively based on returned alerts
+          const alertsList = data.alerts || []
+          setAlertCounts({
+            critical: alertsList.filter(a => a.severity === 'critical').length,
+            warning: alertsList.filter(a => a.severity === 'warning').length,
+            info: alertsList.filter(a => a.severity === 'info').length,
+          })
         }
       })
       .catch(err => {
@@ -174,7 +174,7 @@ function App() {
         }
       })
       .finally(() => {
-        if (!cancelled) setAlertsLoading(false)
+        // loading complete
       })
 
     return () => { cancelled = true }

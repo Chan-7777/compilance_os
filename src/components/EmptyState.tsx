@@ -2,7 +2,7 @@
 // EmptyState Component - Reusable empty state UI
 // ============================================================================
 
-import { colors, spacing, borderRadius } from '@theme/index'
+import { colors, spacing } from '@theme/index'
 import { Button } from './Button'
 
 export interface EmptyStateProps {
@@ -11,9 +11,11 @@ export interface EmptyStateProps {
     description: string
     actionLabel?: string
     onAction?: () => void
+    secondaryLabel?: string
+    onSecondaryAction?: () => void
 }
 
-export function EmptyState({ icon, title, description, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, actionLabel, onAction, secondaryLabel, onSecondaryAction }: EmptyStateProps) {
     const containerStyle: React.CSSProperties = {
         display: 'flex',
         flexDirection: 'column',
@@ -50,11 +52,18 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
             {icon && <div style={iconStyle}>{icon}</div>}
             <h3 style={titleStyle}>{title}</h3>
             <p style={descriptionStyle}>{description}</p>
-            {actionLabel && onAction && (
-                <Button onClick={onAction} variant="primary">
-                    {actionLabel}
-                </Button>
-            )}
+            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {actionLabel && onAction && (
+                    <Button onClick={onAction} variant="primary">
+                        {actionLabel}
+                    </Button>
+                )}
+                {secondaryLabel && onSecondaryAction && (
+                    <Button onClick={onSecondaryAction} variant="secondary">
+                        {secondaryLabel}
+                    </Button>
+                )}
+            </div>
         </div>
     )
 }

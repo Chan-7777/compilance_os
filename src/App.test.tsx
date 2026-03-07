@@ -103,7 +103,6 @@ beforeEach(() => {
         message: 'UK REACH update',
       },
     ],
-    counts: { critical: 1, warning: 1, info: 0 },
   })
 
   // FTA-related mocks (used when navigating to FTA schemes view)

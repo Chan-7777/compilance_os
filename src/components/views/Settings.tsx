@@ -243,9 +243,11 @@ export function Settings({
       <div style={sectionStyle}>
         <h3 style={sectionTitleStyle}>
           Target Markets
-          <Badge variant="default" size="sm" style={{ marginLeft: spacing.sm }}>
-            {selectedCountries.length} selected
-          </Badge>
+          <div style={{ marginLeft: spacing.sm, display: 'inline-block' }}>
+            <Badge variant="default" size="sm">
+              {selectedCountries.length} selected
+            </Badge>
+          </div>
         </h3>
         <div style={gridStyle}>
           {COUNTRY_LIST.map(country => (
@@ -269,101 +271,140 @@ export function Settings({
                 <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{country.code}</div>
               </div>
               {selectedCountries.includes(country.code) && (
-                <Badge variant="success" size="sm" style={{ marginLeft: 'auto' }}>
-                  Selected
-                </Badge>
+                <div style={{ marginLeft: 'auto' }}>
+                  <Badge variant="success" size="sm">
+                    Selected
+                  </Badge>
+                </div>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* API Keys Section */}
+      {/* Advanced / Developer Section */}
       <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>🔑 API Keys</h3>
-        <Card>
-          <CardContent>
-            {/* Create new key */}
-            <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={e => setNewKeyName(e.target.value)}
-                placeholder="Key name (e.g., Production, Staging)"
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
-                Generate Key
-              </Button>
-            </div>
-
-            {/* Show newly created key */}
-            {newKeyPlaintext && (
-              <div style={{
-                padding: spacing.md,
-                marginBottom: spacing.md,
-                backgroundColor: '#dcfce7',
-                border: '1px solid #86efac',
-                borderRadius: borderRadius.md,
-              }}>
-                <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
-                  {newKeyPlaintext}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
-                  ⚠️ Copy this key now — it will never be shown again!
-                </div>
-                <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
-                  Dismiss
+        <button
+          onClick={() => {
+            const el = document.getElementById('advanced-section')
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
+          }}
+          style={{
+            ...sectionTitleStyle,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.sm,
+            padding: 0,
+            width: '100%',
+            textAlign: 'left',
+          }}
+        >
+          ⚙️ Advanced / Developer
+          <span style={{ fontSize: '0.75rem', color: colors.textMuted, fontWeight: 400 }}>
+            (click to expand)
+          </span>
+        </button>
+        <div id="advanced-section" style={{ display: 'none' }}>
+          <div style={{
+            padding: spacing.sm,
+            marginBottom: spacing.md,
+            backgroundColor: colors.surface,
+            borderRadius: borderRadius.md,
+            fontSize: '0.8rem',
+            color: colors.textMuted,
+            lineHeight: 1.6,
+          }}>
+            💡 <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
+            with third-party systems (ERP, customs software, etc.). You can use all features without configuring API keys.
+          </div>
+          <Card>
+            <CardContent>
+              <h4 style={{ margin: 0, marginBottom: spacing.md, fontSize: '1rem', fontWeight: 600 }}>🔑 API Keys</h4>
+              {/* Create new key */}
+              <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
+                <input
+                  type="text"
+                  value={newKeyName}
+                  onChange={e => setNewKeyName(e.target.value)}
+                  placeholder="Key name (e.g., Production, Staging)"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
+                  Generate Key
                 </Button>
               </div>
-            )}
 
-            {/* Keys list */}
-            {apiKeysLoading ? (
-              <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
-            ) : apiKeys.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
-                No API keys yet. Generate one to enable third-party integrations.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                {apiKeys.map(key => (
-                  <div
-                    key={key.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      padding: spacing.sm,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: borderRadius.md,
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{key.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
-                        {key.key_prefix}••••••••
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
-                        Created: {new Date(key.created_at).toLocaleDateString()}
-                        {key.last_used_at && ` • Last used: ${new Date(key.last_used_at).toLocaleDateString()}`}
-                        {` • Limit: ${key.rate_limit}/day`}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleRevokeKey(key.id)}
-                      style={{ color: colors.risk.high }}
-                    >
-                      Revoke
-                    </Button>
+              {/* Show newly created key */}
+              {newKeyPlaintext && (
+                <div style={{
+                  padding: spacing.md,
+                  marginBottom: spacing.md,
+                  backgroundColor: '#dcfce7',
+                  border: '1px solid #86efac',
+                  borderRadius: borderRadius.md,
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
+                    {newKeyPlaintext}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
+                    ⚠️ Copy this key now — it will never be shown again!
+                  </div>
+                  <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+
+              {/* Keys list */}
+              {apiKeysLoading ? (
+                <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
+              ) : apiKeys.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
+                  No API keys yet. Generate one to enable third-party integrations.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                  {apiKeys.map(key => (
+                    <div
+                      key={key.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                        padding: spacing.sm,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: borderRadius.md,
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>{key.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
+                          {key.key_prefix}••••••••
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
+                          Created: {new Date(key.created_at).toLocaleDateString()}
+                          {key.last_used_at && ` • Last used: ${new Date(key.last_used_at).toLocaleDateString()}`}
+                          {` • Limit: ${key.rate_limit}/day`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleRevokeKey(key.id)}
+                        style={{ color: colors.risk.high }}
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -58,7 +58,7 @@ describe('Shipments', () => {
       fireEvent.click(screen.getByRole('button', { name: /new shipment/i }))
 
       expect(screen.getByLabelText(/shipment name/i)).toBeInTheDocument()
-      expect(screen.getByLabelText(/product/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/^product$/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/destination/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/date/i)).toBeInTheDocument()
     })
@@ -74,7 +74,7 @@ describe('Shipments', () => {
       fireEvent.change(screen.getByLabelText(/shipment name/i), {
         target: { value: 'New Test Shipment' },
       })
-      fireEvent.change(screen.getByLabelText(/product/i), {
+      fireEvent.change(screen.getByLabelText(/^product$/i), {
         target: { value: 'steel' },
       })
       fireEvent.change(screen.getByLabelText(/destination/i), {
