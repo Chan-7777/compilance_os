@@ -89,18 +89,27 @@ async def verify_api_key(
     )
 
     for key_row in keys.data or []:
-        if bcrypt.checkpw(x_api_key.encode(), key_row["key_hash"].encode()):
-            # Update last_used_at
-            supabase.table("api_keys").update(
-                {"last_used_at": "now()"}
-            ).eq("id", key_row["id"]).execute()
+            if bcrypt.checkpw(x_api_key.encode(), key_row["key_hash"].encode()):
+                from app.middleware.rate_limiter import check_rate_limit
+                
+                # Check rate limit before proceeding
+                if not check_rate_limit(key_row["company_id"], daily_limit=key_row["rate_limit"]):
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="Rate limit exceeded. Try again tomorrow.",
+                    )
 
-            return {
-                "company_id": key_row["company_id"],
-                "company": key_row.get("companies"),
-                "permissions": key_row["permissions"],
-                "rate_limit": key_row["rate_limit"],
-            }
+                # Update last_used_at
+                supabase.table("api_keys").update(
+                    {"last_used_at": "now()"}
+                ).eq("id", key_row["id"]).execute()
+
+                return {
+                    "company_id": key_row["company_id"],
+                    "company": key_row.get("companies"),
+                    "permissions": key_row["permissions"],
+                    "rate_limit": key_row["rate_limit"],
+                }
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
