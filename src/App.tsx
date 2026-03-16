@@ -552,6 +552,7 @@ function App() {
             onUpdateProfile={handleUpdateProfile}
             onSelectProduct={handleSelectProduct}
             onToggleCountry={handleToggleCountry}
+            onNavigateToDashboard={() => handleNavigate('dashboard')}
           />
         )
       case 'label-validator':

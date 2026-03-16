@@ -19,6 +19,7 @@ export interface SettingsProps {
   onUpdateProfile: (profile: CompanyProfile) => void
   onSelectProduct: (productId: string) => void
   onToggleCountry: (country: CountryCode) => void
+  onNavigateToDashboard?: () => void
 }
 
 const COUNTRY_LIST: Array<{ code: CountryCode; name: string; flag: string }> = [
@@ -44,6 +45,7 @@ export function Settings({
   onUpdateProfile,
   onSelectProduct,
   onToggleCountry,
+  onNavigateToDashboard,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState(0)
 
@@ -292,6 +294,14 @@ export function Settings({
                 ))}
               </div>
             </div>
+
+            {onNavigateToDashboard && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: spacing.lg }}>
+                <Button variant="primary" onClick={onNavigateToDashboard}>
+                  Go to Dashboard →
+                </Button>
+              </div>
+            )}
           </TabPanel>
 
           {/* Tab 2: Developer */}
