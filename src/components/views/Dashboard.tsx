@@ -70,12 +70,12 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
         borderRadius: borderRadius.md, border: `1px solid ${colors.border}`,
         marginBottom: spacing.lg, fontSize: '0.72rem', color: colors.textMuted,
       }} data-testid="data-provenance-bar">
-        <span style={{ fontWeight: 600, color: colors.text }}>Live data from:</span>
+        <span style={{ fontWeight: 600, color: colors.text }}>Regulatory sources:</span>
         <span>World Customs Org</span><span>·</span>
         <span>India DGFT</span><span>·</span>
         <span>EU Commission</span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>
-          Updated: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#D97706', fontWeight: 500 }}>
+          ⚠ Reference data — verify critical deadlines with official sources
         </span>
       </div>
 
@@ -102,26 +102,28 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               Your compliance saves you money
             </div>
             <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' as const }}>
-              <div>
-                <div style={{ ...bigNum, color: '#15803D' }}>
-                  ₹{(activeFTACount * 45000).toLocaleString('en-IN')}
+              {activeFTACount > 0 && (
+                <div>
+                  <div style={{ ...bigNum, color: '#15803D' }}>
+                    {activeFTACount} active
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
+                    <J term="FTA">Trade deals</J> available for your markets — use the Trade Deals tab to calculate exact savings
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
-                  Est. import tax savings per shipment via <J term="FTA">trade deals</J>
+              )}
+              <div>
+                <div style={{ ...bigNum, color: colors.text }}>~4 hrs</div>
+                <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: 2 }}>
+                  Avg. time saved per shipment on documentation
                 </div>
               </div>
               <div>
                 <div style={{ ...bigNum, color: '#D97706' }}>
-                  ₹{overallRisk ? Math.round(overallRisk.score * 500).toLocaleString('en-IN') : '0'}
+                  {overallRisk ? overallRisk.level.toUpperCase() : '—'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#D97706', marginTop: 2 }}>
-                  Penalties avoided per quarter
-                </div>
-              </div>
-              <div>
-                <div style={{ ...bigNum, color: colors.text }}>~4 hrs</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: 2 }}>
-                  Time saved per shipment
+                  Overall compliance risk level
                 </div>
               </div>
             </div>

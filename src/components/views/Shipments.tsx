@@ -235,9 +235,15 @@ export function Shipments({
     setIsProcessingOCR(true)
 
     try {
-      // In a real app we'd convert File -> base64 here using FileReader
-      // Mock base64 for simulation
-      const fileBase64 = 'mock_base64_string'
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result.split(',')[1] ?? result)
+        }
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+      })
 
       const response = await processInvoiceOCR(fileBase64, file.name)
       if (response.success) {

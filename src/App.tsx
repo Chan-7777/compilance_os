@@ -67,26 +67,7 @@ function App() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
   const [activeAlertFilter, setActiveAlertFilter] = useState<'all' | AlertSeverity>('all')
 
-  const [shipments, setShipments] = useState<Shipment[]>([
-    {
-      id: 'ship-1',
-      name: 'Steel Export Batch Q1',
-      product: 'steel',
-      country: 'EU',
-      date: '2025-03-15',
-      status: 'in_progress',
-      riskScore: 72,
-    },
-    {
-      id: 'ship-2',
-      name: 'Textiles to UAE',
-      product: 'textiles',
-      country: 'UAE',
-      date: '2025-04-01',
-      status: 'pending',
-      riskScore: 28,
-    },
-  ])
+  const [shipments, setShipments] = useState<Shipment[]>([])
 
   // -------------------------------------------------------------------------
   // API-fetched data (replaces static utils from Phase 1)
@@ -228,22 +209,20 @@ function App() {
       .eq('company_id', auth.profile.company_id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (data && data.length > 0) {
-          setShipments(
-            data.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              product: s.product,
-              country: s.country,
-              date: s.date,
-              status: s.status,
-              riskScore: s.risk_score,
-              hsCode: s.hs_code,
-              shipmentValue: s.shipment_value ? parseFloat(s.shipment_value) : undefined,
-              gateStatus: s.gate_status,
-            }))
-          )
-        }
+        setShipments(
+          (data ?? []).map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            product: s.product,
+            country: s.country,
+            date: s.date,
+            status: s.status,
+            riskScore: s.risk_score,
+            hsCode: s.hs_code,
+            shipmentValue: s.shipment_value ? parseFloat(s.shipment_value) : undefined,
+            gateStatus: s.gate_status,
+          }))
+        )
       })
 
     // Load checklist progress
