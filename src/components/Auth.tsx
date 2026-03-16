@@ -47,8 +47,8 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
 
   const cardStyle: React.CSSProperties = {
     width: '100%',
-    maxWidth: 420,
-    padding: spacing['2xl'],
+    maxWidth: 480,
+    padding: '2.5rem',
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     border: `1px solid ${colors.border}`,
@@ -72,13 +72,14 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '10px 14px',
+    padding: '12px 16px',
     border: `1px solid ${colors.border}`,
     borderRadius: borderRadius.md,
-    fontSize: '0.875rem',
+    fontSize: '1rem',
     outline: 'none',
     boxSizing: 'border-box',
     marginBottom: spacing.md,
+    fontFamily: 'inherit',
   }
 
   const buttonStyle: React.CSSProperties = {
@@ -129,8 +130,8 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-          <img src="/logo.png" alt="ComplianceOS" style={{ height: 96, width: 'auto' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+          <img src="/logo.png" alt="ComplianceOS" style={{ height: 120, width: 'auto' }} />
         </div>
         <p style={subtitleStyle}>
           {isSignUp ? 'Create your account' : 'Sign in to your account'}
