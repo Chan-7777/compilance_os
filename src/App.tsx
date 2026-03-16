@@ -7,6 +7,9 @@ import { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Auth } from '@/components/Auth'
 import { Spinner } from '@/components/Spinner'
+import { Onboarding } from '@/components/Onboarding'
+import { TopBar } from '@/components/TopBar'
+import { useMobile } from '@/hooks/useMobile'
 import {
   Dashboard,
   RiskAnalysis,
@@ -44,6 +47,7 @@ const DEFAULT_PROFILE: CompanyProfile = {
 
 function App() {
   const auth = useAuth()
+  const isMobile = useMobile()
 
   // -------------------------------------------------------------------------
   // Application State
@@ -51,6 +55,10 @@ function App() {
 
   const [currentView, setCurrentView] = useState<ViewType>('dashboard')
   const [, startTransition] = useTransition()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Show onboarding to first-time users (no stored product/market selection)
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false)
 
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
   const [selectedCountries, setSelectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
@@ -206,6 +214,9 @@ function App() {
         if (data) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
+        } else {
+          // No saved settings — show onboarding
+          setShowOnboarding(true)
         }
       })
 
@@ -286,6 +297,16 @@ function App() {
   // -------------------------------------------------------------------------
   // Event Handlers
   // -------------------------------------------------------------------------
+
+  const handleOnboardingComplete = useCallback(
+    (product: string, countries: CountryCode[]) => {
+      setSelectedProduct(product)
+      setSelectedCountries(countries)
+      setShowOnboarding(false)
+      persistSettings(product, countries)
+    },
+    [persistSettings]
+  )
 
   const handleNavigate = useCallback(
     (view: ViewType) => {
@@ -516,6 +537,8 @@ function App() {
             shipments={shipments}
             selectedProduct={selectedProduct}
             selectedCountries={selectedCountries}
+            companyProfile={companyProfile}
+            checkedItems={checkedItems}
             onAddShipment={handleAddShipment}
             onSelectShipment={handleSelectShipment}
           />
@@ -548,37 +571,48 @@ function App() {
       style={{ display: 'flex', minHeight: '100vh', backgroundColor: colors.background }}
       data-testid="app-container"
     >
+      {/* Onboarding overlay for first-time users */}
+      {showOnboarding && (
+        <Onboarding onComplete={handleOnboardingComplete} />
+      )}
+
+      <TopBar
+        title={currentView}
+        isMobile={isMobile}
+        onMenuToggle={() => setSidebarOpen(o => !o)}
+      />
+
+      {/* Mobile overlay backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 150,
+          }}
+        />
+      )}
+
       <Sidebar
         currentView={currentView}
         onNavigate={handleNavigate}
         alertCount={alertCounts.critical}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       <main
-        style={{ flex: 1, marginLeft: '240px', overflow: 'auto', paddingBottom: '48px' }}
+        style={{ flex: 1, marginLeft: isMobile ? 0 : '210px', marginTop: '56px', overflow: 'auto', paddingBottom: '24px' }}
         data-testid="main-content"
       >
-        {renderView()}
+        <>
+          {renderView()}
+          <div style={{ padding: '12px 24px 0', fontSize: '0.65rem', color: '#9CA3AF', borderTop: '1px solid #E5E7EB', marginTop: '24px' }}>
+            ComplianceOS provides informational guidance only — not legal, tax, or trade advice. Always consult a qualified professional.
+          </div>
+        </>
       </main>
-
-      {/* Legal Disclaimer Footer */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: '240px',
-          right: 0,
-          backgroundColor: '#1e293b',
-          color: '#94a3b8',
-          fontSize: '0.7rem',
-          padding: '8px 16px',
-          textAlign: 'center',
-          zIndex: 50,
-          borderTop: '1px solid #334155',
-        }}
-        data-testid="disclaimer-footer"
-      >
-        ⚖️ ComplianceOS provides informational guidance only and does not constitute legal, tax, or trade compliance advice. Always consult qualified professionals before making compliance decisions.
-      </div>
     </div>
   )
 }

@@ -29,6 +29,8 @@ describe('Shipments', () => {
     shipments: mockShipments,
     selectedProduct: 'steel',
     selectedCountries: ['EU', 'UAE'] as CountryCode[],
+    companyProfile: { name: 'Test Co', size: 'small' as const },
+    checkedItems: {},
     onAddShipment: vi.fn(),
     onSelectShipment: vi.fn(),
   }

@@ -129,7 +129,9 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <h2 style={titleStyle}>ComplianceOS</h2>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <img src="/logo.png" alt="ComplianceOS" style={{ height: 48, width: 'auto' }} />
+        </div>
         <p style={subtitleStyle}>
           {isSignUp ? 'Create your account' : 'Sign in to your account'}
         </p>

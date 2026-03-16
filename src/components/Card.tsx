@@ -1,9 +1,9 @@
 // ============================================================================
-// Card Component - Container for grouped content
+// Card Component - v3 Clean SaaS card
 // ============================================================================
 
 import type { ReactNode } from 'react'
-import { colors, shadow, borderRadius, spacing } from '@theme/index'
+import { colors, borderRadius, spacing } from '@theme/index'
 
 export type CardVariant = 'default' | 'outlined' | 'elevated'
 
@@ -11,65 +11,50 @@ export interface CardProps {
   children: ReactNode
   variant?: CardVariant
   className?: string
+  style?: React.CSSProperties
 }
 
 const variantStyles: Record<CardVariant, React.CSSProperties> = {
   default: {
     backgroundColor: colors.white,
     border: `1px solid ${colors.border}`,
-    boxShadow: shadow.sm,
+    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.06)',
   },
   outlined: {
     backgroundColor: colors.white,
-    border: `2px solid ${colors.border}`,
+    border: `1px solid ${colors.border}`,
   },
   elevated: {
     backgroundColor: colors.white,
-    border: 'none',
-    boxShadow: shadow.lg,
+    border: `1px solid ${colors.border}`,
+    boxShadow: '0 4px 12px 0 rgb(0 0 0 / 0.08)',
   },
 }
 
-export function Card({ children, variant = 'default', className = '' }: CardProps) {
-  const baseStyle: React.CSSProperties = {
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    ...variantStyles[variant],
-  }
-
+export function Card({ children, variant = 'default', className = '', style }: CardProps) {
   return (
-    <div
-      data-component="card"
-      data-variant={variant}
-      className={className}
-      style={baseStyle}
-    >
+    <div data-component="card" data-variant={variant} className={className}
+      style={{ borderRadius: borderRadius.lg, overflow: 'hidden', ...variantStyles[variant], ...style }}>
       {children}
     </div>
   )
 }
-
-// ─── Card Header ─────────────────────────────────────────────────────────────
 
 export interface CardHeaderProps {
   children: ReactNode
   className?: string
+  action?: ReactNode
 }
 
-export function CardHeader({ children, className = '' }: CardHeaderProps) {
-  const style: React.CSSProperties = {
-    padding: spacing.lg,
-    borderBottom: `1px solid ${colors.border}`,
-  }
-
+export function CardHeader({ children, className = '', action }: CardHeaderProps) {
   return (
-    <div data-component="card-header" className={className} style={style}>
-      {children}
+    <div data-component="card-header" className={className}
+      style={{ padding: `14px ${spacing.lg}`, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: colors.text }}>{children}</div>
+      {action && <div style={{ color: colors.textMuted }}>{action}</div>}
     </div>
   )
 }
-
-// ─── Card Title ──────────────────────────────────────────────────────────────
 
 export interface CardTitleProps {
   children: ReactNode
@@ -78,40 +63,27 @@ export interface CardTitleProps {
 }
 
 export function CardTitle({ children, as: Tag = 'h3', className = '' }: CardTitleProps) {
-  const style: React.CSSProperties = {
-    margin: 0,
-    fontSize: '1.25rem',
-    fontWeight: 600,
-    color: colors.text,
-  }
-
   return (
-    <Tag data-component="card-title" className={className} style={style}>
+    <Tag data-component="card-title" className={className}
+      style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: colors.text }}>
       {children}
     </Tag>
   )
 }
 
-// ─── Card Content ────────────────────────────────────────────────────────────
-
 export interface CardContentProps {
   children: ReactNode
   className?: string
+  style?: React.CSSProperties
 }
 
-export function CardContent({ children, className = '' }: CardContentProps) {
-  const style: React.CSSProperties = {
-    padding: spacing.lg,
-  }
-
+export function CardContent({ children, className = '', style }: CardContentProps) {
   return (
-    <div data-component="card-content" className={className} style={style}>
+    <div data-component="card-content" className={className} style={{ padding: spacing.lg, ...style }}>
       {children}
     </div>
   )
 }
-
-// ─── Card Footer ─────────────────────────────────────────────────────────────
 
 export interface CardFooterProps {
   children: ReactNode
@@ -119,14 +91,9 @@ export interface CardFooterProps {
 }
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
-  const style: React.CSSProperties = {
-    padding: spacing.lg,
-    borderTop: `1px solid ${colors.border}`,
-    backgroundColor: colors.surface,
-  }
-
   return (
-    <div data-component="card-footer" className={className} style={style}>
+    <div data-component="card-footer" className={className}
+      style={{ padding: `12px ${spacing.lg}`, borderTop: `1px solid ${colors.border}`, backgroundColor: colors.surface }}>
       {children}
     </div>
   )

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
 import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
@@ -44,6 +45,8 @@ export function Settings({
   onSelectProduct,
   onToggleCountry,
 }: SettingsProps) {
+  const [activeTab, setActiveTab] = useState(0)
+
   // API Keys state
   const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
   const [newKeyName, setNewKeyName] = useState('')
@@ -157,255 +160,244 @@ export function Settings({
         <p style={subtitleStyle}>Configure your export compliance profile</p>
       </div>
 
-      {/* Company Profile Section */}
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Company Profile</h3>
-        <Card>
-          <CardContent>
-            <div style={{ marginBottom: spacing.md }}>
-              <label
-                htmlFor="company-name"
-                style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
-              >
-                Company Name
-              </label>
-              <input
-                id="company-name"
-                type="text"
-                value={companyProfile.name}
-                onChange={e => onUpdateProfile({ ...companyProfile, name: e.target.value })}
-                style={inputStyle}
-                placeholder="Enter company name"
-              />
+      <Tabs index={activeTab} onChange={setActiveTab}>
+        <TabList>
+          <Tab>Profile &amp; Markets</Tab>
+          <Tab>Developer</Tab>
+        </TabList>
+        <TabPanels>
+          {/* Tab 1: Profile & Markets */}
+          <TabPanel>
+            {/* Company Profile Section */}
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Company Profile</h3>
+              <Card>
+                <CardContent>
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label
+                      htmlFor="company-name"
+                      style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                    >
+                      Company Name
+                    </label>
+                    <input
+                      id="company-name"
+                      type="text"
+                      value={companyProfile.name}
+                      onChange={e => onUpdateProfile({ ...companyProfile, name: e.target.value })}
+                      style={inputStyle}
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: spacing.sm, fontWeight: 500 }}>
+                      Company Size
+                    </label>
+                    <div style={gridStyle}>
+                      {COMPANY_SIZES.map(size => (
+                        <div
+                          key={size.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={companyProfile.size === size.id}
+                          onClick={() => onUpdateProfile({ ...companyProfile, size: size.id })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              onUpdateProfile({ ...companyProfile, size: size.id })
+                            }
+                          }}
+                          style={optionCardStyle(companyProfile.size === size.id)}
+                          data-testid={`size-${size.id}`}
+                        >
+                          <div style={{ fontWeight: 600 }}>{size.label}</div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                            {size.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: spacing.sm, fontWeight: 500 }}>
-                Company Size
-              </label>
+
+            {/* Product Category Section */}
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Product Category</h3>
               <div style={gridStyle}>
-                {COMPANY_SIZES.map(size => (
+                {PRODUCT_CATEGORIES.map(product => (
                   <div
-                    key={size.id}
+                    key={product.id}
                     role="button"
                     tabIndex={0}
-                    aria-pressed={companyProfile.size === size.id}
-                    onClick={() => onUpdateProfile({ ...companyProfile, size: size.id })}
+                    aria-pressed={selectedProduct === product.id}
+                    onClick={() => onSelectProduct(product.id)}
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
-                        onUpdateProfile({ ...companyProfile, size: size.id })
+                        onSelectProduct(product.id)
                       }
                     }}
-                    style={optionCardStyle(companyProfile.size === size.id)}
-                    data-testid={`size-${size.id}`}
+                    style={optionCardStyle(selectedProduct === product.id)}
+                    data-testid={`product-${product.id}`}
                   >
-                    <div style={{ fontWeight: 600 }}>{size.label}</div>
+                    <div style={{ fontSize: '1.5rem', marginBottom: spacing.xs }}>{product.icon}</div>
+                    <div style={{ fontWeight: 600 }}>{product.label}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
-                      {size.description}
+                      HS: {product.hsPrefix.join(', ')}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Product Category Section */}
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Product Category</h3>
-        <div style={gridStyle}>
-          {PRODUCT_CATEGORIES.map(product => (
-            <div
-              key={product.id}
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedProduct === product.id}
-              onClick={() => onSelectProduct(product.id)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  onSelectProduct(product.id)
-                }
-              }}
-              style={optionCardStyle(selectedProduct === product.id)}
-              data-testid={`product-${product.id}`}
-            >
-              <div style={{ fontSize: '1.5rem', marginBottom: spacing.xs }}>{product.icon}</div>
-              <div style={{ fontWeight: 600 }}>{product.label}</div>
-              <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
-                HS: {product.hsPrefix.join(', ')}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Target Markets Section */}
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>
-          Target Markets
-          <div style={{ marginLeft: spacing.sm, display: 'inline-block' }}>
-            <Badge variant="default" size="sm">
-              {selectedCountries.length} selected
-            </Badge>
-          </div>
-        </h3>
-        <div style={gridStyle}>
-          {COUNTRY_LIST.map(country => (
-            <div
-              key={country.code}
-              role="checkbox"
-              tabIndex={0}
-              aria-checked={selectedCountries.includes(country.code)}
-              onClick={() => onToggleCountry(country.code)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  onToggleCountry(country.code)
-                }
-              }}
-              style={countryCardStyle(selectedCountries.includes(country.code))}
-              data-testid={`country-${country.code}`}
-            >
-              <span style={{ fontSize: '1.5rem' }}>{country.flag}</span>
-              <div>
-                <div style={{ fontWeight: 600 }}>{country.name}</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{country.code}</div>
-              </div>
-              {selectedCountries.includes(country.code) && (
-                <div style={{ marginLeft: 'auto' }}>
-                  <Badge variant="success" size="sm">
-                    Selected
+            {/* Target Markets Section */}
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>
+                Target Markets
+                <div style={{ marginLeft: spacing.sm, display: 'inline-block' }}>
+                  <Badge variant="default" size="sm">
+                    {selectedCountries.length} selected
                   </Badge>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Advanced / Developer Section */}
-      <div style={sectionStyle}>
-        <button
-          onClick={() => {
-            const el = document.getElementById('advanced-section')
-            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
-          }}
-          style={{
-            ...sectionTitleStyle,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.sm,
-            padding: 0,
-            width: '100%',
-            textAlign: 'left',
-          }}
-        >
-          ⚙️ Advanced / Developer
-          <span style={{ fontSize: '0.75rem', color: colors.textMuted, fontWeight: 400 }}>
-            (click to expand)
-          </span>
-        </button>
-        <div id="advanced-section" style={{ display: 'none' }}>
-          <div style={{
-            padding: spacing.sm,
-            marginBottom: spacing.md,
-            backgroundColor: colors.surface,
-            borderRadius: borderRadius.md,
-            fontSize: '0.8rem',
-            color: colors.textMuted,
-            lineHeight: 1.6,
-          }}>
-            💡 <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
-            with third-party systems (ERP, customs software, etc.). You can use all features without configuring API keys.
-          </div>
-          <Card>
-            <CardContent>
-              <h4 style={{ margin: 0, marginBottom: spacing.md, fontSize: '1rem', fontWeight: 600 }}>🔑 API Keys</h4>
-              {/* Create new key */}
-              <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
-                <input
-                  type="text"
-                  value={newKeyName}
-                  onChange={e => setNewKeyName(e.target.value)}
-                  placeholder="Key name (e.g., Production, Staging)"
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
-                  Generate Key
-                </Button>
-              </div>
-
-              {/* Show newly created key */}
-              {newKeyPlaintext && (
-                <div style={{
-                  padding: spacing.md,
-                  marginBottom: spacing.md,
-                  backgroundColor: '#dcfce7',
-                  border: '1px solid #86efac',
-                  borderRadius: borderRadius.md,
-                }}>
-                  <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
-                    {newKeyPlaintext}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
-                    ⚠️ Copy this key now — it will never be shown again!
-                  </div>
-                  <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
-                    Dismiss
-                  </Button>
-                </div>
-              )}
-
-              {/* Keys list */}
-              {apiKeysLoading ? (
-                <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
-              ) : apiKeys.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
-                  No API keys yet. Generate one to enable third-party integrations.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
-                  {apiKeys.map(key => (
-                    <div
-                      key={key.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: spacing.md,
-                        padding: spacing.sm,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: borderRadius.md,
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600 }}>{key.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
-                          {key.key_prefix}••••••••
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
-                          Created: {new Date(key.created_at).toLocaleDateString()}
-                          {key.last_used_at && ` • Last used: ${new Date(key.last_used_at).toLocaleDateString()}`}
-                          {` • Limit: ${key.rate_limit}/day`}
-                        </div>
+              </h3>
+              <div style={gridStyle}>
+                {COUNTRY_LIST.map(country => (
+                  <div
+                    key={country.code}
+                    role="checkbox"
+                    tabIndex={0}
+                    aria-checked={selectedCountries.includes(country.code)}
+                    onClick={() => onToggleCountry(country.code)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        onToggleCountry(country.code)
+                      }
+                    }}
+                    style={countryCardStyle(selectedCountries.includes(country.code))}
+                    data-testid={`country-${country.code}`}
+                  >
+                    <span style={{ fontSize: '1.5rem' }}>{country.flag}</span>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{country.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{country.code}</div>
+                    </div>
+                    {selectedCountries.includes(country.code) && (
+                      <div style={{ marginLeft: 'auto' }}>
+                        <Badge variant="success" size="sm">
+                          Selected
+                        </Badge>
                       </div>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleRevokeKey(key.id)}
-                        style={{ color: colors.risk.high }}
-                      >
-                        Revoke
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabPanel>
+
+          {/* Tab 2: Developer */}
+          <TabPanel>
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Developer</h3>
+              <div style={{
+                padding: spacing.sm,
+                marginBottom: spacing.md,
+                backgroundColor: colors.surface,
+                borderRadius: borderRadius.md,
+                fontSize: '0.8rem',
+                color: colors.textMuted,
+                lineHeight: 1.6,
+              }}>
+                💡 <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
+                with third-party systems (ERP, customs software, etc.). You can use all features without configuring API keys.
+              </div>
+              <Card>
+                <CardContent>
+                  <h4 style={{ margin: 0, marginBottom: spacing.md, fontSize: '1rem', fontWeight: 600 }}>🔑 API Keys</h4>
+                  {/* Create new key */}
+                  <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
+                    <input
+                      type="text"
+                      value={newKeyName}
+                      onChange={e => setNewKeyName(e.target.value)}
+                      placeholder="Key name (e.g., Production, Staging)"
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
+                      Generate Key
+                    </Button>
+                  </div>
+
+                  {/* Show newly created key */}
+                  {newKeyPlaintext && (
+                    <div style={{
+                      padding: spacing.md,
+                      marginBottom: spacing.md,
+                      backgroundColor: '#dcfce7',
+                      border: '1px solid #86efac',
+                      borderRadius: borderRadius.md,
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
+                        {newKeyPlaintext}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
+                        ⚠️ Copy this key now — it will never be shown again!
+                      </div>
+                      <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
+                        Dismiss
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                  )}
+
+                  {/* Keys list */}
+                  {apiKeysLoading ? (
+                    <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
+                  ) : apiKeys.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
+                      No API keys yet. Generate one to enable third-party integrations.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+                      {apiKeys.map(key => (
+                        <div
+                          key={key.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: spacing.md,
+                            padding: spacing.sm,
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: borderRadius.md,
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600 }}>{key.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
+                              {key.key_prefix}••••••••
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
+                              Created: {new Date(key.created_at).toLocaleDateString()}
+                              {key.last_used_at && ` • Last used: ${new Date(key.last_used_at).toLocaleDateString()}`}
+                              {` • Limit: ${key.rate_limit}/day`}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            onClick={() => handleRevokeKey(key.id)}
+                            style={{ color: colors.risk.high }}
+                          >
+                            Revoke
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </div>
   )
 }

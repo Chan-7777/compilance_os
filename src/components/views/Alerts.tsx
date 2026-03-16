@@ -17,9 +17,9 @@ export interface AlertsProps {
 
 const filterOptions: Array<{ id: 'all' | AlertSeverity; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'critical', label: 'Critical' },
-  { id: 'warning', label: 'Warning' },
-  { id: 'info', label: 'Info' },
+  { id: 'critical', label: 'Urgent' },
+  { id: 'warning', label: 'Review soon' },
+  { id: 'info', label: 'FYI' },
 ]
 
 export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
@@ -135,6 +135,7 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     fontSize: '0.75rem',
     color: colors.textMuted,
   }
+  void alertMetaStyle // used in expanded detail section
 
   const emptyStyle: React.CSSProperties = {
     textAlign: 'center',
@@ -153,6 +154,28 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     }
   }
 
+  const getSeverityLabel = (severity: AlertSeverity) => {
+    switch (severity) {
+      case 'critical':
+        return 'Urgent'
+      case 'warning':
+        return 'Review soon'
+      default:
+        return 'FYI'
+    }
+  }
+
+  const getImpactText = (severity: AlertSeverity) => {
+    switch (severity) {
+      case 'critical':
+        return 'This affects your next shipment — act now to avoid delays or fines at customs.'
+      case 'warning':
+        return 'Review within 30 days — this may affect future shipments.'
+      default:
+        return 'For your awareness — monitor for changes.'
+    }
+  }
+
   const formatAlertType = (type: string) => {
     return type.replace(/_/g, ' ')
   }
@@ -160,26 +183,26 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <h2 style={titleStyle}>Regulatory Alerts</h2>
+        <h2 style={titleStyle}>Regulatory Updates</h2>
       </div>
 
       {/* Alert Counts */}
       <div style={countsStyle}>
         <div style={countItemStyle}>
           <Badge variant="danger" size="sm">
-            Critical
+            Urgent
           </Badge>
           <span data-testid="count-critical">{counts.critical}</span>
         </div>
         <div style={countItemStyle}>
           <Badge variant="warning" size="sm">
-            Warning
+            Review soon
           </Badge>
           <span data-testid="count-warning">{counts.warning}</span>
         </div>
         <div style={countItemStyle}>
           <Badge variant="info" size="sm">
-            Info
+            FYI
           </Badge>
           <span data-testid="count-info">{counts.info}</span>
         </div>
@@ -264,15 +287,20 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
                         size="sm"
                         data-testid={`severity-${alert.severity}`}
                       >
-                        {alert.severity}
+                        {getSeverityLabel(alert.severity)}
                       </Badge>
                     </div>
-                    <div style={alertMessageStyle}>{alert.message}</div>
-                    <div style={alertMetaStyle}>
-                      <span style={alertTypeStyle}>{formatAlertType(alert.type)}</span>
-                      <span>•</span>
-                      <span>{alert.date}</span>
+                    {/* Plain-language impact text — always visible, shown first */}
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: alert.severity === 'critical' ? colors.risk.high : alert.severity === 'warning' ? '#D97706' : colors.textMuted,
+                      fontWeight: 500,
+                      marginBottom: spacing.xs,
+                      lineHeight: 1.4,
+                    }}>
+                      {getImpactText(alert.severity)}
                     </div>
+                    <div style={alertMessageStyle}>{alert.message}</div>
                   </div>
                   <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
                     ▼
@@ -285,19 +313,8 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
                     paddingTop: spacing.md,
                     borderTop: `1px solid ${colors.border}`,
                   }}>
-                    <div style={{ fontSize: '0.875rem', marginBottom: spacing.sm }}>
-                      <strong>Impact Assessment:</strong>
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: colors.text, marginBottom: spacing.sm }}>
-                      {alert.severity === 'critical'
-                        ? 'This requires immediate attention. Non-compliance may result in shipment delays, fines, or rejection at customs.'
-                        : alert.severity === 'warning'
-                          ? 'Action recommended within 30 days. This may affect future shipments to this destination.'
-                          : 'For informational purposes. Monitor for updates that may change compliance requirements.'
-                      }
-                    </div>
                     <div style={{ display: 'flex', gap: spacing.sm, fontSize: '0.75rem', color: colors.textMuted }}>
-                      <span>Type: {formatAlertType(alert.type)}</span>
+                      <span style={alertTypeStyle}>Type: {formatAlertType(alert.type)}</span>
                       <span>•</span>
                       <span>Market: {alert.countryName}</span>
                       <span>•</span>

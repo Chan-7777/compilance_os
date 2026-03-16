@@ -29,6 +29,7 @@ export function Checklist({
   onToggleItem,
 }: ChecklistProps) {
   const [activeTab, setActiveTab] = useState(0)
+  const [showAllPhases, setShowAllPhases] = useState(false)
   const { toasts, removeToast, success } = useToast()
 
   const handleToggle = (itemId: string | number) => {
@@ -47,6 +48,10 @@ export function Checklist({
   // Calculate progress
   const completedCount = checklist.filter(item => checkedItems[String(item.id)]).length
   const progress = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0
+
+  // Phase filtering
+  const immediateItems = checklist.filter(item => item.phase?.toLowerCase() === 'immediate')
+  const displayedChecklist = showAllPhases ? checklist : immediateItems
 
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
@@ -168,7 +173,7 @@ export function Checklist({
   }
 
   const handleMarkCategory = (category: string, checked: boolean) => {
-    const categoryItems = checklist.filter(item => item.category === category)
+    const categoryItems = displayedChecklist.filter(item => item.category === category)
     categoryItems.forEach(item => {
       const isCurrentlyChecked = !!checkedItems[String(item.id)]
       if (isCurrentlyChecked !== checked) {
@@ -193,62 +198,121 @@ export function Checklist({
     })
   }
 
-  const renderChecklist = () => (
-    <>
-      {categories.map(category => {
-        const categoryItems = checklist.filter(item => item.category === category)
-        const categoryComplete = categoryItems.filter(item => checkedItems[String(item.id)]).length
-        const allComplete = categoryComplete === categoryItems.length
-
-        return (
-          <div key={category} style={categoryStyle}>
-            <div style={{ ...categoryTitleStyle, justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                <span>{category}</span>
-                <Badge variant={allComplete ? 'success' : 'default'} size="sm">
-                  {categoryComplete}/{categoryItems.length}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleMarkCategory(category, !allComplete)}
-              >
-                {allComplete ? 'Reset All' : 'Mark All'}
-              </Button>
-            </div>
-            <div style={itemListStyle}>
-              {categoryItems.map(item => {
-                const isChecked = !!checkedItems[String(item.id)]
-                return (
-                  <label
-                    key={item.id}
-                    style={itemStyle(isChecked)}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleToggle(item.id)}
-                      style={checkboxStyle}
-                      aria-label={item.item}
-                    />
-                    <span style={itemTextStyle(isChecked)}>{item.item}</span>
-                    <Badge variant={getPriorityVariant(item.priority)} size="sm">
-                      {item.priority}
-                    </Badge>
-                    <Badge variant="default" size="sm">
-                      {item.phase}
-                    </Badge>
-                  </label>
-                )
-              })}
-            </div>
+  const renderChecklist = () => {
+    const displayCategories = [...new Set(displayedChecklist.map(item => item.category))]
+    return (
+      <>
+        {/* Phase filter banner */}
+        {!showAllPhases && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: '#EFF6FF',
+            borderRadius: borderRadius.md,
+            border: '1px solid #BFDBFE',
+            marginBottom: spacing.md,
+            fontSize: '0.875rem',
+          }}>
+            <span style={{ color: colors.text }}>
+              Showing <strong>{immediateItems.length}</strong> immediate actions.
+            </span>
+            <button
+              onClick={() => setShowAllPhases(true)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: colors.primary, fontWeight: 600, fontSize: '0.875rem',
+                fontFamily: 'inherit', padding: 0,
+              }}
+            >
+              Show all {checklist.length} tasks →
+            </button>
           </div>
-        )
-      })}
-    </>
-  )
+        )}
+        {showAllPhases && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: colors.surface,
+            borderRadius: borderRadius.md,
+            border: `1px solid ${colors.border}`,
+            marginBottom: spacing.md,
+            fontSize: '0.875rem',
+          }}>
+            <span style={{ color: colors.text }}>
+              Showing all <strong>{checklist.length}</strong> tasks across all phases.
+            </span>
+            <button
+              onClick={() => setShowAllPhases(false)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: colors.primary, fontWeight: 600, fontSize: '0.875rem',
+                fontFamily: 'inherit', padding: 0,
+              }}
+            >
+              Show immediate only →
+            </button>
+          </div>
+        )}
+
+        {displayCategories.map(category => {
+          const categoryItems = displayedChecklist.filter(item => item.category === category)
+          const categoryComplete = categoryItems.filter(item => checkedItems[String(item.id)]).length
+          const allComplete = categoryComplete === categoryItems.length
+
+          return (
+            <div key={category} style={categoryStyle}>
+              <div style={{ ...categoryTitleStyle, justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  <span>{category}</span>
+                  <Badge variant={allComplete ? 'success' : 'default'} size="sm">
+                    {categoryComplete}/{categoryItems.length}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleMarkCategory(category, !allComplete)}
+                >
+                  {allComplete ? 'Reset All' : 'Mark All'}
+                </Button>
+              </div>
+              <div style={itemListStyle}>
+                {categoryItems.map(item => {
+                  const isChecked = !!checkedItems[String(item.id)]
+                  return (
+                    <label
+                      key={item.id}
+                      style={itemStyle(isChecked)}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggle(item.id)}
+                        style={checkboxStyle}
+                        aria-label={item.item}
+                      />
+                      <span style={itemTextStyle(isChecked)}>{item.item}</span>
+                      <Badge variant={getPriorityVariant(item.priority)} size="sm">
+                        {item.priority}
+                      </Badge>
+                      <Badge variant="default" size="sm">
+                        {item.phase}
+                      </Badge>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </>
+    )
+  }
 
   return (
     <div style={containerStyle}>

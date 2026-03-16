@@ -9,13 +9,15 @@ import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
-import { runGateCheck, downloadCOOPdf, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing } from '@/lib/api'
-import type { Shipment, CountryCode, GateCheckResult, LandedCostResult } from '@/types'
+import { runGateCheck, downloadCOOPdf, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing } from '@/lib/api'
+import type { Shipment, CountryCode, GateCheckResult, LandedCostResult, CompanyProfile } from '@/types'
 
 export interface ShipmentsProps {
   shipments: Shipment[]
   selectedProduct: string
   selectedCountries: CountryCode[]
+  companyProfile: CompanyProfile
+  checkedItems: Record<string, boolean>
   onAddShipment: (shipment: Omit<Shipment, 'id' | 'status' | 'riskScore'>) => void
   onSelectShipment: (id: string) => void
 }
@@ -24,6 +26,8 @@ export function Shipments({
   shipments,
   selectedProduct,
   selectedCountries,
+  companyProfile,
+  checkedItems,
   onAddShipment,
   onSelectShipment,
 }: ShipmentsProps) {
@@ -279,15 +283,21 @@ export function Shipments({
   }
 
   const handleRunGateCheck = async (shipmentId: string) => {
+    const shipment = shipments.find(s => s.id === shipmentId)
+    if (!shipment) return
     setGateLoading(prev => ({ ...prev, [shipmentId]: true }))
     try {
-      const result = await runGateCheck(shipmentId)
+      const result = await runGateCheck(shipment, checkedItems, companyProfile)
       setGateResults(prev => ({ ...prev, [shipmentId]: result }))
     } catch (err) {
       console.error('Gate check failed:', err)
     } finally {
       setGateLoading(prev => ({ ...prev, [shipmentId]: false }))
     }
+  }
+
+  const handleGenerateDealPack = (shipment: Shipment) => {
+    generateDealPack(shipment, companyProfile, checkedItems)
   }
 
   const handleSuggestHSCode = async () => {
@@ -882,6 +892,19 @@ export function Shipments({
 
                     {/* Pre-Shipment Compliance Gate Panel */}
                     {renderGateCheckPanel(shipment)}
+
+                    {/* Bank-Ready Deal Pack */}
+                    <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: '#f8fafc', borderRadius: borderRadius.md, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: spacing.xs }}>Bank-Ready Export Deal Pack</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                          One-click PDF — compliance score, checklist, FTA eligibility & CBAM status for lenders
+                        </div>
+                      </div>
+                      <Button variant="primary" onClick={() => handleGenerateDealPack(shipment)}>
+                        Download Deal Pack
+                      </Button>
+                    </div>
 
                     {/* ICEGATE Customs Filing Panel */}
                     <div style={{ marginTop: spacing.lg, paddingTop: spacing.md, borderTop: `1px solid ${colors.border}` }}>

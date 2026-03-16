@@ -1,10 +1,11 @@
 import { supabase } from './supabase'
 import { calculateRiskScore } from '@/utils/risk-scoring'
 import { generateChecklist } from '@/utils/checklist-generator'
+import { generateBankReadyDealPack } from './deal-pack'
 import { FTA_DATABASE } from '@/data/fta'
 import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
-import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo } from '@/types'
+import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
 
@@ -269,44 +270,111 @@ export function triggerScraper(_scraperName: string) {
   return Promise.resolve({ status: 'ok' })
 }
 
-// ─── Compliance Gate (local mock) ──────────────────────────────
-export async function runGateCheck(_shipmentId: string): Promise<GateCheckResult> {
-  // Simulate processing delay
-  await new Promise(r => setTimeout(r, 1200))
-  return {
-    shipment_id: _shipmentId,
-    gate_status: 'approved' as GateStatus,
+// ─── Compliance Gate (real logic) ─────────────────────────────
+export function runGateCheck(
+  shipment: Shipment,
+  checkedItems: Record<string, boolean> = {},
+  companyProfile: CompanyProfile = { name: '', size: 'small' }
+): Promise<GateCheckResult> {
+  const risk = calculateRiskScore(shipment.product, shipment.country, companyProfile)
+  const checklist = generateChecklist(shipment.product, shipment.country)
+
+  const total = checklist.length
+  const completed = checklist.filter(c => checkedItems[String(c.id)]).length
+  const criticalPending = checklist.filter(
+    c => c.priority === 'critical' && !checkedItems[String(c.id)]
+  ).length
+  const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0
+
+  const fta = FTA_DATABASE[shipment.country as CountryCode]
+  const mfnRate = MFN_RATES[shipment.country] ?? 5.0
+  const prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
+  const shipmentValue = shipment.shipmentValue || 0
+
+  // ── Gate decision ─────────────────────────────────────────
+  const blockingReasons: string[] = []
+  const conditionalReasons: string[] = []
+
+  if (risk.score >= 70) blockingReasons.push(`Risk score is high (${risk.score}/100) — lender approval unlikely`)
+  if (criticalPending > 2) blockingReasons.push(`${criticalPending} critical compliance items are incomplete`)
+  if (completionPct < 40) blockingReasons.push(`Checklist only ${completionPct}% complete — below 40% minimum`)
+
+  if (risk.score >= 50 && risk.score < 70) conditionalReasons.push(`Moderate risk (${risk.score}/100) — lender review required`)
+  if (criticalPending === 1 || criticalPending === 2) conditionalReasons.push(`${criticalPending} critical item(s) pending — resolve before disbursement`)
+  if (completionPct >= 40 && completionPct < 75) conditionalReasons.push(`Checklist at ${completionPct}% — complete remaining items before funding`)
+
+  let gate_status: GateStatus
+  let activeReasons: string[]
+
+  if (blockingReasons.length > 0) {
+    gate_status = 'blocked'
+    activeReasons = blockingReasons
+  } else if (conditionalReasons.length > 0) {
+    gate_status = 'pending'
+    activeReasons = conditionalReasons
+  } else {
+    gate_status = 'approved'
+    activeReasons = []
+  }
+
+  const result: GateCheckResult = {
+    shipment_id: shipment.id,
+    gate_status,
     checked_at: new Date().toISOString(),
-    hs_validation: { valid: true, hs_code: '7208.51', description: 'HS code validated against WCO Harmonized System database', suggestions: [] },
+    blocking_reasons: activeReasons,
+    hs_validation: {
+      valid: !!shipment.hsCode,
+      hs_code: shipment.hsCode || 'Not provided',
+      description: shipment.hsCode
+        ? `HS code ${shipment.hsCode} provided by exporter`
+        : 'HS code not entered — required for customs clearance',
+      suggestions: [],
+    },
     fta_eligibility: {
-      eligible: true,
-      agreement: 'India-UAE CEPA',
-      mfn_rate: 5,
-      preferential_rate: 1.5,
-      potential_savings: 50000,
+      eligible: fta?.preferentialTariff ?? false,
+      agreement: fta?.name || 'No active FTA',
+      mfn_rate: mfnRate,
+      preferential_rate: prefRate,
+      potential_savings: fta?.preferentialTariff
+        ? Math.round(shipmentValue * ((mfnRate - prefRate) / 100))
+        : 0,
     },
     coo_requirement: {
-      required: true,
-      agreement_name: 'India-UAE CEPA',
+      required: fta?.preferentialTariff ?? false,
+      agreement_name: fta?.name || '',
       issuing_authority: 'Federation of Indian Export Organisations (FIEO)',
-      document_type: 'Certificate of Origin (Non-Preferential)',
+      document_type: fta?.preferentialTariff
+        ? 'Certificate of Origin (Preferential)'
+        : 'Certificate of Origin (Non-Preferential)',
     },
     rules_of_origin: {
-      applicable: true,
-      rule_text: 'Product must meet Change in Tariff Classification (CTC) or Value Addition (VA) criteria of min 35%',
+      applicable: fta?.preferentialTariff ?? false,
+      rule_text: fta?.preferentialTariff
+        ? 'Product must meet Change in Tariff Classification (CTC) or Value Addition (VA) criteria of min 35%'
+        : 'Standard rules of origin apply',
     },
     checklist_progress: {
-      completion_percentage: 85,
-      completed_items: 17,
-      total_items: 20,
-      critical_pending: 1,
+      completion_percentage: completionPct,
+      completed_items: completed,
+      total_items: total,
+      critical_pending: criticalPending,
     },
-    blocking_reasons: [] as string[],
   }
+
+  return Promise.resolve(result)
 }
 
-export function getGateStatus(shipmentId: string) {
-  return runGateCheck(shipmentId)
+export function getGateStatus(shipment: Shipment, checkedItems?: Record<string, boolean>, companyProfile?: CompanyProfile) {
+  return runGateCheck(shipment, checkedItems, companyProfile)
+}
+
+// ─── Bank-Ready Deal Pack ──────────────────────────────────────
+export function generateDealPack(
+  shipment: Shipment,
+  companyProfile: CompanyProfile,
+  checkedItems: Record<string, boolean>
+): void {
+  generateBankReadyDealPack(shipment, companyProfile, checkedItems)
 }
 
 export async function downloadCOOPdf(shipmentId: string): Promise<Blob> {
@@ -444,31 +512,45 @@ export async function submitTReDSFinancing(financingData: {
   }
 }
 
-// ─── API Keys (local mock) ───────────────────────────────────
-let mockApiKeys: APIKeyInfo[] = []
-let mockKeyCounter = 0
+// ─── API Keys (localStorage-persisted) ───────────────────────
+const API_KEYS_STORE = 'cos_api_keys'
+
+function loadKeys(): APIKeyInfo[] {
+  try {
+    const raw = localStorage.getItem(API_KEYS_STORE)
+    return raw ? (JSON.parse(raw) as APIKeyInfo[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveKeys(keys: APIKeyInfo[]): void {
+  localStorage.setItem(API_KEYS_STORE, JSON.stringify(keys))
+}
 
 export function fetchAPIKeys(): Promise<APIKeyInfo[]> {
-  return Promise.resolve(mockApiKeys)
+  return Promise.resolve(loadKeys())
 }
 
 export function createAPIKey(name: string): Promise<{ key: string; id: string }> {
-  mockKeyCounter++
-  const id = `key-${mockKeyCounter}`
-  const key = `cos_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+  const id = `key-${Date.now()}`
+  // Generate a secure-looking key using crypto.getRandomValues
+  const bytes = new Uint8Array(24)
+  crypto.getRandomValues(bytes)
+  const key = `cos_${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40)}`
   const newKey: APIKeyInfo = {
     id,
     name,
-    key_prefix: key.slice(0, 8),
+    key_prefix: key.slice(0, 12),
     created_at: new Date().toISOString(),
     rate_limit: 1000,
-    permissions: ['read', 'write'],
+    permissions: ['read'],
   }
-  mockApiKeys = [...mockApiKeys, newKey]
+  saveKeys([...loadKeys(), newKey])
   return Promise.resolve({ key, id })
 }
 
 export function revokeAPIKey(id: string): Promise<void> {
-  mockApiKeys = mockApiKeys.filter(k => k.id !== id)
+  saveKeys(loadKeys().filter(k => k.id !== id))
   return Promise.resolve(undefined as void)
 }

@@ -1,46 +1,71 @@
 // ============================================================================
-// Design Tokens - ComplianceOS Theme
+// Design Tokens - ComplianceOS Theme (v3 - LegalInspect Dark Sidebar Style)
 // ============================================================================
 
 export const colors = {
-  // Primary Palette
-  cream: '#FAF3E1',
-  tan: '#F5E7C6',
-  orange: '#FA8112',
-  charcoal: '#222222',
+  // Core palette
+  primary: '#2563EB',
+  primaryHover: '#1D4ED8',
+  cta: '#F97316',
+  ctaHover: '#EA6C0A',
 
-  // Semantic Colors
-  primary: '#FA8112',
-  background: '#FAF3E1',
-  surface: '#F5E7C6',
-  text: '#222222',
-  textMuted: '#666666',
+  // App surface
+  background: '#F3F4F6',
+  surface: '#F9FAFB',
+  surfaceHover: '#F3F4F6',
+  white: '#FFFFFF',
 
-  // Risk Level Colors
+  // Content text
+  text: '#111827',
+  textMuted: '#6B7280',
+  textSubtle: '#9CA3AF',
+
+  // Sidebar (dark)
+  sidebar: '#111827',
+  sidebarHover: '#1F2937',
+  sidebarActive: '#FFFFFF',
+  sidebarActiveText: '#111827',
+  sidebarText: '#9CA3AF',
+  sidebarLabel: '#4B5563',
+  sidebarBorder: '#1F2937',
+
+  // Borders
+  border: '#E5E7EB',
+  borderFocus: '#2563EB',
+
+  // Risk Level
   risk: {
     high: '#DC2626',
-    medium: '#F59E0B',
+    medium: '#D97706',
     low: '#16A34A',
   },
 
-  // Alert Severity Colors
+  // Alert Severity
   severity: {
     critical: '#DC2626',
-    warning: '#F59E0B',
-    info: '#3B82F6',
+    warning: '#D97706',
+    info: '#2563EB',
   },
 
-  // Status Colors
+  // Status
   status: {
     success: '#16A34A',
     error: '#DC2626',
-    pending: '#F59E0B',
+    pending: '#D97706',
   },
 
-  // UI Colors
-  border: '#E5D9C3',
-  borderFocus: '#FA8112',
-  white: '#FFFFFF',
+  // Outcome pills (table)
+  outcome: {
+    win: { bg: '#DCFCE7', text: '#15803D' },
+    settled: { bg: '#FEF9C3', text: '#854D0E' },
+    loss: { bg: '#FEE2E2', text: '#DC2626' },
+  },
+
+  // Legacy aliases
+  orange: '#F97316',
+  cream: '#F3F4F6',
+  tan: '#F9FAFB',
+  charcoal: '#111827',
 } as const
 
 export const spacing = {
@@ -91,9 +116,9 @@ export const letterSpacing = {
 } as const
 
 export const shadow = {
-  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+  sm: '0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07)',
+  md: '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07)',
 } as const
 
 export const transition = {
@@ -102,17 +127,9 @@ export const transition = {
   slow: '300ms ease-in-out',
 } as const
 
-// Theme object for components
 export const theme = {
-  colors,
-  spacing,
-  borderRadius,
-  fontSize,
-  fontWeight,
-  lineHeight,
-  letterSpacing,
-  shadow,
-  transition,
+  colors, spacing, borderRadius, fontSize, fontWeight,
+  lineHeight, letterSpacing, shadow, transition,
 } as const
 
 export type Theme = typeof theme
