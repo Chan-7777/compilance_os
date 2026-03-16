@@ -25,3 +25,6 @@ export type { SettingsProps } from './Settings'
 
 export { LabelValidator } from './LabelValidator'
 export type { LabelValidatorProps } from './LabelValidator'
+
+export { EUCompliance } from './EUCompliance'
+export type { EUComplianceProps } from './EUCompliance'

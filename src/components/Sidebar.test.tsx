@@ -17,7 +17,7 @@ describe('Sidebar', () => {
 
     it('displays app title', () => {
       render(<Sidebar {...defaultProps} />)
-      expect(screen.getByText(/complianceos/i)).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: /complianceos/i })).toBeInTheDocument()
     })
   })
 
@@ -25,24 +25,24 @@ describe('Sidebar', () => {
     it('renders all navigation items', () => {
       render(<Sidebar {...defaultProps} />)
       expect(screen.getByText(/dashboard/i)).toBeInTheDocument()
-      expect(screen.getByText(/risk analysis/i)).toBeInTheDocument()
-      expect(screen.getByText(/checklist/i)).toBeInTheDocument()
-      expect(screen.getByText(/alerts/i)).toBeInTheDocument()
-      expect(screen.getByText(/fta.*schemes/i)).toBeInTheDocument()
+      expect(screen.getByText(/compliance risk/i)).toBeInTheDocument()
+      expect(screen.getByText(/my checklist/i)).toBeInTheDocument()
+      expect(screen.getByText(/regulatory updates/i)).toBeInTheDocument()
+      expect(screen.getByText(/trade deals/i)).toBeInTheDocument()
       expect(screen.getByText(/shipments/i)).toBeInTheDocument()
     })
 
     it('highlights active navigation item', () => {
       render(<Sidebar {...defaultProps} currentView="risk" />)
-      const riskItem = screen.getByRole('button', { name: /risk analysis/i })
-      expect(riskItem).toHaveAttribute('data-active', 'true')
+      const riskItem = screen.getByRole('button', { name: /compliance risk/i })
+      expect(riskItem).toHaveAttribute('aria-current', 'page')
     })
 
     it('calls onNavigate when item clicked', () => {
       const onNavigate = vi.fn()
       render(<Sidebar {...defaultProps} onNavigate={onNavigate} />)
 
-      fireEvent.click(screen.getByText(/risk analysis/i))
+      fireEvent.click(screen.getByText(/compliance risk/i))
       expect(onNavigate).toHaveBeenCalledWith('risk')
     })
   })

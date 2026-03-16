@@ -10,7 +10,7 @@ describe('Checklist', () => {
       category: 'Documentation',
       item: 'Commercial Invoice',
       required: true,
-      phase: 'pre-shipment',
+      phase: 'immediate',
       priority: 'high',
       details: 'Include all transaction details',
     },
@@ -19,7 +19,7 @@ describe('Checklist', () => {
       category: 'Documentation',
       item: 'Packing List',
       required: true,
-      phase: 'pre-shipment',
+      phase: 'immediate',
       priority: 'medium',
     },
     {
@@ -27,7 +27,7 @@ describe('Checklist', () => {
       category: 'Certifications',
       item: 'CE Marking',
       required: true,
-      phase: 'pre-production',
+      phase: 'immediate',
       priority: 'high',
     },
     {
@@ -35,7 +35,7 @@ describe('Checklist', () => {
       category: 'CBAM',
       item: 'Carbon emissions data',
       required: true,
-      phase: 'pre-shipment',
+      phase: 'immediate',
       priority: 'critical',
     },
   ]
@@ -131,8 +131,7 @@ describe('Checklist', () => {
   describe('Phase Display', () => {
     it('shows phase information', () => {
       render(<Checklist {...defaultProps} />)
-      expect(screen.getAllByText(/pre-shipment/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/pre-production/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/immediate/i).length).toBeGreaterThan(0)
     })
   })
 

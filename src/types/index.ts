@@ -124,6 +124,7 @@ export interface RiskResult {
 
 export type ChecklistPriority = 'critical' | 'high' | 'medium' | 'low'
 export type ChecklistPhase =
+  | 'immediate'
   | 'one-time'
   | 'pre-production'
   | 'pre-shipment'
@@ -280,6 +281,7 @@ export type ViewType =
   | 'shipments'
   | 'settings'
   | 'label-validator'
+  | 'eu-compliance'
 
 export interface AppState {
   currentView: ViewType

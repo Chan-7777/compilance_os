@@ -54,6 +54,13 @@ const LogoutIcon = () => (
     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
 )
+const EUIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M8 12h8M12 8v8"/>
+    <path d="M6.3 6.3l11.4 11.4M17.7 6.3L6.3 17.7" strokeWidth="1.2" strokeDasharray="2 2"/>
+  </svg>
+)
 
 type NavGroup = {
   label: string
@@ -93,9 +100,10 @@ export interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
   onLogout?: () => void
+  euEnabled?: boolean
 }
 
-export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = false, isOpen = false, onClose, onLogout }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = false, isOpen = false, onClose, onLogout, euEnabled = false }: SidebarProps) {
   const isActive = (id: string) => currentView === id
 
   const handleNavigate = (view: ViewType | 'settings') => {
@@ -177,6 +185,18 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
             <span>Settings</span>
           </button>
         </div>
+
+        {/* EU Compliance — only shown when EU is a selected market */}
+        {euEnabled && (
+          <div>
+            <span style={groupLabel}>EU MARKET</span>
+            <button onClick={() => handleNavigate('eu-compliance')} style={navBtn(isActive('eu-compliance'))} aria-current={isActive('eu-compliance') ? 'page' : undefined}>
+              <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: isActive('eu-compliance') ? 1 : 0.7 }}><EUIcon /></span>
+              <span style={{ flex: 1 }}>EU Compliance</span>
+              <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.15)', padding: '1px 4px', borderRadius: '3px', letterSpacing: '0.5px' }}>NEW</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Logout */}

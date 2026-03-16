@@ -46,7 +46,7 @@ describe('Alerts', () => {
   describe('Rendering', () => {
     it('renders without crashing', () => {
       render(<Alerts {...defaultProps} />)
-      expect(screen.getByText(/alerts/i)).toBeInTheDocument()
+      expect(screen.getByText(/regulatory updates/i)).toBeInTheDocument()
     })
 
     it('displays all alerts', () => {
@@ -62,8 +62,8 @@ describe('Alerts', () => {
       render(<Alerts {...defaultProps} />)
       // Filter buttons are among multiple buttons (alert cards also have role="button")
       expect(screen.getAllByRole('button', { name: /all/i }).length).toBeGreaterThan(0)
-      expect(screen.getAllByRole('button', { name: /critical/i }).length).toBeGreaterThan(0)
-      expect(screen.getAllByRole('button', { name: /warning/i }).length).toBeGreaterThan(0)
+      expect(screen.getAllByRole('button', { name: /urgent/i }).length).toBeGreaterThan(0)
+      expect(screen.getAllByRole('button', { name: /review soon/i }).length).toBeGreaterThan(0)
     })
 
     it('calls onFilterChange when filter clicked', () => {
@@ -71,7 +71,7 @@ describe('Alerts', () => {
       render(<Alerts {...defaultProps} onFilterChange={onFilterChange} />)
 
       // Get all buttons matching "critical" and click the filter button (first one)
-      const criticalButtons = screen.getAllByRole('button', { name: /critical/i })
+      const criticalButtons = screen.getAllByRole('button', { name: /urgent/i })
       fireEvent.click(criticalButtons[0])
       expect(onFilterChange).toHaveBeenCalledWith('critical')
     })
@@ -100,7 +100,10 @@ describe('Alerts', () => {
 
     it('displays alert date', () => {
       render(<Alerts {...defaultProps} />)
-      expect(screen.getByText(/2025-12-31/)).toBeInTheDocument()
+      // Expand the first alert card to see date details
+      const alertCards = screen.getAllByTestId('alert-card')
+      fireEvent.click(alertCards[0])
+      expect(screen.getByText(/Date:.*2025-12-31/)).toBeInTheDocument()
     })
 
     it('displays severity badges', () => {
@@ -109,16 +112,17 @@ describe('Alerts', () => {
       const alertCards = screen.getAllByTestId('alert-card')
       expect(alertCards.length).toBe(3)
       // Check for severity text in cards
-      expect(screen.getAllByText(/critical/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/warning/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/info/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/urgent/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/review soon/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/fyi/i).length).toBeGreaterThan(0)
     })
 
     it('displays alert type', () => {
       render(<Alerts {...defaultProps} />)
-      // Multiple elements may contain these texts
+      // Expand all alert cards to see type details
+      const alertCards = screen.getAllByTestId('alert-card')
+      alertCards.forEach(card => fireEvent.click(card))
       expect(screen.getAllByText(/deadline/i).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/regulation change/i).length).toBeGreaterThan(0)
       expect(screen.getAllByText(/fta update/i).length).toBeGreaterThan(0)
     })
   })

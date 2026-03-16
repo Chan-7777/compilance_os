@@ -19,6 +19,7 @@ import {
   Shipments,
   Settings,
   LabelValidator,
+  EUCompliance,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
@@ -562,6 +563,15 @@ function App() {
             selectedCountries={selectedCountries}
           />
         )
+      case 'eu-compliance':
+        return (
+          <EUCompliance
+            companyProfile={companyProfile}
+            selectedProduct={productInfo.label}
+            selectedCountries={selectedCountries}
+            shipments={shipments}
+          />
+        )
       default:
         return null
     }
@@ -604,6 +614,7 @@ function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onLogout={() => auth.signOut()}
+        euEnabled={selectedCountries.includes('EU')}
       />
       <main
         style={{ flex: 1, marginLeft: isMobile ? 0 : '210px', marginTop: '56px', overflow: 'auto', paddingBottom: '24px' }}
