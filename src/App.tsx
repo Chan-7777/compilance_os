@@ -580,6 +580,7 @@ function App() {
         title={currentView}
         isMobile={isMobile}
         onMenuToggle={() => setSidebarOpen(o => !o)}
+        userName={auth.user?.email || companyProfile.name || 'User'}
       />
 
       {/* Mobile overlay backdrop */}
@@ -601,6 +602,7 @@ function App() {
         isMobile={isMobile}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onLogout={() => auth.signOut()}
       />
       <main
         style={{ flex: 1, marginLeft: isMobile ? 0 : '210px', marginTop: '56px', overflow: 'auto', paddingBottom: '24px' }}

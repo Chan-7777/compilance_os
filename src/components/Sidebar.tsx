@@ -92,9 +92,10 @@ export interface SidebarProps {
   isMobile?: boolean
   isOpen?: boolean
   onClose?: () => void
+  onLogout?: () => void
 }
 
-export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = false, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = false, isOpen = false, onClose, onLogout }: SidebarProps) {
   const isActive = (id: string) => currentView === id
 
   const handleNavigate = (view: ViewType | 'settings') => {
@@ -178,9 +179,9 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
         </div>
       </div>
 
-      {/* Logout — decorative, no action */}
+      {/* Logout */}
       <div style={{ borderTop: `1px solid ${colors.sidebarBorder}`, paddingTop: spacing.sm, marginTop: spacing.sm }}>
-        <button style={{ ...navBtn(false), opacity: 0.6 }}>
+        <button onClick={onLogout} style={{ ...navBtn(false), opacity: 0.6 }}>
           <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}><LogoutIcon /></span>
           <span>Logout</span>
         </button>
