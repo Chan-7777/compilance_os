@@ -400,6 +400,8 @@ export function Checklist({
                 type="text"
                 value={hsQuery}
                 onChange={e => handleHsQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setSearchOpen(false); setHsQuery(''); setHsResults([]) } }}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                 placeholder="Search product or HS code…"
                 style={{
                   width: '100%', padding: `${spacing.sm} ${spacing.md}`,
@@ -428,6 +430,7 @@ export function Checklist({
                   {hsResults.map(r => (
                     <button
                       key={r.hsCode}
+                      onMouseDown={e => e.preventDefault()}
                       onClick={() => handlePickProduct(r)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%',
