@@ -192,7 +192,7 @@ const TEXTILES: HSProduct[] = [
         { category: 'Certification', item: 'OEKO-TEX Standard 100 or GOTS (preferred by EU buyers)', priority: 'medium', phase: 'one-time' },
       ],
       US: [
-        { category: 'Certification', item: 'CPSIA compliance (if for children ≤12 yrs)', priority: 'critical', phase: 'pre-production', details: 'Children's garments require lead + phthalate testing and GCC certificate' },
+        { category: 'Certification', item: 'CPSIA compliance (if for children under 12 yrs)', priority: 'critical', phase: 'pre-production', details: "Children's garments require lead + phthalate testing and GCC certificate" },
         { category: 'Testing', item: 'Flammability test (16 CFR 1610 — Class 1 required)', priority: 'critical', phase: 'pre-production' },
         { category: 'Labeling', item: 'Care label in English (fiber content, washing instructions)', priority: 'critical', phase: 'pre-production', details: 'US Textile Fiber Products Identification Act and Care Labeling Rule' },
         { category: 'Labeling', item: 'Country of origin label: "Made in India"', priority: 'critical', phase: 'pre-production' },
