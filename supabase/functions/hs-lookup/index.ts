@@ -77,9 +77,10 @@ serve(async (req) => {
     }
 
     const q = query.trim()
+    // chapters only used as hint in AI prompt — never restrict DB results
     const chapters = category ? (CATEGORY_CHAPTERS[category] ?? null) : null
 
-    // ── 1. DB search ───────────────────────────────────────────────────────
+    // ── 1. DB search — no category filter, search all 5,613 codes ──────────
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -90,16 +91,16 @@ serve(async (req) => {
       .from('hs_codes')
       .select('code, description')
       .textSearch('description', q, { type: 'websearch' })
-      .limit(20)
+      .limit(10)
 
     // ilike fallback
     const { data: ilikeRows } = await serviceClient
       .from('hs_codes')
       .select('code, description')
       .ilike('description', `%${q}%`)
-      .limit(20)
+      .limit(10)
 
-    // Merge, dedupe, filter by category
+    // Merge and dedupe
     const seen = new Set<string>()
     const combined: { code: string; description: string }[] = []
     for (const r of [...(ftsRows ?? []), ...(ilikeRows ?? [])]) {
@@ -109,9 +110,7 @@ serve(async (req) => {
       }
     }
 
-    const dbResults = combined
-      .filter(r => !chapters || chapters.some(ch => r.code.replace('.','').startsWith(ch)))
-      .slice(0, 5)
+    const dbResults = combined.slice(0, 5)
 
     const dbFormatted = dbResults.map(r => ({
       hsCode: r.code,
