@@ -403,19 +403,49 @@ export function validateHSCode(hsCode: string, _product?: string) {
 
 // ─── Alerts & Intelligence ──────────────────────────────────────
 export async function fetchAlerts(countries: string[], products: string[]) {
-  const { data, error } = await supabase.functions.invoke('regulatory-alerts', {
-    body: {
-      countries,
-      products,
-    },
-  })
+  // Query regulatory_changes directly — faster and avoids edge function auth issues
+  let query = supabase
+    .from('regulatory_changes')
+    .select('id, country_code, country_name, flag, title, change_description, source_url, source_name, severity, alert_type, product_tags, date, scraped_at')
+    .order('scraped_at', { ascending: false })
+    .limit(50)
+
+  if (countries.length > 0) {
+    query = query.in('country_code', countries)
+  }
+
+  const { data, error } = await query
 
   if (error) {
-    console.error('Alerts Edge Function error:', error)
+    console.error('Alerts DB error:', error)
     throw new Error(error.message)
   }
 
-  return data as { alerts: any[] }
+  const rows = data ?? []
+
+  // Boost product-matched alerts to top
+  const sorted = [...rows].sort((a, b) => {
+    const aMatch = products.some(p => (a.product_tags ?? []).includes(p)) ? 1 : 0
+    const bMatch = products.some(p => (b.product_tags ?? []).includes(p)) ? 1 : 0
+    if (bMatch !== aMatch) return bMatch - aMatch
+    const sevOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 }
+    return (sevOrder[a.severity] ?? 2) - (sevOrder[b.severity] ?? 2)
+  })
+
+  const alerts = sorted.map((row, idx) => ({
+    id: idx + 1,
+    type: row.alert_type ?? 'regulation_change',
+    severity: row.severity,
+    country: row.country_code,
+    countryName: row.country_name ?? row.country_code,
+    flag: row.flag ?? '🌐',
+    date: row.date,
+    message: row.title ? `${row.title}: ${row.change_description}` : row.change_description,
+    sourceUrl: row.source_url,
+    sourceName: row.source_name,
+  }))
+
+  return { alerts }
 }
 
 // ─── Customs Filing ─────────────────────────────────────────────
