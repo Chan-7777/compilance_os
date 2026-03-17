@@ -538,6 +538,10 @@ function App() {
             checklist={checklist}
             checkedItems={checkedItems}
             onToggleItem={handleToggleChecklistItem}
+            onUpdateHsProduct={(hsCode, hsName) => {
+              setSelectedHsCode(hsCode ?? null)
+              setSelectedHsProductName(hsName ?? null)
+            }}
           />
         )
       case 'alerts':

@@ -2,7 +2,7 @@
 // Checklist View - Compliance checklist with progress tracking
 // ============================================================================
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
@@ -11,6 +11,9 @@ import { Toast } from '@/components/Toast'
 import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@/theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
+import { searchHSProducts } from '@/data/hs-product-db'
+import { fetchHSLookup } from '@/lib/api'
+import type { HSLookupResult } from '@/lib/api'
 import type { ChecklistItem, CountryCode } from '@/types'
 
 export interface ChecklistProps {
@@ -19,6 +22,7 @@ export interface ChecklistProps {
   checklist: ChecklistItem[]
   checkedItems: Record<string, boolean>
   onToggleItem: (id: string | number) => void
+  onUpdateHsProduct?: (hsCode: string | undefined, hsName: string | undefined) => void
 }
 
 export function Checklist({
@@ -27,10 +31,51 @@ export function Checklist({
   checklist,
   checkedItems,
   onToggleItem,
+  onUpdateHsProduct,
 }: ChecklistProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [showAllPhases, setShowAllPhases] = useState(false)
   const { toasts, removeToast, success } = useToast()
+
+  // Inline product switcher
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [hsQuery, setHsQuery] = useState('')
+  const [hsResults, setHsResults] = useState<HSLookupResult[]>([])
+  const [hsLoading, setHsLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (searchOpen) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [searchOpen])
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
+
+  const handleHsQuery = (q: string) => {
+    setHsQuery(q)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (q.trim().length < 2) { setHsResults([]); setHsLoading(false); return }
+
+    const local = searchHSProducts(q).map(p => ({
+      hsCode: p.hsCode, name: p.name, confidence: 'high' as const, reason: '', source: 'local' as const,
+    }))
+    setHsResults(local)
+    setHsLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      const api = await fetchHSLookup(q)
+      const existing = new Set(local.map(r => r.hsCode))
+      setHsResults([...api, ...local.filter(r => !existing.has(r.hsCode))].slice(0, 8))
+      setHsLoading(false)
+    }, 600)
+  }
+
+  const handlePickProduct = (r: HSLookupResult) => {
+    onUpdateHsProduct?.(r.hsCode, r.name)
+    setSearchOpen(false)
+    setHsQuery('')
+    setHsResults([])
+    success(`Checklist updated for ${r.name}`)
+  }
 
   const handleToggle = (itemId: string | number) => {
     const isCurrentlyChecked = checkedItems[String(itemId)]
@@ -321,14 +366,20 @@ export function Checklist({
           <h2 style={titleStyle}>Compliance Checklist</h2>
           {/* Product context pill */}
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' as const }}>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE',
-              borderRadius: borderRadius.full, padding: '3px 10px',
-              fontSize: '0.8rem', color: colors.primary, fontWeight: 500,
-            }}>
-              📦 {selectedProduct}
-            </span>
+            {/* Clickable product pill — opens inline search */}
+            <button
+              onClick={() => setSearchOpen(o => !o)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                backgroundColor: searchOpen ? '#DBEAFE' : '#EFF6FF',
+                border: `1px solid ${searchOpen ? '#93C5FD' : '#BFDBFE'}`,
+                borderRadius: borderRadius.full, padding: '3px 10px',
+                fontSize: '0.8rem', color: colors.primary, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              📦 {selectedProduct} <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>▼</span>
+            </button>
             {selectedCountries.map(c => (
               <span key={c} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -340,6 +391,56 @@ export function Checklist({
               </span>
             ))}
           </div>
+
+          {/* Inline product search dropdown */}
+          {searchOpen && onUpdateHsProduct && (
+            <div style={{ marginTop: spacing.sm, position: 'relative', maxWidth: 420 }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={hsQuery}
+                onChange={e => handleHsQuery(e.target.value)}
+                placeholder="Search product or HS code…"
+                style={{
+                  width: '100%', padding: `${spacing.sm} ${spacing.md}`,
+                  border: `1px solid ${colors.primary}`, borderRadius: borderRadius.lg,
+                  fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' as const,
+                  outline: 'none',
+                }}
+              />
+              {(hsResults.length > 0 || hsLoading) && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                  border: `1px solid ${colors.border}`, borderRadius: borderRadius.md,
+                  backgroundColor: colors.white, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                  maxHeight: 220, overflowY: 'auto' as const,
+                }}>
+                  {hsLoading && (
+                    <div style={{ padding: '4px 12px', fontSize: '0.7rem', color: colors.textMuted, backgroundColor: colors.surface }}>
+                      Searching…
+                    </div>
+                  )}
+                  {hsResults.map(r => (
+                    <button
+                      key={r.hsCode}
+                      onClick={() => handlePickProduct(r)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%',
+                        padding: `${spacing.sm} ${spacing.md}`, border: 'none',
+                        borderBottom: `1px solid ${colors.border}`, background: 'none',
+                        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const,
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' as const }}>
+                        {r.hsCode}
+                      </span>
+                      <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
           Copy to Clipboard
