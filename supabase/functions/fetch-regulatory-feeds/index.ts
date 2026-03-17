@@ -2,7 +2,9 @@
 // fetch-regulatory-feeds
 // Runs every 6 hours via pg_cron.
 // Pulls from verified RSS feeds + NewsAPI, deduplicates by
-// external_id, and inserts into regulatory_changes table.
+// external_id AND content fingerprint (country_code + title
+// similarity within a 48h window) to prevent cross-source
+// duplicates (e.g. Reuters + Bloomberg covering the same story).
 // ============================================================
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -111,40 +113,40 @@ function tagProducts(text: string): string[] {
   return tags
 }
 
-// Parse RSS 2.0 / Atom XML — works with Deno's built-in DOMParser
+// Parse RSS 2.0 / Atom XML using regex — no DOMParser needed in Deno edge runtime
+function extractTag(xml: string, tag: string): string {
+  // Handle both <tag>value</tag> and CDATA <tag><![CDATA[value]]></tag>
+  const re = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, 'i')
+  const m = xml.match(re)
+  return (m?.[1] ?? m?.[2] ?? '').trim()
+}
+
+function extractAttr(xml: string, tag: string, attr: string): string {
+  const re = new RegExp(`<${tag}[^>]*${attr}="([^"]*)"`, 'i')
+  return xml.match(re)?.[1]?.trim() ?? ''
+}
+
+function splitItems(xml: string): string[] {
+  // Split on <item> or <entry> blocks
+  const rssMatches = [...xml.matchAll(/<item[\s>]([\s\S]*?)<\/item>/gi)].map(m => m[1])
+  if (rssMatches.length > 0) return rssMatches
+  return [...xml.matchAll(/<entry[\s>]([\s\S]*?)<\/entry>/gi)].map(m => m[1])
+}
+
 function parseXMLFeed(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(xml, 'text/xml')
-  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = []
-
-  // RSS 2.0
-  const rssItems = doc.querySelectorAll('item')
-  rssItems.forEach(item => {
-    items.push({
-      title: item.querySelector('title')?.textContent?.trim() ?? '',
-      link: item.querySelector('link')?.textContent?.trim() ?? '',
-      description: item.querySelector('description')?.textContent?.trim() ?? '',
-      pubDate: item.querySelector('pubDate')?.textContent?.trim() ??
-               item.querySelector('pubdate')?.textContent?.trim() ?? new Date().toISOString(),
-    })
-  })
-
-  // Atom (gov.uk uses Atom)
-  if (items.length === 0) {
-    const entries = doc.querySelectorAll('entry')
-    entries.forEach(entry => {
-      items.push({
-        title: entry.querySelector('title')?.textContent?.trim() ?? '',
-        link: entry.querySelector('link')?.getAttribute('href') ?? '',
-        description: entry.querySelector('summary')?.textContent?.trim() ??
-                     entry.querySelector('content')?.textContent?.trim() ?? '',
-        pubDate: entry.querySelector('updated')?.textContent?.trim() ??
-                 entry.querySelector('published')?.textContent?.trim() ?? new Date().toISOString(),
-      })
-    })
-  }
-
-  return items
+  return splitItems(xml).slice(0, 20).map(block => {
+    // RSS <link> is text content; Atom <link> uses href attribute
+    const linkText = extractTag(block, 'link')
+    const linkHref = extractAttr(block, 'link', 'href')
+    return {
+      title:       extractTag(block, 'title'),
+      link:        linkHref || linkText,
+      description: extractTag(block, 'description') || extractTag(block, 'summary') || extractTag(block, 'content'),
+      pubDate:     extractTag(block, 'pubDate') || extractTag(block, 'pubdate') ||
+                   extractTag(block, 'updated') || extractTag(block, 'published') ||
+                   new Date().toISOString(),
+    }
+  }).filter(item => item.title || item.description)
 }
 
 function parseDateSafe(dateStr: string): string {
@@ -168,6 +170,7 @@ serve(async (req) => {
   )
 
   const newsApiKey = Deno.env.get('NEWS_API_KEY')
+  const newsDataKey = Deno.env.get('NEWS_DATA_KEY')
   const inserted: string[] = []
   const errors: string[] = []
 
@@ -188,6 +191,18 @@ serve(async (req) => {
         if (!item.title && !item.description) continue
         const text = `${item.title} ${item.description}`
         const external_id = item.link || `${feed.source_name}::${item.title}`
+
+        // Content-based deduplication — prevents the same regulation from two
+        // sources (e.g. Reuters + Bloomberg both reporting the same CBAM update)
+        // from creating duplicate rows when their URLs differ.
+        const { data: existing } = await supabase
+          .from('regulatory_changes')
+          .select('id')
+          .eq('country_code', feed.country_code)
+          .ilike('title', `%${item.title?.slice(0, 40).trim()}%`)
+          .gte('scraped_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+          .maybeSingle()
+        if (existing) continue
 
         const { error } = await supabase
           .from('regulatory_changes')
@@ -238,15 +253,27 @@ serve(async (req) => {
           // Skip low-quality articles
           if (!article.title || article.title === '[Removed]') continue
 
+          // Content-based deduplication — same story from different news sources
+          // within 48h window should not create duplicate rows.
+          const newsCountryCode = query.country_code === 'IN_DGFT' ? 'EU' : query.country_code
+          const { data: existingNews } = await supabase
+            .from('regulatory_changes')
+            .select('id')
+            .eq('country_code', newsCountryCode)
+            .ilike('title', `%${article.title?.slice(0, 40).trim()}%`)
+            .gte('scraped_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+            .maybeSingle()
+          if (existingNews) continue
+
           const { error } = await supabase
             .from('regulatory_changes')
             .upsert({
-              country_code:       query.country_code === 'IN_DGFT' ? 'EU' : query.country_code, // DGFT news affects all markets — tag EU as primary
+              country_code:       newsCountryCode, // DGFT news affects all markets — tag EU as primary
               country_name:       query.country_name,
               flag:               query.flag,
               source_name:        article.source?.name ?? 'NewsAPI',
               title:              article.title,
-              change_description: (article.description ?? article.title).slice(0, 500),
+              change_description: (article.description ?? article.title).replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').slice(0, 500),
               source_url:         article.url,
               external_id,
               alert_type:         classifyType(text),
@@ -269,7 +296,67 @@ serve(async (req) => {
     errors.push('NEWS_API_KEY not set — NewsAPI queries skipped')
   }
 
-  // ── 3. Prune old items (keep 90 days) ────────────────────────────────────
+  // ── 3. Fetch from Newsdata.io (wider global coverage) ────────────────────
+
+  if (newsDataKey) {
+    const ndQueries = [
+      { q: 'customs tariff import export regulation', country_code: 'EU', country_name: 'European Union', flag: '🇪🇺' },
+      { q: 'UAE trade customs import duty', country_code: 'UAE', country_name: 'United Arab Emirates', flag: '🇦🇪' },
+      { q: 'DGFT India export policy RoDTEP', country_code: 'IN', country_name: 'India', flag: '🇮🇳' },
+      { q: 'US CBP trade customs compliance tariff', country_code: 'US', country_name: 'United States', flag: '🇺🇸' },
+    ]
+    for (const query of ndQueries) {
+      try {
+        const url = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&q=${encodeURIComponent(query.q)}&language=en&size=10`
+        const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+        if (!res.ok) { errors.push(`Newsdata.io (${query.country_code}): HTTP ${res.status}`); continue }
+
+        const json = await res.json()
+        if (json.status !== 'success') { errors.push(`Newsdata.io: ${json.message ?? 'error'}`); continue }
+
+        for (const article of (json.results ?? [])) {
+          const text = `${article.title ?? ''} ${article.description ?? ''}`
+          const external_id = article.link ?? article.article_id
+          if (!article.title || !external_id) continue
+
+          // Content-based deduplication — prevents cross-source duplicates
+          // within a 48h window for the same country + title.
+          const { data: existingNd } = await supabase
+            .from('regulatory_changes')
+            .select('id')
+            .eq('country_code', query.country_code)
+            .ilike('title', `%${article.title?.slice(0, 40).trim()}%`)
+            .gte('scraped_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+            .maybeSingle()
+          if (existingNd) continue
+
+          const { error } = await supabase
+            .from('regulatory_changes')
+            .upsert({
+              country_code:       query.country_code,
+              country_name:       query.country_name,
+              flag:               query.flag,
+              source_name:        article.source_name ?? 'Newsdata.io',
+              title:              article.title,
+              change_description: (article.description ?? article.title).replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').slice(0, 500),
+              source_url:         article.link ?? '',
+              external_id,
+              alert_type:         classifyType(text),
+              severity:           classifySeverity(text),
+              product_tags:       tagProducts(text),
+              date:               parseDateSafe(article.pubDate ?? new Date().toISOString()),
+            }, { onConflict: 'external_id', ignoreDuplicates: true })
+
+          if (!error) inserted.push(external_id)
+          else if (!error.message.includes('duplicate')) errors.push(`Newsdata.io: ${error.message}`)
+        }
+      } catch (e: any) {
+        errors.push(`Newsdata.io (${query.country_code}): ${e.message}`)
+      }
+    }
+  }
+
+  // ── 4. Prune old items (keep 90 days) ────────────────────────────────────
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 90)

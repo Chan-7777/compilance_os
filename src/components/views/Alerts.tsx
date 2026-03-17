@@ -2,12 +2,15 @@
 // Alerts View - Regulatory alerts with filtering
 // ============================================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing, borderRadius } from '@theme/index'
 import type { Alert, AlertSeverity } from '@/types'
+
+const DISMISSED_KEY = 'cos_dismissed_alerts'
+const PAGE_SIZE = 20
 
 export interface AlertsProps {
   alerts: Alert[]
@@ -22,11 +25,63 @@ const filterOptions: Array<{ id: 'all' | AlertSeverity; label: string }> = [
   { id: 'info', label: 'FYI' },
 ]
 
+function loadDismissed(): number[] {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY)
+    return raw ? (JSON.parse(raw) as number[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveDismissed(ids: number[]): void {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify(ids))
+}
+
+function getDeadlineCountdown(dateStr: string): { label: string; color: string } | null {
+  try {
+    const deadline = new Date(dateStr)
+    if (isNaN(deadline.getTime())) return null
+    const now = new Date()
+    const diffMs = deadline.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays < 0) {
+      return { label: `${Math.abs(diffDays)}d overdue`, color: colors.risk?.high ?? '#DC2626' }
+    }
+    const label = diffDays === 0 ? 'Due today' : diffDays === 1 ? '1 day left' : `${diffDays} days left`
+    if (diffDays <= 7) return { label, color: colors.risk?.high ?? '#DC2626' }
+    if (diffDays <= 30) return { label, color: '#D97706' }
+    return { label, color: colors.textMuted ?? '#6B7280' }
+  } catch {
+    return null
+  }
+}
+
 export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [dismissedIds, setDismissedIds] = useState<number[]>(() => loadDismissed())
+  const [showDismissed, setShowDismissed] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
-  // Count alerts by severity
+  // Sync dismissedIds to localStorage whenever they change
+  useEffect(() => {
+    saveDismissed(dismissedIds)
+  }, [dismissedIds])
+
+  const dismissAlert = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDismissedIds(prev => [...prev, id])
+    if (expandedId === id) setExpandedId(null)
+  }
+
+  const markAllRead = () => {
+    const allIds = alerts.map(a => a.id)
+    setDismissedIds(allIds)
+    setExpandedId(null)
+  }
+
+  // Count alerts by severity (all, including dismissed)
   const counts = {
     critical: alerts.filter(a => a.severity === 'critical').length,
     warning: alerts.filter(a => a.severity === 'warning').length,
@@ -47,6 +102,16 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     return severityOrder[a.severity] - severityOrder[b.severity]
   })
 
+  // Split into active vs dismissed
+  const activeAlerts = sortedAlerts.filter(a => !dismissedIds.includes(a.id))
+  const dismissedAlerts = sortedAlerts.filter(a => dismissedIds.includes(a.id))
+  const dismissedCount = dismissedAlerts.length
+
+  // Paginate active alerts
+  const visibleAlerts = activeAlerts.slice(0, visibleCount)
+  const totalActive = activeAlerts.length
+  const showPagination = totalActive > PAGE_SIZE
+
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
   }
@@ -55,11 +120,17 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     marginBottom: spacing.xl,
   }
 
+  const titleRowStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  }
+
   const titleStyle: React.CSSProperties = {
     fontSize: '1.5rem',
     fontWeight: 700,
     margin: 0,
-    marginBottom: spacing.xs,
     color: colors.text,
   }
 
@@ -128,15 +199,6 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     marginBottom: spacing.xs,
   }
 
-  const alertMetaStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.sm,
-    fontSize: '0.75rem',
-    color: colors.textMuted,
-  }
-  void alertMetaStyle // used in expanded detail section
-
   const emptyStyle: React.CSSProperties = {
     textAlign: 'center',
     padding: spacing['2xl'],
@@ -180,10 +242,129 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
     return type.replace(/_/g, ' ')
   }
 
+  const renderAlertCard = (alert: Alert, isDismissed = false) => {
+    const isExpanded = expandedId === alert.id
+    const countdown = alert.type === 'deadline' ? getDeadlineCountdown(alert.date) : null
+
+    return (
+      <div
+        key={alert.id}
+        style={{
+          ...alertCardStyle,
+          cursor: 'pointer',
+          flexDirection: 'column',
+          borderColor: isExpanded ? colors.primary : colors.border,
+          opacity: isDismissed ? 0.55 : 1,
+        }}
+        data-testid="alert-card"
+        onClick={() => setExpandedId(isExpanded ? null : alert.id)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            setExpandedId(isExpanded ? null : alert.id)
+          }
+        }}
+        aria-expanded={isExpanded}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, width: '100%' }}>
+          <span style={alertIconStyle}>{alert.flag}</span>
+          <div style={alertContentStyle}>
+            <div style={alertHeaderStyle}>
+              <span style={{ fontWeight: 600 }}>{alert.countryName}</span>
+              <Badge
+                variant={getSeverityVariant(alert.severity)}
+                size="sm"
+                data-testid={`severity-${alert.severity}`}
+              >
+                {getSeverityLabel(alert.severity)}
+              </Badge>
+            </div>
+            {/* Plain-language impact text — always visible, shown first */}
+            <div style={{
+              fontSize: '0.8rem',
+              color: alert.severity === 'critical' ? colors.risk.high : alert.severity === 'warning' ? '#D97706' : colors.textMuted,
+              fontWeight: 500,
+              marginBottom: spacing.xs,
+              lineHeight: 1.4,
+            }}>
+              {getImpactText(alert.severity)}
+            </div>
+            <div style={alertMessageStyle}>{alert.message}</div>
+          </div>
+          {/* Dismiss button */}
+          {!isDismissed && (
+            <button
+              onClick={e => dismissAlert(alert.id, e)}
+              title="Dismiss alert"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                color: colors.textMuted,
+                padding: `0 ${spacing.xs}`,
+                flexShrink: 0,
+                lineHeight: 1,
+              }}
+              aria-label="Dismiss alert"
+            >
+              ✕
+            </button>
+          )}
+          <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
+            ▼
+          </span>
+        </div>
+        {isExpanded && (
+          <div style={{
+            width: '100%',
+            marginTop: spacing.md,
+            paddingTop: spacing.md,
+            borderTop: `1px solid ${colors.border}`,
+          }}>
+            <div style={{ display: 'flex', gap: spacing.sm, fontSize: '0.75rem', color: colors.textMuted, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={alertTypeStyle}>Type: {formatAlertType(alert.type)}</span>
+              <span>•</span>
+              <span>Market: {alert.countryName}</span>
+              <span>•</span>
+              <span>Date: {alert.date}</span>
+              {countdown && (
+                <>
+                  <span>•</span>
+                  <span style={{
+                    fontWeight: 600,
+                    color: countdown.color,
+                    backgroundColor: `${countdown.color}18`,
+                    padding: '1px 6px',
+                    borderRadius: borderRadius.sm,
+                    fontSize: '0.7rem',
+                  }}>
+                    {countdown.label}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <h2 style={titleStyle}>Regulatory Updates</h2>
+        <div style={titleRowStyle}>
+          <h2 style={titleStyle}>Regulatory Updates</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={markAllRead}
+            title="Dismiss all visible alerts"
+          >
+            Mark all read
+          </Button>
+        </div>
       </div>
 
       {/* Alert Counts */}
@@ -254,78 +435,77 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
           <p>No {activeFilter} alerts</p>
         </div>
       ) : (
-        <div style={alertListStyle}>
-          {sortedAlerts.map(alert => {
-            const isExpanded = expandedId === alert.id
-            return (
-              <div
-                key={alert.id}
-                style={{
-                  ...alertCardStyle,
-                  cursor: 'pointer',
-                  flexDirection: 'column',
-                  borderColor: isExpanded ? colors.primary : colors.border,
-                }}
-                data-testid="alert-card"
-                onClick={() => setExpandedId(isExpanded ? null : alert.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    setExpandedId(isExpanded ? null : alert.id)
-                  }
-                }}
-                aria-expanded={isExpanded}
+        <>
+          {/* Showing X of Y count (only when paginated) */}
+          {showPagination && (
+            <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.sm }}>
+              Showing {Math.min(visibleCount, totalActive)} of {totalActive} alerts
+            </div>
+          )}
+
+          <div style={alertListStyle}>
+            {visibleAlerts.map(alert => renderAlertCard(alert, false))}
+          </div>
+
+          {/* Load more */}
+          {visibleCount < totalActive && (
+            <div style={{ textAlign: 'center', marginTop: spacing.lg }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md, width: '100%' }}>
-                  <span style={alertIconStyle}>{alert.flag}</span>
-                  <div style={alertContentStyle}>
-                    <div style={alertHeaderStyle}>
-                      <span style={{ fontWeight: 600 }}>{alert.countryName}</span>
-                      <Badge
-                        variant={getSeverityVariant(alert.severity)}
-                        size="sm"
-                        data-testid={`severity-${alert.severity}`}
-                      >
-                        {getSeverityLabel(alert.severity)}
-                      </Badge>
-                    </div>
-                    {/* Plain-language impact text — always visible, shown first */}
-                    <div style={{
+                Load more
+              </Button>
+            </div>
+          )}
+
+          {/* Dismissed alerts section */}
+          {dismissedCount > 0 && (
+            <div style={{ marginTop: spacing.xl }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+                <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                  {dismissedCount} dismissed
+                </span>
+                <button
+                  onClick={() => setShowDismissed(v => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    color: colors.primary,
+                    padding: 0,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {showDismissed ? 'Hide dismissed' : 'Show dismissed'}
+                </button>
+                {showDismissed && (
+                  <button
+                    onClick={() => setDismissedIds([])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
                       fontSize: '0.8rem',
-                      color: alert.severity === 'critical' ? colors.risk.high : alert.severity === 'warning' ? '#D97706' : colors.textMuted,
-                      fontWeight: 500,
-                      marginBottom: spacing.xs,
-                      lineHeight: 1.4,
-                    }}>
-                      {getImpactText(alert.severity)}
-                    </div>
-                    <div style={alertMessageStyle}>{alert.message}</div>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
-                    ▼
-                  </span>
-                </div>
-                {isExpanded && (
-                  <div style={{
-                    width: '100%',
-                    marginTop: spacing.md,
-                    paddingTop: spacing.md,
-                    borderTop: `1px solid ${colors.border}`,
-                  }}>
-                    <div style={{ display: 'flex', gap: spacing.sm, fontSize: '0.75rem', color: colors.textMuted }}>
-                      <span style={alertTypeStyle}>Type: {formatAlertType(alert.type)}</span>
-                      <span>•</span>
-                      <span>Market: {alert.countryName}</span>
-                      <span>•</span>
-                      <span>Date: {alert.date}</span>
-                    </div>
-                  </div>
+                      color: colors.textMuted,
+                      padding: 0,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Restore all
+                  </button>
                 )}
               </div>
-            )
-          })}
-        </div>
+              {showDismissed && (
+                <div style={alertListStyle}>
+                  {dismissedAlerts.map(alert => renderAlertCard(alert, true))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -15,10 +15,26 @@ function toICEGATEDate(dateStr?: string): string {
   return `${y}${m}${day}`
 }
 
-// Map country code to ICEGATE port code (partial list — extend as needed)
+// Map country code to ICEGATE port code. Exporters can override with
+// shipment.destinationPort for precise routing to a specific port.
 const PORT_MAP: Record<string, string> = {
-  US: 'USNYC', EU: 'DEHAM', UK: 'GBFXT', UAE: 'AEDXB',
-  Japan: 'JPOSA', Australia: 'AUSYD',
+  // European Union — default to Rotterdam (largest EU port for Indian exports)
+  EU: 'NLRTM',
+  DE: 'DEHAM',   // Germany → Hamburg
+  NL: 'NLRTM',   // Netherlands → Rotterdam
+  BE: 'BEANR',   // Belgium → Antwerp
+  FR: 'FRMRS',   // France → Marseille
+  IT: 'ITGOA',   // Italy → Genoa
+  ES: 'ESVLC',   // Spain → Valencia
+  // Other markets
+  US: 'USNYC',   // USA → New York/JFK
+  UK: 'GBFXT',   // UK → Felixstowe
+  UAE: 'AEDXB',  // UAE → Dubai
+  Japan: 'JPOSA', // Japan → Osaka/Kobe
+  Australia: 'AUSYD', // Australia → Sydney
+  SG: 'SGSIN',   // Singapore
+  CN: 'CNSHA',   // China → Shanghai
+  MY: 'MYPKG',   // Malaysia → Port Klang
 }
 
 // ── ICEGATE OAuth2 token (client_credentials) ────────────────────────────────
@@ -121,7 +137,7 @@ serve(async (req) => {
 
     const jobNumber = Math.floor(1000000 + Math.random() * 8999999)
     const today     = toICEGATEDate()
-    const destPort  = PORT_MAP[shipment.country] ?? 'USNYC'
+    const destPort  = shipment.destinationPort ?? PORT_MAP[shipment.country] ?? 'USNYC'
     const fobValue  = shipment.shipmentValue ?? 0
     const quantity  = shipment.quantity ?? 1
     const hsCode    = (shipment.hsCode ?? '00000000').replace(/\./g, '').slice(0, 8)
@@ -145,29 +161,29 @@ serve(async (req) => {
         branchSrNoOfExporter:     1,
         impExpName:               compName,
         impExpAddress1:           profile?.companies?.address ?? 'Address Line 1',
-        impExpCity:               'Mumbai',
-        impExpState:              'Maharashtra',
-        impExpPin:                400001,
+        impExpCity:               profile?.companies?.city ?? 'Mumbai',
+        impExpState:              profile?.companies?.state ?? 'Maharashtra',
+        impExpPin:                profile?.companies?.pin ?? 400001,
         typeOfExporter:           'R',                  // R = Regular
         exporterClass:            'P',                  // P = Proprietorship
-        stateOfOriginExporter:    'MH',
+        stateOfOriginExporter:    profile?.companies?.state_code ?? 'MH',
         gstnType:                 gstin ? 'REG' : '',
         gstnId:                   gstin,
 
         // Port details
-        portOfLoading:            'INBOM4',             // JNPT/Mumbai — update per user
+        portOfLoading:            profile?.companies?.port_of_loading ?? 'INBOM4',
         portOfFinalDestination:   destPort,
         countryOfFinalDestination: shipment.country === 'EU' ? 'DE' : (shipment.country ?? 'US').slice(0, 2).toUpperCase(),
         portOfDischarge:          destPort,
         countryOfDischarge:       shipment.country === 'EU' ? 'DE' : (shipment.country ?? 'US').slice(0, 2).toUpperCase(),
 
         // Cargo
-        grossWeight:              quantity * 10,        // approx — user should provide real weight
-        netWeight:                quantity * 9,
+        grossWeight:              shipment.weightKg ?? (quantity * 10),  // fallback: estimate ~10 kg/unit
+        netWeight:                shipment.weightKg ? Math.round(shipment.weightKg * 0.95) : (quantity * 9),
         unitOfMeasurement:        'KG',
         totalNumberOfPackages:    Math.ceil(quantity / 10) || 1,
         numberOfContainers:       1,
-        natureOfCargo:            'DB',                 // DB = Dry Bulk
+        natureOfCargo:            shipment.cargoType ?? 'GEN',          // GEN = General (safer default)
         chaLicenseNumber:         Deno.env.get('CHA_LICENSE') ?? 'PENDING',
 
         // Sub-models

@@ -125,7 +125,7 @@ serve(async (req: Request) => {
     const url = new URL(req.url)
 
     // Support both GET (query params) and POST (JSON body)
-    let product: string, country: string, companySize: string, shipmentValue: number
+    let product: string, country: string, companySize: string, shipmentValue: number, checklistPct: number, criticalPending: number
 
     if (req.method === 'POST') {
       const body = await req.json()
@@ -133,20 +133,25 @@ serve(async (req: Request) => {
       country = (body.country || 'EU').toUpperCase()
       companySize = (body.company_size || 'small').toLowerCase()
       shipmentValue = Number(body.shipment_value) || 0
+      // Default to 70% completion and 0 critical pending — represents a typical
+      // compliant exporter. Callers can pass actual values for precise scoring.
+      checklistPct = Number(body.checklist_pct ?? 70)
+      criticalPending = Number(body.critical_pending ?? 0)
     } else {
       product = (url.searchParams.get('product') || 'general').toLowerCase()
       country = (url.searchParams.get('country') || 'EU').toUpperCase()
       companySize = (url.searchParams.get('company_size') || 'small').toLowerCase()
       shipmentValue = Number(url.searchParams.get('shipment_value')) || 0
+      // Default to 70% completion and 0 critical pending — represents a typical
+      // compliant exporter. Callers can pass actual values for precise scoring.
+      checklistPct = Number(url.searchParams.get('checklist_pct') ?? 70)
+      criticalPending = Number(url.searchParams.get('critical_pending') ?? 0)
     }
 
     // ── Compute signal ──────────────────────────────────────────
     const riskScore = computeRiskScore(product, country, companySize)
     const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low'
 
-    // Checklist defaults (exporter hasn't checked anything — conservative)
-    const checklistPct = 0
-    const criticalPending = 5
     const gateStatus = computeGateStatus(riskScore, checklistPct, criticalPending)
 
     const ftaEligible = FTA_PREFERENTIAL[country] ?? false
@@ -195,6 +200,8 @@ serve(async (req: Request) => {
         country,
         company_size: companySize,
         shipment_value_inr: shipmentValue,
+        checklist_pct: checklistPct,
+        critical_pending: criticalPending,
         generated_at: new Date().toISOString(),
         api_version: '1.0',
         powered_by: 'ComplianceOS Export Intelligence',

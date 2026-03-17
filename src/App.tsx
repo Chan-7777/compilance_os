@@ -3,7 +3,7 @@
 // Phase 2: API-first architecture — all data fetched from FastAPI backend
 // ============================================================================
 
-import { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
+import { useState, useMemo, useCallback, useTransition, useEffect, useRef } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Auth } from '@/components/Auth'
 import { Spinner } from '@/components/Spinner'
@@ -97,8 +97,7 @@ function App() {
       .then(data => {
         if (!cancelled) setRiskResults(data.results)
       })
-      .catch(err => {
-        console.error('Risk score fetch failed:', err)
+      .catch(() => {
         if (!cancelled) setRiskResults([])
       })
       .finally(() => {
@@ -121,8 +120,7 @@ function App() {
       .then(data => {
         if (!cancelled) setChecklist(data.items || [])
       })
-      .catch(err => {
-        console.error('Checklist fetch failed:', err)
+      .catch(() => {
         if (!cancelled) setChecklist([])
       })
       .finally(() => {
@@ -156,8 +154,7 @@ function App() {
           })
         }
       })
-      .catch(err => {
-        console.error('Alerts fetch failed:', err)
+      .catch(() => {
         if (!cancelled) {
           setAlerts([])
           setAlertCounts({ critical: 0, warning: 0, info: 0 })
@@ -376,7 +373,6 @@ function App() {
             id: `local-${Date.now()}`,
             status: 'pending' as const,
           }, ...prev])
-          console.error('Failed to save shipment to database:', error?.message)
           return
         }
 
@@ -413,10 +409,13 @@ function App() {
     // Expand shipment detail — handled in Shipments view
   }, [])
 
+  const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleUpdateProfile = useCallback(
     (profile: CompanyProfile) => {
       setCompanyProfile(profile)
-      persistProfile(profile)
+      if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current)
+      persistDebounceRef.current = setTimeout(() => persistProfile(profile), 600)
     },
     [persistProfile]
   )

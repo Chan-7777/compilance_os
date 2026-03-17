@@ -5,7 +5,7 @@ import { generateBankReadyDealPack } from './deal-pack'
 import { FTA_DATABASE } from '@/data/fta'
 import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
-import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile } from '@/types'
+import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ function getMFNRate(country: string): number {
 
 // ─── Risk ──────────────────────────────────────────────────────
 export function fetchRiskScore(product: string, country: string, companySize: string) {
-  const result = calculateRiskScore(product, country, { name: '', size: companySize as any })
+  const result = calculateRiskScore(product, country, { name: '', size: companySize as CompanySize })
   return Promise.resolve({ ...result, country })
 }
 
@@ -50,23 +50,6 @@ export function fetchFTASavings(
   })
 }
 
-// ─── Shipments (CRUD via Supabase direct — stubs kept for compat) ──
-export function fetchShipments() { return Promise.resolve([] as any[]) }
-
-export function createShipment(data: {
-  name: string; product: string; country: string; date: string; notes?: string
-}) {
-  return Promise.resolve(data as any)
-}
-
-export function updateShipment(_id: string, data: Record<string, any>) {
-  return Promise.resolve(data as any)
-}
-
-export function deleteShipment(_id: string) {
-  return Promise.resolve(undefined as void)
-}
-
 // ─── HS Lookup ─────────────────────────────────────────────────
 export function fetchHSLookup(hsCode: string) {
   return Promise.resolve({ hs_code: hsCode, description: 'HS Lookup (local)' })
@@ -79,7 +62,6 @@ export async function classifyProductHSCode(description: string, destinationCoun
   })
 
   if (error) {
-    console.error('Edge Function invoke error:', error)
     throw new Error(error.message)
   }
 
@@ -109,7 +91,6 @@ export async function calculateLandedCost(
   })
 
   if (error) {
-    console.error('Landed Cost Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -130,7 +111,8 @@ export async function estimateEmissions(
   weightKg: number,
   hsCode: string,
   originCountry: string,
-  productType: string
+  productType: string,
+  destinationCountry?: string
 ) {
   const { data, error } = await supabase.functions.invoke('climatiq-emissions', {
     body: {
@@ -138,11 +120,11 @@ export async function estimateEmissions(
       hs_code: hsCode,
       origin_country: originCountry,
       product_type: productType,
+      destination_country: destinationCountry,
     },
   })
 
   if (error) {
-    console.error('Emissions Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -175,7 +157,6 @@ export async function analyzeLabelVision(
   })
 
   if (error) {
-    console.error('Label Vision Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -192,7 +173,7 @@ export function fetchBatchRiskScore(
   companySize: string
 ) {
   const results = countries.map(country => {
-    const result = calculateRiskScore(product, country, { name: '', size: companySize as any })
+    const result = calculateRiskScore(product, country, { name: '', size: companySize as CompanySize })
     return { country, ...result }
   })
   return Promise.resolve({ results })
@@ -263,7 +244,7 @@ export function fetchExportSchemes() {
 
 // ─── Admin: Scraper Status ────────────────────────────────────
 export function fetchScraperStatus() {
-  return Promise.resolve({ jobs: [] as any[] })
+  return Promise.resolve({ jobs: [] as { name: string; status: string }[] })
 }
 
 export function triggerScraper(_scraperName: string) {
@@ -377,7 +358,7 @@ export function generateDealPack(
   generateBankReadyDealPack(shipment, companyProfile, checkedItems)
 }
 
-export async function downloadCOOPdf(shipmentId: string, shipment?: any): Promise<Blob> {
+export async function downloadCOOPdf(shipmentId: string, shipment?: Partial<Shipment>): Promise<Blob> {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const ref = `COO-${shipmentId.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`
@@ -465,13 +446,13 @@ export function validateHSCode(hsCode: string, _product?: string) {
 }
 
 // ─── Alerts & Intelligence ──────────────────────────────────────
-export async function fetchAlerts(countries: string[], products: string[]) {
+export async function fetchAlerts(countries: string[], products: string[], offset = 0) {
   // Query regulatory_changes directly — faster and avoids edge function auth issues
   let query = supabase
     .from('regulatory_changes')
     .select('id, country_code, country_name, flag, title, change_description, source_url, source_name, severity, alert_type, product_tags, date, scraped_at')
     .order('scraped_at', { ascending: false })
-    .limit(50)
+    .range(offset, offset + 99)
 
   if (countries.length > 0) {
     query = query.in('country_code', countries)
@@ -480,7 +461,6 @@ export async function fetchAlerts(countries: string[], products: string[]) {
   const { data, error } = await query
 
   if (error) {
-    console.error('Alerts DB error:', error)
     throw new Error(error.message)
   }
 
@@ -512,13 +492,12 @@ export async function fetchAlerts(countries: string[], products: string[]) {
 }
 
 // ─── Customs Filing ─────────────────────────────────────────────
-export async function generateCustomsPayload(shipment: any) {
+export async function generateCustomsPayload(shipment: Partial<Shipment>) {
   const { data, error } = await supabase.functions.invoke('customs-filing', {
     body: { shipment },
   })
 
   if (error) {
-    console.error('Customs filing Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -537,7 +516,6 @@ export async function processInvoiceOCR(fileBase64: string, filename: string) {
   })
 
   if (error) {
-    console.error('OCR Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -569,7 +547,6 @@ export async function sendWhatsAppOutreach(vendorData: {
   })
 
   if (error) {
-    console.error('WhatsApp Edge Function error:', error)
     throw new Error(error.message)
   }
 
@@ -593,7 +570,6 @@ export async function submitTReDSFinancing(financingData: {
   })
 
   if (error) {
-    console.error('TReDS Edge Function error:', error)
     throw new Error(error.message)
   }
 

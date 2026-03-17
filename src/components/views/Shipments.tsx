@@ -2,7 +2,7 @@
 // Shipments View - Shipment tracking with CRUD + Pre-Shipment Compliance Gate
 // ============================================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { useToast } from '@/hooks/useToast'
@@ -62,6 +62,52 @@ export function Shipments({
   const [filingResults, setFilingResults] = useState<Record<string, any>>({})
   const [tredsLoading, setTredsLoading] = useState<Record<string, boolean>>({})
   const [tredsResults, setTredsResults] = useState<Record<string, any>>({})
+  const [hasDraft, setHasDraft] = useState(false)
+
+  const DRAFT_KEY = 'cos_shipment_draft'
+
+  // Restore draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setFormData(parsed)
+        setHasDraft(true)
+      }
+    } catch {
+      // ignore corrupt draft
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const updateFormData = (updater: (prev: typeof formData) => typeof formData) => {
+    setFormData(prev => {
+      const next = updater(prev)
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
+        setHasDraft(true)
+      } catch {
+        // ignore storage errors
+      }
+      return next
+    })
+  }
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY)
+    setHasDraft(false)
+    setFormData({
+      name: '',
+      product: selectedProduct || '',
+      description: '',
+      country: selectedCountries[0] || '',
+      date: '',
+      hsCode: '',
+      shipmentValue: '',
+      buyerName: '',
+    })
+  }
 
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
@@ -249,7 +295,7 @@ export function Shipments({
 
       const response = await processInvoiceOCR(fileBase64, file.name)
       if (response.success) {
-        setFormData(prev => ({
+        updateFormData(prev => ({
           ...prev,
           name: response.data.name,
           product: response.data.product,
@@ -281,6 +327,8 @@ export function Shipments({
         shipmentValue: formData.shipmentValue ? parseFloat(formData.shipmentValue) : undefined,
         buyerName: formData.buyerName || undefined,
       })
+      localStorage.removeItem(DRAFT_KEY)
+      setHasDraft(false)
       setFormData({
         name: '',
         product: selectedProduct || '',
@@ -303,7 +351,7 @@ export function Shipments({
       const result = await runGateCheck(shipment, checkedItems, companyProfile)
       setGateResults(prev => ({ ...prev, [shipmentId]: result }))
     } catch (err) {
-      console.error('Gate check failed:', err)
+      // gate check error handled silently
     } finally {
       setGateLoading(prev => ({ ...prev, [shipmentId]: false }))
     }
@@ -322,16 +370,15 @@ export function Shipments({
       // In production, this hits Zonos API securely via our backend orchestrator.
       const result = await classifyProductHSCode(formData.description, formData.country)
       if (result && result.hs_code) {
-        setFormData(prev => ({ ...prev, hsCode: result.hs_code }))
+        updateFormData(prev => ({ ...prev, hsCode: result.hs_code }))
       }
     } catch (err) {
-      console.error('HS Classification failed. Falling back to mock data.')
       // SIMULATED MOCK FALLBACK FOR DEMO PURPOSES
       setTimeout(() => {
         const mockCode = formData.description.toLowerCase().includes('cotton') ? '5201.00'
           : formData.description.toLowerCase().includes('steel') ? '7208.51'
             : '8517.12'
-        setFormData(prev => ({ ...prev, hsCode: mockCode }))
+        updateFormData(prev => ({ ...prev, hsCode: mockCode }))
         setIsClassifying(false)
       }, 1500)
       return
@@ -351,7 +398,7 @@ export function Shipments({
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      console.error('CoO PDF download failed:', err)
+      // CoO PDF download error handled silently
     }
   }
 
@@ -365,7 +412,6 @@ export function Shipments({
       const result = await calculateLandedCost(hsCode, value, shipment.country)
       setLandedCosts(prev => ({ ...prev, [shipment.id]: result }))
     } catch (err) {
-      console.error('Landed cost calculation failed:', err)
       // MOCK FALLBACK for demo when API is unavailable
       const mockDutyRate = shipment.country === 'EU' ? 0.05 : shipment.country === 'US' ? 0.07 : 0.03
       const mockTaxRate = shipment.country === 'EU' ? 0.20 : shipment.country === 'US' ? 0.0 : 0.05
@@ -395,7 +441,6 @@ export function Shipments({
       const result = await generateCustomsPayload(shipment)
       setFilingResults(prev => ({ ...prev, [shipment.id]: result }))
     } catch (err) {
-      console.error('Customs filing failed:', err)
       alert('Failed to generate customs payload.')
     } finally {
       setFilingLoading(prev => ({ ...prev, [shipment.id]: false }))
@@ -556,6 +601,17 @@ export function Shipments({
       {/* Add Shipment Form */}
       {showForm && (
         <div style={formStyle}>
+          {hasDraft && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, fontSize: '0.8rem', color: colors.textMuted }}>
+              <span style={{ color: '#15803d', fontWeight: 500 }}>Draft saved</span>
+              <button
+                onClick={discardDraft}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.risk.high, fontSize: '0.8rem', padding: 0, textDecoration: 'underline' }}
+              >
+                Discard draft
+              </button>
+            </div>
+          )}
           <div
             style={ocrDropZoneStyle}
             onDrop={handleDropOCR}
@@ -585,7 +641,7 @@ export function Shipments({
                 type="text"
                 style={inputStyle}
                 value={formData.name}
-                onChange={e => setFormData(d => ({ ...d, name: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, name: e.target.value }))}
                 placeholder="e.g., Steel Export Batch 1"
               />
             </div>
@@ -597,7 +653,7 @@ export function Shipments({
                 id="shipment-product"
                 style={selectStyle}
                 value={formData.product}
-                onChange={e => setFormData(d => ({ ...d, product: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, product: e.target.value }))}
               >
                 <option value="">Select product</option>
                 {PRODUCT_CATEGORIES.map(p => (
@@ -615,7 +671,7 @@ export function Shipments({
                 id="shipment-country"
                 style={selectStyle}
                 value={formData.country}
-                onChange={e => setFormData(d => ({ ...d, country: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, country: e.target.value }))}
               >
                 <option value="">Select destination</option>
                 {selectedCountries.map(c => (
@@ -634,7 +690,7 @@ export function Shipments({
                 type="date"
                 style={inputStyle}
                 value={formData.date}
-                onChange={e => setFormData(d => ({ ...d, date: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, date: e.target.value }))}
               />
             </div>
             <div style={{ ...formFieldStyle, gridColumn: '1 / -1' }}>
@@ -647,7 +703,7 @@ export function Shipments({
                   type="text"
                   style={{ ...inputStyle, flex: 1 }}
                   value={formData.description}
-                  onChange={e => setFormData(d => ({ ...d, description: e.target.value }))}
+                  onChange={e => updateFormData(d => ({ ...d, description: e.target.value }))}
                   placeholder='e.g., "Men&apos;s 100% cotton woven long sleeve shirt"'
                 />
                 <Button
@@ -673,7 +729,7 @@ export function Shipments({
                   transition: 'all 0.3s'
                 }}
                 value={formData.hsCode}
-                onChange={e => setFormData(d => ({ ...d, hsCode: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, hsCode: e.target.value }))}
                 placeholder="e.g., 7208.51"
               />
               <span style={{ fontSize: '0.7rem', color: colors.textMuted }}>
@@ -689,7 +745,7 @@ export function Shipments({
                 type="number"
                 style={inputStyle}
                 value={formData.shipmentValue}
-                onChange={e => setFormData(d => ({ ...d, shipmentValue: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, shipmentValue: e.target.value }))}
                 placeholder="e.g., 500000"
               />
             </div>
@@ -702,7 +758,7 @@ export function Shipments({
                 type="text"
                 style={inputStyle}
                 value={formData.buyerName}
-                onChange={e => setFormData(d => ({ ...d, buyerName: e.target.value }))}
+                onChange={e => updateFormData(d => ({ ...d, buyerName: e.target.value }))}
                 placeholder="e.g., Acme Imports GmbH"
               />
             </div>

@@ -54,6 +54,7 @@ export function Settings({
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyPlaintext, setNewKeyPlaintext] = useState<string | null>(null)
   const [apiKeysLoading, setApiKeysLoading] = useState(false)
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
 
   useEffect(() => {
     setApiKeysLoading(true)
@@ -84,6 +85,12 @@ export function Settings({
     } catch (err) {
       console.error('Failed to revoke API key:', err)
     }
+  }
+
+  const handleCopyPrefix = (id: string, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedKeyId(id)
+    setTimeout(() => setCopiedKeyId(null), 1500)
   }
 
   const containerStyle: React.CSSProperties = {
@@ -506,8 +513,17 @@ export function Settings({
                       borderRadius: borderRadius.md,
                     }}>
                       <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
-                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm }}>
-                        {newKeyPlaintext}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm, flex: 1 }}>
+                          {newKeyPlaintext}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyPrefix('__new__', newKeyPlaintext)}
+                        >
+                          {copiedKeyId === '__new__' ? 'Copied!' : 'Copy'}
+                        </Button>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
                         ⚠️ Copy this key now — it will never be shown again!
@@ -541,8 +557,17 @@ export function Settings({
                         >
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600 }}>{key.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
-                              {key.key_prefix}••••••••
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                              <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace" }}>
+                                {key.key_prefix}••••••••
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyPrefix(key.id, key.key_prefix)}
+                              >
+                                {copiedKeyId === key.id ? 'Copied!' : 'Copy'}
+                              </Button>
                             </div>
                             <div style={{ fontSize: '0.7rem', color: colors.textMuted }}>
                               Created: {new Date(key.created_at).toLocaleDateString()}
