@@ -69,25 +69,30 @@ type NavGroup = {
 
 const navGroups: NavGroup[] = [
   {
-    label: 'MAIN',
+    label: 'CLASSIFY & COMPLY',
     items: [
-      { id: 'dashboard',  label: 'Dashboard',           Icon: DashboardIcon },
-      { id: 'risk',       label: 'Compliance Risk',      Icon: RiskIcon      },
-      { id: 'checklist',  label: 'My Checklist',         Icon: ChecklistIcon },
-      { id: 'alerts',     label: 'Regulatory Updates',   Icon: AlertsIcon    },
+      { id: 'checklist',       label: 'My Checklist',       Icon: ChecklistIcon },
+      { id: 'label-validator', label: 'Label Checker',       Icon: LabelIcon,    tier: 'pro' },
     ],
   },
   {
-    label: 'ANALYTICS',
+    label: 'KNOW YOUR RISK',
     items: [
-      { id: 'fta',       label: 'Trade Deals & Savings', Icon: FTAIcon,       tier: 'pro' },
-      { id: 'shipments', label: 'Shipments',              Icon: ShipmentsIcon, tier: 'pro' },
+      { id: 'risk',   label: 'Compliance Risk',     Icon: RiskIcon    },
+      { id: 'alerts', label: 'Regulatory Updates',  Icon: AlertsIcon  },
     ],
   },
   {
-    label: 'TOOLS',
+    label: 'TRADE & SAVINGS',
     items: [
-      { id: 'label-validator', label: 'Label Checker', Icon: LabelIcon, tier: 'pro' },
+      { id: 'fta', label: 'Trade Deals & Savings', Icon: FTAIcon, tier: 'pro' },
+    ],
+  },
+  {
+    label: 'SHIPMENT & FINANCE',
+    items: [
+      { id: 'shipments',  label: 'Shipments',  Icon: ShipmentsIcon, tier: 'pro' },
+      { id: 'dashboard',  label: 'Dashboard',  Icon: DashboardIcon },
     ],
   },
 ]
@@ -177,16 +182,7 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
           </div>
         ))}
 
-        {/* OTHER group */}
-        <div>
-          <span style={groupLabel}>OTHER</span>
-          <button onClick={() => handleNavigate('settings')} style={navBtn(isActive('settings'))} aria-current={isActive('settings') ? 'page' : undefined}>
-            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: isActive('settings') ? 1 : 0.7 }}><SettingsIcon /></span>
-            <span>Settings</span>
-          </button>
-        </div>
-
-        {/* EU Compliance — only shown when EU is a selected market */}
+        {/* EU Compliance — injected into Know Your Risk when EU is selected */}
         {euEnabled && (
           <div>
             <span style={groupLabel}>EU MARKET</span>
@@ -197,6 +193,15 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
             </button>
           </div>
         )}
+
+        {/* Settings */}
+        <div style={{ marginTop: spacing.md }}>
+          <span style={groupLabel}>ACCOUNT</span>
+          <button onClick={() => handleNavigate('settings')} style={navBtn(isActive('settings'))} aria-current={isActive('settings') ? 'page' : undefined}>
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: isActive('settings') ? 1 : 0.7 }}><SettingsIcon /></span>
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
 
       {/* Logout */}
