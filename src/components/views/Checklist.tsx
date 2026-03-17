@@ -316,8 +316,31 @@ export function Checklist({
 
   return (
     <div style={containerStyle}>
-      <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={titleStyle}>Compliance Checklist</h2>
+      <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={titleStyle}>Compliance Checklist</h2>
+          {/* Product context pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' as const }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE',
+              borderRadius: borderRadius.full, padding: '3px 10px',
+              fontSize: '0.8rem', color: colors.primary, fontWeight: 500,
+            }}>
+              📦 {selectedProduct}
+            </span>
+            {selectedCountries.map(c => (
+              <span key={c} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                backgroundColor: colors.surface, border: `1px solid ${colors.border}`,
+                borderRadius: borderRadius.full, padding: '3px 10px',
+                fontSize: '0.8rem', color: colors.textMuted,
+              }}>
+                {REGULATORY_DB[c]?.flag} {c}
+              </span>
+            ))}
+          </div>
+        </div>
         <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
           Copy to Clipboard
         </Button>
