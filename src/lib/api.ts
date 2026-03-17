@@ -137,11 +137,6 @@ export function fetchFTASavings(
   })
 }
 
-// ─── HS Lookup ─────────────────────────────────────────────────
-export function fetchHSLookup(hsCode: string) {
-  return Promise.resolve({ hs_code: hsCode, description: 'HS Lookup (local)' })
-}
-
 export async function classifyProductHSCode(description: string, destinationCountry: string) {
   // Call the Supabase Edge Function securely
   const { data, error } = await supabase.functions.invoke('zonos-classify', {

@@ -10,7 +10,6 @@ import { useState, useRef, useEffect } from 'react'
 import { colors, spacing, borderRadius } from '@theme/index'
 import type { CountryCode } from '@/types'
 import { searchHSProducts } from '@/data/hs-product-db'
-import type { HSProduct } from '@/data/hs-product-db'
 import { fetchHSLookup } from '@/lib/api'
 import type { HSLookupResult } from '@/lib/api'
 
