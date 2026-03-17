@@ -118,19 +118,22 @@ function App() {
 
     let cancelled = false
 
-    fetchChecklist(selectedProduct, selectedCountries[0], selectedHsCode ?? undefined)
+    fetchChecklist(
+      selectedProduct,
+      selectedCountries[0],
+      selectedHsCode ?? undefined,
+      selectedHsProductName ?? undefined,
+      selectedCountries
+    )
       .then(data => {
         if (!cancelled) setChecklist(data.items || [])
       })
       .catch(() => {
         if (!cancelled) setChecklist([])
       })
-      .finally(() => {
-        // loading complete
-      })
 
     return () => { cancelled = true }
-  }, [selectedProduct, selectedCountries, selectedHsCode, auth.user])
+  }, [selectedProduct, selectedCountries, selectedHsCode, selectedHsProductName, auth.user])
 
   // Fetch alerts from API
   useEffect(() => {

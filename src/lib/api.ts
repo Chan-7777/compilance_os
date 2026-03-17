@@ -5,6 +5,7 @@ import { generateBankReadyDealPack } from './deal-pack'
 import { FTA_DATABASE } from '@/data/fta'
 import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
+import { getHSProduct } from '@/data/hs-product-db'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -56,10 +57,63 @@ export async function fetchHSLookup(query: string, category?: string): Promise<H
   }
 }
 
+// ─── AI Checklist for specific HS code ─────────────────────────
+async function fetchAIChecklist(
+  hsCode: string,
+  productName: string,
+  countries: string[]
+): Promise<any[]> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return []
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  if (!supabaseUrl) return []
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/hs-checklist`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ hsCode, productName, countries }),
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.items || []
+  } catch {
+    return []
+  }
+}
+
 // ─── Checklist ─────────────────────────────────────────────────
-export function fetchChecklist(product: string, country: string, hsCode?: string) {
-  const items = generateChecklist(product, country, hsCode)
-  return Promise.resolve({ items })
+export async function fetchChecklist(
+  product: string,
+  country: string,
+  hsCode?: string,
+  hsProductName?: string,
+  allCountries?: string[]
+) {
+  // Base checklist from local generator (always runs)
+  const baseItems = generateChecklist(product, country, hsCode)
+
+  // If an HS code is provided, check whether we have local DB items for it
+  if (hsCode) {
+    const inLocalDB = !!getHSProduct(hsCode)
+
+    if (!inLocalDB) {
+      // Not in local DB — call AI to generate specific items for all target countries
+      const countries = allCountries?.length ? allCountries : [country]
+      const name = hsProductName || hsCode
+      const aiItems = await fetchAIChecklist(hsCode, name, countries)
+
+      // Merge: base items first (documentation, COO, packaging etc.), then AI-specific items
+      return { items: [...baseItems, ...aiItems] }
+    }
+  }
+
+  // HS code is in local DB (or no HS code) — base + local DB items (already merged by generateChecklist)
+  return { items: baseItems }
 }
 
 // ─── FTA Savings ───────────────────────────────────────────────
