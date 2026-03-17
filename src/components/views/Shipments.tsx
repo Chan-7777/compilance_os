@@ -335,7 +335,8 @@ export function Shipments({
 
   const handleDownloadCOO = async (shipmentId: string) => {
     try {
-      const blob = await downloadCOOPdf(shipmentId)
+      const s = shipments.find(x => x.id === shipmentId)
+      const blob = await downloadCOOPdf(shipmentId, s)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

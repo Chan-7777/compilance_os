@@ -91,6 +91,8 @@ beforeEach(() => {
         flag: '\u{1F1EA}\u{1F1FA}',
         date: '2025-12-31',
         message: 'CBAM deadline approaching',
+        sourceUrl: '',
+        sourceName: 'EU Taxation & Customs',
       },
       {
         id: 2,
@@ -101,6 +103,8 @@ beforeEach(() => {
         flag: '\u{1F1EC}\u{1F1E7}',
         date: '2025-06-01',
         message: 'UK REACH update',
+        sourceUrl: '',
+        sourceName: 'UK HMRC',
       },
     ],
   })
