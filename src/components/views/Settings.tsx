@@ -2,28 +2,23 @@
 // Settings View - Configuration for product and market selection + API Keys
 // ============================================================================
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
-import { fetchAPIKeys, createAPIKey, revokeAPIKey, fetchHSLookup } from '@/lib/api'
-import type { HSLookupResult } from '@/lib/api'
-import { searchHSProducts } from '@/data/hs-product-db'
+import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
 import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
 
 export interface SettingsProps {
   companyProfile: CompanyProfile
   selectedProduct: string
   selectedCountries: CountryCode[]
-  selectedHsCode?: string
-  selectedHsProductName?: string
   onUpdateProfile: (profile: CompanyProfile) => void
   onSelectProduct: (productId: string) => void
   onToggleCountry: (country: CountryCode) => void
-  onUpdateHsProduct?: (hsCode: string | undefined, hsName: string | undefined) => void
   onNavigateToDashboard?: () => void
 }
 
@@ -47,69 +42,12 @@ export function Settings({
   companyProfile,
   selectedProduct,
   selectedCountries,
-  selectedHsCode,
-  selectedHsProductName,
   onUpdateProfile,
   onSelectProduct,
   onToggleCountry,
-  onUpdateHsProduct,
   onNavigateToDashboard,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState(0)
-
-  // HS product search state
-  const [hsQuery, setHsQuery] = useState(selectedHsProductName ?? '')
-  const [hsResults, setHsResults] = useState<HSLookupResult[]>([])
-  const [hsLoading, setHsLoading] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
-
-  const handleHsQueryChange = (q: string) => {
-    setHsQuery(q)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-
-    if (q.trim().length < 2) {
-      setHsResults([])
-      setHsLoading(false)
-      return
-    }
-
-    // Local results immediately
-    const local = searchHSProducts(q, selectedProduct).map(p => ({
-      hsCode: p.hsCode,
-      name: p.name,
-      confidence: 'high' as const,
-      reason: '',
-      source: 'local' as const,
-    }))
-    setHsResults(local)
-
-    // AI results after debounce
-    setHsLoading(true)
-    debounceRef.current = setTimeout(async () => {
-      const apiResults = await fetchHSLookup(q, selectedProduct)
-      const apiCodes = new Set(apiResults.map(r => r.hsCode))
-      const merged = [...apiResults, ...local.filter(l => !apiCodes.has(l.hsCode))]
-      setHsResults(merged.slice(0, 8))
-      setHsLoading(false)
-    }, 600)
-  }
-
-  const handleSelectHsProduct = (p: HSLookupResult) => {
-    setHsQuery(p.name)
-    setHsResults([])
-    setHsLoading(false)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    onUpdateHsProduct?.(p.hsCode, p.name)
-  }
-
-  const handleClearHsProduct = () => {
-    setHsQuery('')
-    setHsResults([])
-    setHsLoading(false)
-    onUpdateHsProduct?.(undefined, undefined)
-  }
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
@@ -478,97 +416,6 @@ export function Settings({
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Specific Product / HS Code Section */}
-            <div style={sectionStyle}>
-              <h3 style={sectionTitleStyle}>Specific Product (HS Code)</h3>
-              <p style={{ fontSize: '0.875rem', color: colors.textMuted, marginBottom: spacing.md }}>
-                Narrow your compliance checklist to a specific product within your category. For example, "Guntur Mirchi" vs "Chilli Powder" have different testing requirements.
-              </p>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={hsQuery}
-                  onChange={e => handleHsQueryChange(e.target.value)}
-                  placeholder={`Search by product name or HS code…`}
-                  style={{
-                    width: '100%',
-                    padding: `${spacing.sm} ${spacing.md}`,
-                    border: `1px solid ${selectedHsCode ? colors.primary : colors.border}`,
-                    borderRadius: borderRadius.lg,
-                    fontSize: '0.875rem',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-              {(hsResults.length > 0 || hsLoading) && (
-                <div style={{
-                  marginTop: 4,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: borderRadius.md,
-                  backgroundColor: colors.white,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  overflow: 'hidden',
-                  zIndex: 10,
-                  position: 'relative',
-                  maxHeight: 240,
-                  overflowY: 'auto',
-                }}>
-                  {hsLoading && (
-                    <div style={{ padding: '4px 12px', fontSize: '0.7rem', color: colors.textMuted, backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
-                      {hsResults.length === 0 ? 'Searching…' : 'Refining with AI…'}
-                    </div>
-                  )}
-                  {hsResults.map(r => (
-                    <div
-                      key={r.hsCode}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleSelectHsProduct(r)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleSelectHsProduct(r) }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: spacing.sm,
-                        padding: `${spacing.sm} ${spacing.md}`,
-                        borderBottom: `1px solid ${colors.border}`,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
-                        {r.hsCode}
-                      </span>
-                      <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
-                      {r.source === 'api' && r.confidence === 'high' && (
-                        <span style={{ fontSize: '0.65rem', color: colors.risk?.low ?? '#16a34a', whiteSpace: 'nowrap' }}>AI ✓</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedHsCode && (
-                <div style={{
-                  marginTop: spacing.sm,
-                  padding: `${spacing.sm} ${spacing.md}`,
-                  backgroundColor: '#EFF6FF',
-                  border: `1px solid #BFDBFE`,
-                  borderRadius: borderRadius.md,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  fontSize: '0.875rem',
-                }}>
-                  <span style={{ fontFamily: 'monospace', color: colors.primary, fontWeight: 600 }}>{selectedHsCode}</span>
-                  <span style={{ color: colors.text }}>{selectedHsProductName}</span>
-                  <button
-                    onClick={handleClearHsProduct}
-                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, fontSize: '0.8rem', fontFamily: 'inherit' }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Target Markets Section */}

@@ -577,15 +577,9 @@ function App() {
             companyProfile={companyProfile}
             selectedProduct={selectedProduct}
             selectedCountries={selectedCountries}
-            selectedHsCode={selectedHsCode ?? undefined}
-            selectedHsProductName={selectedHsProductName ?? undefined}
             onUpdateProfile={handleUpdateProfile}
             onSelectProduct={handleSelectProduct}
             onToggleCountry={handleToggleCountry}
-            onUpdateHsProduct={(hsCode, hsName) => {
-              setSelectedHsCode(hsCode ?? null)
-              setSelectedHsProductName(hsName ?? null)
-            }}
             onNavigateToDashboard={() => handleNavigate('dashboard')}
           />
         )
