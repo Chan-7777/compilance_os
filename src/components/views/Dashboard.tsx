@@ -20,11 +20,12 @@ export interface DashboardProps {
   riskResults: RiskResult[]
   alerts: Alert[]
   onNavigate: (view: ViewType) => void
+  shipments?: { gateStatus?: string }[]
 }
 
 const CBAM_PRODUCTS = ['steel', 'chemicals', 'aluminium', 'cement', 'fertilizer', 'electricity']
 
-export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate }: DashboardProps) {
+export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [] }: DashboardProps) {
   const overallRisk = riskResults.length > 0 ? {
     score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
     level: (() => {
@@ -37,6 +38,11 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
   const productId = PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id || selectedProduct
   const showCBAM = selectedCountries.includes('EU') && CBAM_PRODUCTS.includes(productId)
   const activeFTACount = selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length
+  const processedShipments = shipments.filter(s => s.gateStatus === 'approved' || s.gateStatus === 'blocked').length
+  const timeSavedLabel = processedShipments > 0 ? `${processedShipments * 4} hrs` : '~4 hrs'
+  const timeSavedSublabel = processedShipments > 0
+    ? `Saved across ${processedShipments} processed shipment${processedShipments > 1 ? 's' : ''}`
+    : 'Avg. time saved per shipment on documentation'
 
   const label: React.CSSProperties = {
     fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' as const,
@@ -113,9 +119,9 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
                 </div>
               )}
               <div>
-                <div style={{ ...bigNum, color: colors.text }}>~4 hrs</div>
+                <div style={{ ...bigNum, color: colors.text }}>{timeSavedLabel}</div>
                 <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: 2 }}>
-                  Avg. time saved per shipment on documentation
+                  {timeSavedSublabel}
                 </div>
               </div>
               <div>

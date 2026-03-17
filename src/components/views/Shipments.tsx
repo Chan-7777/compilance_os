@@ -41,6 +41,7 @@ export function Shipments({
     date: string
     hsCode: string
     shipmentValue: string
+    buyerName: string
   }>({
     name: '',
     product: selectedProduct || '',
@@ -49,6 +50,7 @@ export function Shipments({
     date: '',
     hsCode: '',
     shipmentValue: '',
+    buyerName: '',
   })
   const [gateResults, setGateResults] = useState<Record<string, GateCheckResult>>({})
   const [gateLoading, setGateLoading] = useState<Record<string, boolean>>({})
@@ -257,6 +259,9 @@ export function Shipments({
           hsCode: response.data.hsCode,
         }))
         toastSuccess('OCR Extraction Complete: Form auto-populated!')
+        if (response.warnings && response.warnings.length > 0) {
+          response.warnings.forEach((w: string) => toastError(`OCR Warning: ${w}`))
+        }
       }
     } catch (err: any) {
       toastError(`OCR Failed: ${err.message}`)
@@ -274,6 +279,7 @@ export function Shipments({
         date: formData.date,
         hsCode: formData.hsCode || undefined,
         shipmentValue: formData.shipmentValue ? parseFloat(formData.shipmentValue) : undefined,
+        buyerName: formData.buyerName || undefined,
       })
       setFormData({
         name: '',
@@ -283,6 +289,7 @@ export function Shipments({
         date: '',
         hsCode: '',
         shipmentValue: '',
+        buyerName: '',
       })
       setShowForm(false)
     }
@@ -401,8 +408,8 @@ export function Shipments({
     setTredsLoading(prev => ({ ...prev, [shipment.id]: true }))
     try {
       const result = await submitTReDSFinancing({
-        seller: { iec: '0388277364' }, // Mock IEC
-        buyer: { name: 'EU Steel Importers GmbH' }, // Mock Buyer
+        seller: { iec: companyProfile.iec || '' },
+        buyer: { name: shipment.buyerName || '' },
         invoiceValue: shipment.shipmentValue,
         currency: 'INR',
         referenceNumber: filingResults[shipment.id].reference_number
@@ -686,6 +693,19 @@ export function Shipments({
                 placeholder="e.g., 500000"
               />
             </div>
+            <div style={formFieldStyle}>
+              <label style={labelStyle} htmlFor="buyer-name">
+                Buyer Name
+              </label>
+              <input
+                id="buyer-name"
+                type="text"
+                style={inputStyle}
+                value={formData.buyerName}
+                onChange={e => setFormData(d => ({ ...d, buyerName: e.target.value }))}
+                placeholder="e.g., Acme Imports GmbH"
+              />
+            </div>
           </div>
           <div style={formActionsStyle}>
             <Button variant="ghost" onClick={() => setShowForm(false)}>
@@ -959,7 +979,7 @@ export function Shipments({
                     </div>
 
                     {/* TReDS Financing Panel (Conditional on ICEGATE Success) */}
-                    {filingResults[shipment.id] && filingResults[shipment.id].status === 'success' && (
+                    {filingResults[shipment.id] && (filingResults[shipment.id].status === 'submitted' || filingResults[shipment.id].status === 'payload_ready') && (
                       <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: '#f0fdf4', borderRadius: borderRadius.md, border: '1px solid #bbf7d0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>

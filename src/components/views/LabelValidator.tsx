@@ -16,9 +16,10 @@ import type { CountryCode } from '@/types'
 export interface LabelValidatorProps {
     selectedProduct: string
     selectedCountries: CountryCode[]
+    shipments?: { id: string; name: string; country: string }[]
 }
 
-export function LabelValidator({ selectedProduct, selectedCountries }: LabelValidatorProps) {
+export function LabelValidator({ selectedProduct, selectedCountries, shipments }: LabelValidatorProps) {
     const [activeCountry, setActiveCountry] = useState<CountryCode>(selectedCountries[0] || 'EU')
     const [activeProduct, setActiveProduct] = useState(selectedProduct || 'food')
     const [answers, setAnswers] = useState<Record<string, boolean>>({})
@@ -26,6 +27,8 @@ export function LabelValidator({ selectedProduct, selectedCountries }: LabelVali
     const [uploadedImage, setUploadedImage] = useState<string | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
     const [isScanning, setIsScanning] = useState(false)
+    const [linkedShipmentId, setLinkedShipmentId] = useState<string | null>(null)
+    const [savedToShipment, setSavedToShipment] = useState(false)
 
     // Get applicable rules
     const rules = useMemo(
@@ -414,6 +417,62 @@ export function LabelValidator({ selectedProduct, selectedCountries }: LabelVali
                     </div>
                 </div>
             </div>
+
+            {/* Link to Shipment */}
+            {shipments && shipments.length > 0 && (
+              <div style={{ marginBottom: spacing.lg, padding: spacing.md, backgroundColor: colors.surface, borderRadius: borderRadius.md, border: `1px solid ${colors.border}` }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: spacing.sm }}>
+                  Link to Shipment
+                </div>
+                <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+                  <select
+                    value={linkedShipmentId ?? ''}
+                    onChange={e => { setLinkedShipmentId(e.target.value || null); setSavedToShipment(false) }}
+                    style={{
+                      flex: 1,
+                      padding: `${spacing.xs} ${spacing.sm}`,
+                      borderRadius: borderRadius.md,
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.white,
+                      fontSize: '0.875rem',
+                      color: colors.text,
+                    }}
+                  >
+                    <option value="">— Select shipment —</option>
+                    {shipments.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.country})</option>
+                    ))}
+                  </select>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!linkedShipmentId || savedToShipment}
+                    onClick={() => {
+                      if (!linkedShipmentId) return
+                      // Save label score to localStorage keyed by shipment id
+                      const key = `label_validation_${linkedShipmentId}`
+                      localStorage.setItem(key, JSON.stringify({
+                        score: result.score,
+                        status: result.overallStatus,
+                        country: activeCountry,
+                        product: activeProduct,
+                        savedAt: new Date().toISOString(),
+                        failedRules: result.failedRules,
+                        totalRules: result.totalRules,
+                      }))
+                      setSavedToShipment(true)
+                    }}
+                  >
+                    {savedToShipment ? '✓ Saved' : 'Save Score'}
+                  </Button>
+                </div>
+                {savedToShipment && (
+                  <div style={{ fontSize: '0.75rem', color: colors.risk.low, marginTop: spacing.xs }}>
+                    Label compliance score saved to shipment record.
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.lg }}>

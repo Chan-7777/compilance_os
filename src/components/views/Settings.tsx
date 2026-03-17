@@ -191,6 +191,165 @@ export function Settings({
                       placeholder="Enter company name"
                     />
                   </div>
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label
+                      htmlFor="iec-code"
+                      style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                    >
+                      IEC Code (Import Export Code)
+                    </label>
+                    <input
+                      id="iec-code"
+                      type="text"
+                      value={companyProfile.iec ?? ''}
+                      onChange={e => onUpdateProfile({ ...companyProfile, iec: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. 0388277364"
+                      maxLength={10}
+                    />
+                  </div>
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label
+                      htmlFor="gstin"
+                      style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                    >
+                      GSTIN
+                    </label>
+                    <input
+                      id="gstin"
+                      type="text"
+                      value={companyProfile.gstin ?? ''}
+                      onChange={e => onUpdateProfile({ ...companyProfile, gstin: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. 27AABCU9603R1Z5"
+                      maxLength={15}
+                    />
+                  </div>
+
+                  {/* ICEGATE / Customs Filing Fields */}
+                  <div style={{
+                    marginTop: spacing.md,
+                    marginBottom: spacing.sm,
+                    paddingTop: spacing.md,
+                    borderTop: `1px solid ${colors.border}`,
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: colors.textMuted,
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: '0.5px',
+                  }}>
+                    Customs Filing Details (ICEGATE)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: spacing.md }}>
+                    Used in Shipping Bill generation. All fields optional — defaults applied if blank.
+                  </div>
+
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label
+                      htmlFor="company-address"
+                      style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                    >
+                      Registered Address
+                    </label>
+                    <input
+                      id="company-address"
+                      type="text"
+                      value={companyProfile.address ?? ''}
+                      onChange={e => onUpdateProfile({ ...companyProfile, address: e.target.value })}
+                      style={inputStyle}
+                      placeholder="e.g. 101 Export House, MIDC"
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, marginBottom: spacing.md }}>
+                    <div>
+                      <label
+                        htmlFor="company-city"
+                        style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                      >
+                        City
+                      </label>
+                      <input
+                        id="company-city"
+                        type="text"
+                        value={companyProfile.city ?? ''}
+                        onChange={e => onUpdateProfile({ ...companyProfile, city: e.target.value })}
+                        style={inputStyle}
+                        placeholder="e.g. Mumbai"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="company-state"
+                        style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                      >
+                        State
+                      </label>
+                      <input
+                        id="company-state"
+                        type="text"
+                        value={companyProfile.state ?? ''}
+                        onChange={e => onUpdateProfile({ ...companyProfile, state: e.target.value })}
+                        style={inputStyle}
+                        placeholder="e.g. Maharashtra"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md, marginBottom: spacing.md }}>
+                    <div>
+                      <label
+                        htmlFor="company-pin"
+                        style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                      >
+                        PIN Code
+                      </label>
+                      <input
+                        id="company-pin"
+                        type="text"
+                        value={companyProfile.pin ?? ''}
+                        onChange={e => onUpdateProfile({ ...companyProfile, pin: e.target.value })}
+                        style={inputStyle}
+                        placeholder="e.g. 400001"
+                        maxLength={6}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="company-state-code"
+                        style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                      >
+                        State Code (2-letter)
+                      </label>
+                      <input
+                        id="company-state-code"
+                        type="text"
+                        value={companyProfile.stateCode ?? ''}
+                        onChange={e => onUpdateProfile({ ...companyProfile, stateCode: e.target.value.toUpperCase() })}
+                        style={inputStyle}
+                        placeholder="e.g. MH"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: spacing.md }}>
+                    <label
+                      htmlFor="port-of-loading"
+                      style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 500 }}
+                    >
+                      Port of Loading (ICEGATE Code)
+                    </label>
+                    <input
+                      id="port-of-loading"
+                      type="text"
+                      value={companyProfile.portOfLoading ?? ''}
+                      onChange={e => onUpdateProfile({ ...companyProfile, portOfLoading: e.target.value.toUpperCase() })}
+                      style={inputStyle}
+                      placeholder="e.g. INBOM4 (Mumbai), INMAA1 (Chennai)"
+                    />
+                  </div>
+
                   <div>
                     <label style={{ display: 'block', marginBottom: spacing.sm, fontWeight: 500 }}>
                       Company Size

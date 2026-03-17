@@ -179,10 +179,18 @@ function App() {
 
     // Load company profile
     if (auth.profile.company) {
+      const c = auth.profile.company as any
       setCompanyProfile({
-        name: auth.profile.company.name,
-        size: auth.profile.company.size as CompanyProfile['size'],
-        iec: auth.profile.company.iec ?? undefined,
+        name: c.name,
+        size: c.size as CompanyProfile['size'],
+        iec: c.iec ?? undefined,
+        gstin: c.gstin ?? undefined,
+        address: c.address ?? undefined,
+        city: c.city ?? undefined,
+        state: c.state ?? undefined,
+        pin: c.pin ?? undefined,
+        stateCode: c.state_code ?? undefined,
+        portOfLoading: c.port_of_loading ?? undefined,
       })
     }
 
@@ -268,7 +276,18 @@ function App() {
       if (!SUPABASE_ENABLED || !auth.profile) return
       await supabase
         .from('companies')
-        .update({ name: profile.name, size: profile.size, iec: profile.iec })
+        .update({
+          name: profile.name,
+          size: profile.size,
+          iec: profile.iec,
+          gstin: profile.gstin,
+          address: profile.address,
+          city: profile.city,
+          state: profile.state,
+          pin: profile.pin,
+          state_code: profile.stateCode,
+          port_of_loading: profile.portOfLoading,
+        })
         .eq('id', auth.profile.company_id)
     },
     [auth.profile]
@@ -279,13 +298,20 @@ function App() {
   // -------------------------------------------------------------------------
 
   const handleOnboardingComplete = useCallback(
-    (product: string, countries: CountryCode[]) => {
+    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }) => {
       setSelectedProduct(product)
       setSelectedCountries(countries)
       setShowOnboarding(false)
       persistSettings(product, countries)
+      if (companyDetails && (companyDetails.iec || companyDetails.gstin)) {
+        setCompanyProfile(prev => {
+          const updated = { ...prev, ...companyDetails }
+          persistProfile(updated)
+          return updated
+        })
+      }
     },
-    [persistSettings]
+    [persistSettings, persistProfile]
   )
 
   const handleNavigate = useCallback(
@@ -337,11 +363,22 @@ function App() {
         if (shipment.hsCode) insertData.hs_code = shipment.hsCode
         if (shipment.shipmentValue) insertData.shipment_value = shipment.shipmentValue
 
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('shipments')
           .insert(insertData)
           .select()
           .single()
+
+        if (error || !data) {
+          // Fall back to local-only shipment so the user isn't left with nothing
+          setShipments(prev => [{
+            ...shipment,
+            id: `local-${Date.now()}`,
+            status: 'pending' as const,
+          }, ...prev])
+          console.error('Failed to save shipment to database:', error?.message)
+          return
+        }
 
         if (data) {
           setShipments(prev => [
@@ -477,6 +514,7 @@ function App() {
             riskResults={riskResults}
             alerts={alerts}
             onNavigate={handleNavigate}
+            shipments={shipments}
           />
         )
       case 'risk':
@@ -540,6 +578,7 @@ function App() {
           <LabelValidator
             selectedProduct={selectedProduct}
             selectedCountries={selectedCountries}
+            shipments={shipments.map(s => ({ id: s.id, name: s.name, country: s.country }))}
           />
         )
       case 'eu-compliance':

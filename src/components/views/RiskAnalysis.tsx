@@ -23,14 +23,15 @@ export interface RiskAnalysisProps {
 export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps) {
   const [emissionsData, setEmissionsData] = useState<Record<string, any>>({})
   const [isEstimating, setIsEstimating] = useState<Record<string, boolean>>({})
+  const [emissionsWeight, setEmissionsWeight] = useState<Record<string, string>>({})
 
   const productLabel =
     PRODUCT_CATEGORIES.find(p => p.id === selectedProduct)?.label || selectedProduct
 
-  const handleEstimateEmissions = async (countryCode: string) => {
+  const handleEstimateEmissions = async (countryCode: string, weight: number) => {
     setIsEstimating(prev => ({ ...prev, [countryCode]: true }))
     try {
-      const result = await estimateEmissions(1000, '7208.00', 'IN', selectedProduct)
+      const result = await estimateEmissions(weight, '7208.00', 'IN', selectedProduct, countryCode)
       setEmissionsData(prev => ({ ...prev, [countryCode]: result }))
     } catch (err) {
       console.error('Failed to estimate emissions:', err)
@@ -281,10 +282,28 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                         <div style={{ fontWeight: 600, color: '#1e3a8a' }}>🌍 CBAM CO₂e Scope 3 Estimate</div>
                         <div style={{ fontSize: '0.75rem', color: '#3b82f6' }}>Powered by Climatiq API</div>
                       </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.sm }}>
+                      <input
+                        type="number"
+                        value={emissionsWeight[result.country] ?? ''}
+                        onChange={e => setEmissionsWeight(prev => ({ ...prev, [result.country]: e.target.value }))}
+                        placeholder="Weight (kg)"
+                        min="1"
+                        style={{
+                          width: 130,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          borderRadius: borderRadius.md,
+                          border: `1px solid ${colors.border}`,
+                          fontSize: '0.875rem',
+                          backgroundColor: colors.white,
+                        }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#3b82f6' }}>kg per shipment</span>
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => handleEstimateEmissions(result.country)}
+                        onClick={() => handleEstimateEmissions(result.country, parseFloat(emissionsWeight[result.country] || '1000'))}
                         disabled={isEstimating[result.country]}
                       >
                         {isEstimating[result.country] ? 'Calculating...' : 'Estimate Emissions'}

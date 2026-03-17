@@ -96,6 +96,14 @@ export interface CompanyProfile {
   name: string
   size: CompanySize
   iec?: string
+  gstin?: string
+  // ICEGATE / customs filing fields
+  address?: string
+  city?: string
+  state?: string
+  pin?: string
+  stateCode?: string
+  portOfLoading?: string
 }
 
 // ----------------------------------------------------------------------------
@@ -180,6 +188,7 @@ export interface Shipment {
   hsCode?: string
   shipmentValue?: number
   gateStatus?: GateStatus
+  buyerName?: string
 }
 
 // ----------------------------------------------------------------------------

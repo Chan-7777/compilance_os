@@ -1,8 +1,9 @@
 // ============================================================================
-// Onboarding — 3-step setup flow shown to first-time users
+// Onboarding — 4-step setup flow shown to first-time users
 // Step 1: Who are you? (exporter / importer / both)
 // Step 2: What do you trade? (product selection)
 // Step 3: Which markets? (country selection)
+// Step 4: Company credentials (IEC + GSTIN, optional)
 // ============================================================================
 
 import { useState } from 'react'
@@ -10,7 +11,7 @@ import { colors, spacing, borderRadius } from '@theme/index'
 import type { CountryCode } from '@/types'
 
 interface OnboardingProps {
-  onComplete: (product: string, countries: CountryCode[]) => void
+  onComplete: (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }) => void
 }
 
 const PRODUCTS = [
@@ -72,6 +73,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [role, setRole] = useState<string | null>(null)
   const [product, setProduct] = useState<string | null>(null)
   const [countries, setCountries] = useState<CountryCode[]>([])
+  const [iec, setIec] = useState('')
+  const [gstin, setGstin] = useState('')
 
   const toggleCountry = (code: CountryCode) => {
     setCountries(prev =>
@@ -82,11 +85,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const canProceed =
     (step === 1 && role !== null) ||
     (step === 2 && product !== null) ||
-    (step === 3 && countries.length > 0)
+    (step === 3 && countries.length > 0) ||
+    step === 4
 
   const handleFinish = () => {
     if (product && countries.length > 0) {
-      onComplete(product, countries)
+      const companyDetails = (iec || gstin) ? { iec: iec || undefined, gstin: gstin || undefined } : undefined
+      onComplete(product, countries, companyDetails)
     }
   }
 
@@ -195,11 +200,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       <div style={modal}>
         {/* Step indicator */}
         <div style={stepIndicator}>
-          {[1, 2, 3].map(s => (
+          {[1, 2, 3, 4].map(s => (
             <div key={s} style={dot(s === step, s < step)} />
           ))}
           <span style={{ fontSize: '0.75rem', color: colors.textMuted, marginLeft: 'auto' }}>
-            Step {step} of 3
+            Step {step} of 4
           </span>
         </div>
 
@@ -309,6 +314,63 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           </>
         )}
 
+        {/* Step 4 — Company Credentials */}
+        {step === 4 && (
+          <>
+            <p style={title}>Your export credentials</p>
+            <p style={subtitle}>
+              These are needed for customs filing. You can update them later in Settings.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 600, fontSize: '0.875rem', color: colors.text }}>
+                  IEC Code (Import Export Code)
+                </label>
+                <input
+                  type="text"
+                  value={iec}
+                  onChange={e => setIec(e.target.value)}
+                  placeholder="e.g. 0388277364"
+                  maxLength={10}
+                  style={{
+                    width: '100%',
+                    padding: spacing.sm,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: borderRadius.lg,
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: spacing.xs, fontWeight: 600, fontSize: '0.875rem', color: colors.text }}>
+                  GSTIN
+                </label>
+                <input
+                  type="text"
+                  value={gstin}
+                  onChange={e => setGstin(e.target.value)}
+                  placeholder="e.g. 27AABCU9603R1Z5"
+                  maxLength={15}
+                  style={{
+                    width: '100%',
+                    padding: spacing.sm,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: borderRadius.lg,
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                Both fields are optional — you can skip and add them later.
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Footer */}
         <div style={footer}>
           {step > 1 ? (
@@ -318,7 +380,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           ) : (
             <div />
           )}
-          {step < 3 ? (
+          {step < 4 ? (
             <button
               style={btnPrimary}
               onClick={() => canProceed && setStep(s => s + 1)}
@@ -328,9 +390,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </button>
           ) : (
             <button
-              style={{ ...btnPrimary, backgroundColor: canProceed ? colors.cta : colors.border }}
+              style={{ ...btnPrimary, backgroundColor: colors.cta, color: colors.white, cursor: 'pointer' }}
               onClick={handleFinish}
-              disabled={!canProceed}
             >
               Set up my dashboard →
             </button>
