@@ -521,6 +521,7 @@ export async function processInvoiceOCR(fileBase64: string, filename: string) {
 
   return data as {
     success: boolean
+    warnings?: string[]
     data: {
       name: string
       product: string

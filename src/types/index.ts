@@ -189,6 +189,10 @@ export interface Shipment {
   shipmentValue?: number
   gateStatus?: GateStatus
   buyerName?: string
+  exporterName?: string
+  buyer?: string
+  quantity?: number
+  transportMode?: string
 }
 
 // ----------------------------------------------------------------------------
