@@ -2,16 +2,16 @@
 // Settings View - Configuration for product and market selection + API Keys
 // ============================================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
-import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
+import { fetchAPIKeys, createAPIKey, revokeAPIKey, fetchHSLookup } from '@/lib/api'
+import type { HSLookupResult } from '@/lib/api'
 import { searchHSProducts } from '@/data/hs-product-db'
-import type { HSProduct } from '@/data/hs-product-db'
 import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
 
 export interface SettingsProps {
@@ -59,26 +59,55 @@ export function Settings({
 
   // HS product search state
   const [hsQuery, setHsQuery] = useState(selectedHsProductName ?? '')
-  const [hsResults, setHsResults] = useState<HSProduct[]>([])
+  const [hsResults, setHsResults] = useState<HSLookupResult[]>([])
+  const [hsLoading, setHsLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
 
   const handleHsQueryChange = (q: string) => {
     setHsQuery(q)
-    if (q.trim().length >= 2) {
-      setHsResults(searchHSProducts(q, selectedProduct))
-    } else {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (q.trim().length < 2) {
       setHsResults([])
+      setHsLoading(false)
+      return
     }
+
+    // Local results immediately
+    const local = searchHSProducts(q, selectedProduct).map(p => ({
+      hsCode: p.hsCode,
+      name: p.name,
+      confidence: 'high' as const,
+      reason: '',
+      source: 'local' as const,
+    }))
+    setHsResults(local)
+
+    // AI results after debounce
+    setHsLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      const apiResults = await fetchHSLookup(q, selectedProduct)
+      const apiCodes = new Set(apiResults.map(r => r.hsCode))
+      const merged = [...apiResults, ...local.filter(l => !apiCodes.has(l.hsCode))]
+      setHsResults(merged.slice(0, 8))
+      setHsLoading(false)
+    }, 600)
   }
 
-  const handleSelectHsProduct = (p: HSProduct) => {
+  const handleSelectHsProduct = (p: HSLookupResult) => {
     setHsQuery(p.name)
     setHsResults([])
+    setHsLoading(false)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     onUpdateHsProduct?.(p.hsCode, p.name)
   }
 
   const handleClearHsProduct = () => {
     setHsQuery('')
     setHsResults([])
+    setHsLoading(false)
     onUpdateHsProduct?.(undefined, undefined)
   }
 
@@ -475,7 +504,7 @@ export function Settings({
                   }}
                 />
               </div>
-              {hsResults.length > 0 && (
+              {(hsResults.length > 0 || hsLoading) && (
                 <div style={{
                   marginTop: 4,
                   border: `1px solid ${colors.border}`,
@@ -485,7 +514,14 @@ export function Settings({
                   overflow: 'hidden',
                   zIndex: 10,
                   position: 'relative',
+                  maxHeight: 240,
+                  overflowY: 'auto',
                 }}>
+                  {hsLoading && (
+                    <div style={{ padding: '4px 12px', fontSize: '0.7rem', color: colors.textMuted, backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
+                      {hsResults.length === 0 ? 'Searching…' : 'Refining with AI…'}
+                    </div>
+                  )}
                   {hsResults.map(r => (
                     <div
                       key={r.hsCode}
@@ -500,10 +536,13 @@ export function Settings({
                         cursor: 'pointer',
                       }}
                     >
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
                         {r.hsCode}
                       </span>
-                      <span style={{ fontSize: '0.875rem', color: colors.text }}>{r.name}</span>
+                      <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
+                      {r.source === 'api' && r.confidence === 'high' && (
+                        <span style={{ fontSize: '0.65rem', color: colors.risk?.low ?? '#16a34a', whiteSpace: 'nowrap' }}>AI ✓</span>
+                      )}
                     </div>
                   ))}
                 </div>

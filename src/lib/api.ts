@@ -23,6 +23,39 @@ export function fetchRiskScore(product: string, country: string, companySize: st
   return Promise.resolve({ ...result, country })
 }
 
+// ─── HS Code Lookup (AI-powered) ───────────────────────────────
+export interface HSLookupResult {
+  hsCode: string
+  name: string
+  confidence: 'high' | 'medium' | 'low'
+  reason: string
+  source: 'api' | 'local'
+}
+
+export async function fetchHSLookup(query: string, category?: string): Promise<HSLookupResult[]> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return []
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  if (!supabaseUrl) return []
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/hs-lookup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ query, category }),
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.results || []).map((r: any) => ({ ...r, source: 'api' as const }))
+  } catch {
+    return []
+  }
+}
+
 // ─── Checklist ─────────────────────────────────────────────────
 export function fetchChecklist(product: string, country: string, hsCode?: string) {
   const items = generateChecklist(product, country, hsCode)

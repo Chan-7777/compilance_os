@@ -6,11 +6,13 @@
 // Step 4: Company credentials (IEC + GSTIN, optional)
 // ============================================================================
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { colors, spacing, borderRadius } from '@theme/index'
 import type { CountryCode } from '@/types'
 import { searchHSProducts } from '@/data/hs-product-db'
 import type { HSProduct } from '@/data/hs-product-db'
+import { fetchHSLookup } from '@/lib/api'
+import type { HSLookupResult } from '@/lib/api'
 
 interface OnboardingProps {
   onComplete: (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }, hsCode?: string, hsProductName?: string) => void
@@ -78,10 +80,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [iec, setIec] = useState('')
   const [gstin, setGstin] = useState('')
 
-  // HS-specific product search state
+  // HS product search state
   const [hsQuery, setHsQuery] = useState('')
-  const [hsResults, setHsResults] = useState<HSProduct[]>([])
-  const [selectedHsProduct, setSelectedHsProduct] = useState<HSProduct | null>(null)
+  const [hsResults, setHsResults] = useState<HSLookupResult[]>([])
+  const [hsLoading, setHsLoading] = useState(false)
+  const [selectedHsProduct, setSelectedHsProduct] = useState<HSLookupResult | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const toggleCountry = (code: CountryCode) => {
     setCountries(prev =>
@@ -98,17 +102,49 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const handleHsQueryChange = (q: string) => {
     setHsQuery(q)
     setSelectedHsProduct(null)
-    if (q.trim().length >= 2) {
-      setHsResults(searchHSProducts(q, product ?? undefined))
-    } else {
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (q.trim().length < 2) {
       setHsResults([])
+      setHsLoading(false)
+      return
     }
+
+    // Show local DB results immediately
+    const local = searchHSProducts(q, product ?? undefined).map(p => ({
+      hsCode: p.hsCode,
+      name: p.name,
+      confidence: 'high' as const,
+      reason: '',
+      source: 'local' as const,
+    }))
+    setHsResults(local)
+
+    // Then call AI after 600ms debounce
+    setHsLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      const apiResults = await fetchHSLookup(q, product ?? undefined)
+      // Merge: API results first, then any local results not already covered
+      const apiCodes = new Set(apiResults.map(r => r.hsCode))
+      const merged = [
+        ...apiResults,
+        ...local.filter(l => !apiCodes.has(l.hsCode)),
+      ]
+      setHsResults(merged.slice(0, 8))
+      setHsLoading(false)
+    }, 600)
   }
 
-  const handleSelectHsProduct = (p: HSProduct) => {
+  // Cleanup debounce on unmount
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
+
+  const handleSelectHsProduct = (p: HSLookupResult) => {
     setSelectedHsProduct(p)
     setHsQuery(p.name)
     setHsResults([])
+    setHsLoading(false)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
   }
 
   const handleFinish = () => {
@@ -339,6 +375,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   )}
                 </div>
 
+                {/* Loading indicator */}
+                {hsLoading && hsResults.length === 0 && (
+                  <div style={{ padding: `${spacing.sm} ${spacing.md}`, fontSize: '0.8rem', color: colors.textMuted }}>
+                    Searching…
+                  </div>
+                )}
+
                 {/* Search results dropdown */}
                 {hsResults.length > 0 && (
                   <div style={{
@@ -348,7 +391,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     backgroundColor: colors.white,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     overflow: 'hidden',
+                    maxHeight: 220,
+                    overflowY: 'auto',
                   }}>
+                    {hsLoading && (
+                      <div style={{ padding: '4px 12px', fontSize: '0.7rem', color: colors.textMuted, backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
+                        Refining with AI…
+                      </div>
+                    )}
                     {hsResults.map(r => (
                       <button
                         key={r.hsCode}
@@ -370,7 +420,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                         <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
                           {r.hsCode}
                         </span>
-                        <span style={{ fontSize: '0.875rem', color: colors.text }}>{r.name}</span>
+                        <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
+                        {r.source === 'api' && r.confidence === 'high' && (
+                          <span style={{ fontSize: '0.65rem', color: colors.risk?.low ?? '#16a34a', whiteSpace: 'nowrap' }}>AI ✓</span>
+                        )}
                       </button>
                     ))}
                   </div>
