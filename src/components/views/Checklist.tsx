@@ -408,7 +408,7 @@ export function Checklist({
                   outline: 'none',
                 }}
               />
-              {(hsResults.length > 0 || hsLoading) && (
+              {(hsResults.length > 0 || hsLoading || (hsQuery.trim().length >= 2 && !hsLoading)) && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
                   border: `1px solid ${colors.border}`, borderRadius: borderRadius.md,
@@ -418,6 +418,11 @@ export function Checklist({
                   {hsLoading && (
                     <div style={{ padding: '4px 12px', fontSize: '0.7rem', color: colors.textMuted, backgroundColor: colors.surface }}>
                       Searching…
+                    </div>
+                  )}
+                  {!hsLoading && hsResults.length === 0 && (
+                    <div style={{ padding: `${spacing.sm} ${spacing.md}`, fontSize: '0.8rem', color: colors.textMuted }}>
+                      No results — try a different name or HS code
                     </div>
                   )}
                   {hsResults.map(r => (
