@@ -34,24 +34,12 @@ export interface HSLookupResult {
 }
 
 export async function fetchHSLookup(query: string, category?: string): Promise<HSLookupResult[]> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return []
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  if (!supabaseUrl) return []
-
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/hs-lookup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ query, category }),
+    const { data, error } = await supabase.functions.invoke('hs-lookup', {
+      body: { query, category },
     })
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.results || []).map((r: any) => ({ ...r, source: 'api' as const }))
+    if (error) return []
+    return (data?.results || []).map((r: any) => ({ ...r, source: 'api' as const }))
   } catch {
     return []
   }
@@ -63,24 +51,12 @@ async function fetchAIChecklist(
   productName: string,
   countries: string[]
 ): Promise<any[]> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return []
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  if (!supabaseUrl) return []
-
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/hs-checklist`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ hsCode, productName, countries }),
+    const { data, error } = await supabase.functions.invoke('hs-checklist', {
+      body: { hsCode, productName, countries },
     })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.items || []
+    if (error) return []
+    return data?.items || []
   } catch {
     return []
   }
