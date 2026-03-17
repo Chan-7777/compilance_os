@@ -24,8 +24,8 @@ export function fetchRiskScore(product: string, country: string, companySize: st
 }
 
 // ─── Checklist ─────────────────────────────────────────────────
-export function fetchChecklist(product: string, country: string) {
-  const items = generateChecklist(product, country)
+export function fetchChecklist(product: string, country: string, hsCode?: string) {
+  const items = generateChecklist(product, country, hsCode)
   return Promise.resolve({ items })
 }
 

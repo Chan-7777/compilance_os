@@ -10,15 +10,20 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
 import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
+import { searchHSProducts } from '@/data/hs-product-db'
+import type { HSProduct } from '@/data/hs-product-db'
 import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
 
 export interface SettingsProps {
   companyProfile: CompanyProfile
   selectedProduct: string
   selectedCountries: CountryCode[]
+  selectedHsCode?: string
+  selectedHsProductName?: string
   onUpdateProfile: (profile: CompanyProfile) => void
   onSelectProduct: (productId: string) => void
   onToggleCountry: (country: CountryCode) => void
+  onUpdateHsProduct?: (hsCode: string | undefined, hsName: string | undefined) => void
   onNavigateToDashboard?: () => void
 }
 
@@ -42,12 +47,40 @@ export function Settings({
   companyProfile,
   selectedProduct,
   selectedCountries,
+  selectedHsCode,
+  selectedHsProductName,
   onUpdateProfile,
   onSelectProduct,
   onToggleCountry,
+  onUpdateHsProduct,
   onNavigateToDashboard,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState(0)
+
+  // HS product search state
+  const [hsQuery, setHsQuery] = useState(selectedHsProductName ?? '')
+  const [hsResults, setHsResults] = useState<HSProduct[]>([])
+
+  const handleHsQueryChange = (q: string) => {
+    setHsQuery(q)
+    if (q.trim().length >= 2) {
+      setHsResults(searchHSProducts(q, selectedProduct))
+    } else {
+      setHsResults([])
+    }
+  }
+
+  const handleSelectHsProduct = (p: HSProduct) => {
+    setHsQuery(p.name)
+    setHsResults([])
+    onUpdateHsProduct?.(p.hsCode, p.name)
+  }
+
+  const handleClearHsProduct = () => {
+    setHsQuery('')
+    setHsResults([])
+    onUpdateHsProduct?.(undefined, undefined)
+  }
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
@@ -416,6 +449,87 @@ export function Settings({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Specific Product / HS Code Section */}
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Specific Product (HS Code)</h3>
+              <p style={{ fontSize: '0.875rem', color: colors.textMuted, marginBottom: spacing.md }}>
+                Narrow your compliance checklist to a specific product within your category. For example, "Guntur Mirchi" vs "Chilli Powder" have different testing requirements.
+              </p>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={hsQuery}
+                  onChange={e => handleHsQueryChange(e.target.value)}
+                  placeholder={`Search by product name or HS code…`}
+                  style={{
+                    width: '100%',
+                    padding: `${spacing.sm} ${spacing.md}`,
+                    border: `1px solid ${selectedHsCode ? colors.primary : colors.border}`,
+                    borderRadius: borderRadius.lg,
+                    fontSize: '0.875rem',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              {hsResults.length > 0 && (
+                <div style={{
+                  marginTop: 4,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.white,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  overflow: 'hidden',
+                  zIndex: 10,
+                  position: 'relative',
+                }}>
+                  {hsResults.map(r => (
+                    <div
+                      key={r.hsCode}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleSelectHsProduct(r)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSelectHsProduct(r) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: spacing.sm,
+                        padding: `${spacing.sm} ${spacing.md}`,
+                        borderBottom: `1px solid ${colors.border}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>
+                        {r.hsCode}
+                      </span>
+                      <span style={{ fontSize: '0.875rem', color: colors.text }}>{r.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedHsCode && (
+                <div style={{
+                  marginTop: spacing.sm,
+                  padding: `${spacing.sm} ${spacing.md}`,
+                  backgroundColor: '#EFF6FF',
+                  border: `1px solid #BFDBFE`,
+                  borderRadius: borderRadius.md,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  fontSize: '0.875rem',
+                }}>
+                  <span style={{ fontFamily: 'monospace', color: colors.primary, fontWeight: 600 }}>{selectedHsCode}</span>
+                  <span style={{ color: colors.text }}>{selectedHsProductName}</span>
+                  <button
+                    onClick={handleClearHsProduct}
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, fontSize: '0.8rem', fontFamily: 'inherit' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Target Markets Section */}

@@ -299,6 +299,8 @@ export type ViewType =
 export interface AppState {
   currentView: ViewType
   selectedProduct: string | null
+  selectedHsCode: string | null       // specific HS code within the product category
+  selectedHsProductName: string | null // display name for the selected HS product
   selectedCountries: string[]
   companyProfile: CompanyProfile
   checkedItems: Record<string, boolean>

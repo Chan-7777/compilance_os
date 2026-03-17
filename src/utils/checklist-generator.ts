@@ -5,11 +5,13 @@
 import type { ChecklistItem, ChecklistPhase, ChecklistPriority, CountryCode } from '@/types'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { FTA_DATABASE } from '@/data/fta'
+import { getHSProduct } from '@/data/hs-product-db'
 
 /**
- * Generate a comprehensive compliance checklist for a product-country combination
+ * Generate a comprehensive compliance checklist for a product-country combination.
+ * When hsCode is provided, HS-specific items are appended after the base category checklist.
  */
-export function generateChecklist(product: string, country: string): ChecklistItem[] {
+export function generateChecklist(product: string, country: string, hsCode?: string): ChecklistItem[] {
   const countryData = REGULATORY_DB[country as CountryCode]
   if (!countryData) return []
 
@@ -256,6 +258,23 @@ export function generateChecklist(product: string, country: string): ChecklistIt
     priority: 'high',
     phase: 'pre-shipment',
   })
+
+  // ─── HS CODE-SPECIFIC ITEMS ───────────────────────────────────────────
+  if (hsCode) {
+    const hsProduct = getHSProduct(hsCode)
+    const hsItems = hsProduct?.additionalItems?.[country] || []
+    hsItems.forEach(hsItem => {
+      checklist.push({
+        id: id++,
+        category: hsItem.category,
+        item: `[${hsProduct!.hsCode}] ${hsItem.item}`,
+        priority: hsItem.priority,
+        phase: hsItem.phase,
+        details: hsItem.details,
+        required: hsItem.priority === 'critical',
+      })
+    })
+  }
 
   return checklist
 }

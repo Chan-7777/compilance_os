@@ -62,6 +62,8 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false)
 
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
+  const [selectedHsCode, setSelectedHsCode] = useState<string | null>(null)
+  const [selectedHsProductName, setSelectedHsProductName] = useState<string | null>(null)
   const [selectedCountries, setSelectedCountries] = useState<CountryCode[]>(['EU', 'UAE'])
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(DEFAULT_PROFILE)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
@@ -116,7 +118,7 @@ function App() {
 
     let cancelled = false
 
-    fetchChecklist(selectedProduct, selectedCountries[0])
+    fetchChecklist(selectedProduct, selectedCountries[0], selectedHsCode ?? undefined)
       .then(data => {
         if (!cancelled) setChecklist(data.items || [])
       })
@@ -128,7 +130,7 @@ function App() {
       })
 
     return () => { cancelled = true }
-  }, [selectedProduct, selectedCountries, auth.user])
+  }, [selectedProduct, selectedCountries, selectedHsCode, auth.user])
 
   // Fetch alerts from API
   useEffect(() => {
@@ -295,9 +297,11 @@ function App() {
   // -------------------------------------------------------------------------
 
   const handleOnboardingComplete = useCallback(
-    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }) => {
+    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }, hsCode?: string, hsProductName?: string) => {
       setSelectedProduct(product)
       setSelectedCountries(countries)
+      if (hsCode) setSelectedHsCode(hsCode)
+      if (hsProductName) setSelectedHsProductName(hsProductName)
       setShowOnboarding(false)
       persistSettings(product, countries)
       if (companyDetails && (companyDetails.iec || companyDetails.gstin)) {
@@ -526,7 +530,7 @@ function App() {
       case 'checklist':
         return (
           <Checklist
-            selectedProduct={productInfo.label}
+            selectedProduct={selectedHsProductName ? `${selectedHsProductName} (${selectedHsCode})` : productInfo.label}
             selectedCountries={selectedCountries}
             checklist={checklist}
             checkedItems={checkedItems}
@@ -566,9 +570,15 @@ function App() {
             companyProfile={companyProfile}
             selectedProduct={selectedProduct}
             selectedCountries={selectedCountries}
+            selectedHsCode={selectedHsCode ?? undefined}
+            selectedHsProductName={selectedHsProductName ?? undefined}
             onUpdateProfile={handleUpdateProfile}
             onSelectProduct={handleSelectProduct}
             onToggleCountry={handleToggleCountry}
+            onUpdateHsProduct={(hsCode, hsName) => {
+              setSelectedHsCode(hsCode ?? null)
+              setSelectedHsProductName(hsName ?? null)
+            }}
             onNavigateToDashboard={() => handleNavigate('dashboard')}
           />
         )
