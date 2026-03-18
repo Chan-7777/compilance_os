@@ -64,6 +64,7 @@ const EUIcon = () => (
 
 type NavGroup = {
   label: string
+  accent: string
   items: Array<{ id: ViewType; label: string; Icon: () => React.ReactElement; tier?: 'pro' }>
 }
 
@@ -96,12 +97,6 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
     width: '100%', fontFamily: 'inherit',
   })
 
-  const groupLabel: React.CSSProperties = {
-    fontSize: '0.65rem', fontWeight: 600, color: colors.sidebarLabel,
-    letterSpacing: '0.08em', padding: '0 12px', marginBottom: '4px', marginTop: spacing.md,
-    display: 'block',
-  }
-
   // Build navGroups imperatively so EU Compliance can be injected into the first group
   const shipmentAtRiskItems: NavGroup['items'] = [
     { id: 'risk',            label: 'Compliance Risk',  Icon: RiskIcon    },
@@ -111,24 +106,28 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
 
   const navGroups: NavGroup[] = [
     {
-      label: '🚨 SHIPMENT AT RISK',
+      label: 'SHIPMENT RISK',
+      accent: '#EF4444',
       items: shipmentAtRiskItems,
     },
     {
-      label: '📋 BUYER DOCS NEEDED',
+      label: 'DOCUMENTATION',
+      accent: '#F59E0B',
       items: [
         { id: 'checklist', label: 'My Checklist',       Icon: ChecklistIcon },
         { id: 'alerts',    label: 'Regulatory Updates', Icon: AlertsIcon    },
       ],
     },
     {
-      label: '📉 MARGIN UNDER PRESSURE',
+      label: 'MARGINS & SAVINGS',
+      accent: '#10B981',
       items: [
         { id: 'fta', label: 'Trade Deals & Savings', Icon: FTAIcon, tier: 'pro' },
       ],
     },
     {
-      label: '💰 NEED FINANCE',
+      label: 'FINANCE',
+      accent: '#3B82F6',
       items: [
         { id: 'shipments', label: 'Shipments',  Icon: ShipmentsIcon, tier: 'pro' },
         { id: 'dashboard', label: 'Dashboard',  Icon: DashboardIcon },
@@ -138,11 +137,11 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
 
   return (
     <nav role="navigation" aria-label="Main navigation" style={{
-      width: 210, height: '100vh', position: 'fixed', top: 0,
-      left: isMobile ? (isOpen ? 0 : -210) : 0,
+      width: 232, height: '100vh', position: 'fixed', top: 0,
+      left: isMobile ? (isOpen ? 0 : -232) : 0,
       backgroundColor: colors.sidebar,
       display: 'flex', flexDirection: 'column',
-      padding: `${spacing.md} 8px`,
+      padding: `${spacing.md} 10px`,
       overflowY: 'auto',
       zIndex: isMobile ? 200 : 10,
       transition: isMobile ? 'left 250ms ease-in-out' : undefined,
@@ -164,7 +163,20 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
       <div style={{ flex: 1 }}>
         {navGroups.map(group => (
           <div key={group.label}>
-            <span style={groupLabel}>{group.label}</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '0 10px', marginBottom: '4px', marginTop: spacing.md,
+            }}>
+              <span style={{
+                width: 5, height: 5, borderRadius: '50%',
+                backgroundColor: group.accent, flexShrink: 0,
+                boxShadow: `0 0 6px ${group.accent}88`,
+              }} />
+              <span style={{
+                fontSize: '0.6rem', fontWeight: 700, color: colors.sidebarLabel,
+                letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+              }}>{group.label}</span>
+            </div>
             {group.items.map(item => {
               const active = isActive(item.id)
               return (
@@ -188,7 +200,19 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
 
         {/* Settings */}
         <div style={{ marginTop: spacing.md }}>
-          <span style={groupLabel}>ACCOUNT</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '0 10px', marginBottom: '4px', marginTop: spacing.md,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              backgroundColor: colors.sidebarLabel, flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: '0.6rem', fontWeight: 700, color: colors.sidebarLabel,
+              letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+            }}>ACCOUNT</span>
+          </div>
           <button onClick={() => handleNavigate('settings')} style={navBtn(isActive('settings'))} aria-current={isActive('settings') ? 'page' : undefined}>
             <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: isActive('settings') ? 1 : 0.7 }}><SettingsIcon /></span>
             <span>Settings</span>
