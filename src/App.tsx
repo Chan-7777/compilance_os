@@ -210,7 +210,7 @@ function App() {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
           // Show problem selector once per browser session for returning users
-          const sessionKey = `cos_problem_seen_${auth.profile.company_id}`
+          const sessionKey = `cos_problem_seen_${auth.profile?.company_id}`
           if (!sessionStorage.getItem(sessionKey)) {
             setShowProblemSelector(true)
           }
