@@ -401,7 +401,7 @@ export function Checklist({
                 value={hsQuery}
                 onChange={e => handleHsQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setSearchOpen(false); setHsQuery(''); setHsResults([]) } }}
-                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 300)}
                 placeholder="Search product or HS code…"
                 style={{
                   width: '100%', padding: `${spacing.sm} ${spacing.md}`,
