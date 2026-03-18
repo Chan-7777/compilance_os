@@ -61,41 +61,17 @@ const EUIcon = () => (
     <path d="M6.3 6.3l11.4 11.4M17.7 6.3L6.3 17.7" strokeWidth="1.2" strokeDasharray="2 2"/>
   </svg>
 )
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CostIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+  </svg>
+)
 
 type NavGroup = {
   label: string
   items: Array<{ id: ViewType; label: string; Icon: () => React.ReactElement; tier?: 'pro' }>
 }
-
-const navGroups: NavGroup[] = [
-  {
-    label: 'CLASSIFY & COMPLY',
-    items: [
-      { id: 'checklist',       label: 'My Checklist',       Icon: ChecklistIcon },
-      { id: 'label-validator', label: 'Label Checker',       Icon: LabelIcon,    tier: 'pro' },
-    ],
-  },
-  {
-    label: 'KNOW YOUR RISK',
-    items: [
-      { id: 'risk',   label: 'Compliance Risk',     Icon: RiskIcon    },
-      { id: 'alerts', label: 'Regulatory Updates',  Icon: AlertsIcon  },
-    ],
-  },
-  {
-    label: 'TRADE & SAVINGS',
-    items: [
-      { id: 'fta', label: 'Trade Deals & Savings', Icon: FTAIcon, tier: 'pro' },
-    ],
-  },
-  {
-    label: 'SHIPMENT & FINANCE',
-    items: [
-      { id: 'shipments',  label: 'Shipments',  Icon: ShipmentsIcon, tier: 'pro' },
-      { id: 'dashboard',  label: 'Dashboard',  Icon: DashboardIcon },
-    ],
-  },
-]
 
 export interface SidebarProps {
   currentView: ViewType | 'settings'
@@ -131,6 +107,40 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
     letterSpacing: '0.08em', padding: '0 12px', marginBottom: '4px', marginTop: spacing.md,
     display: 'block',
   }
+
+  // Build navGroups imperatively so EU Compliance can be injected into the first group
+  const shipmentAtRiskItems: NavGroup['items'] = [
+    { id: 'risk',            label: 'Compliance Risk',  Icon: RiskIcon    },
+    { id: 'label-validator', label: 'Label Checker',    Icon: LabelIcon,  tier: 'pro' },
+    ...(euEnabled ? [{ id: 'eu-compliance' as ViewType, label: 'EU Compliance', Icon: EUIcon }] : []),
+  ]
+
+  const navGroups: NavGroup[] = [
+    {
+      label: '🚨 SHIPMENT AT RISK',
+      items: shipmentAtRiskItems,
+    },
+    {
+      label: '📋 BUYER DOCS NEEDED',
+      items: [
+        { id: 'checklist', label: 'My Checklist',       Icon: ChecklistIcon },
+        { id: 'alerts',    label: 'Regulatory Updates', Icon: AlertsIcon    },
+      ],
+    },
+    {
+      label: '📉 MARGIN UNDER PRESSURE',
+      items: [
+        { id: 'fta', label: 'Trade Deals & Savings', Icon: FTAIcon, tier: 'pro' },
+      ],
+    },
+    {
+      label: '💰 NEED FINANCE',
+      items: [
+        { id: 'shipments', label: 'Shipments',  Icon: ShipmentsIcon, tier: 'pro' },
+        { id: 'dashboard', label: 'Dashboard',  Icon: DashboardIcon },
+      ],
+    },
+  ]
 
   return (
     <nav role="navigation" aria-label="Main navigation" style={{
@@ -181,18 +191,6 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
             })}
           </div>
         ))}
-
-        {/* EU Compliance — injected into Know Your Risk when EU is selected */}
-        {euEnabled && (
-          <div>
-            <span style={groupLabel}>EU MARKET</span>
-            <button onClick={() => handleNavigate('eu-compliance')} style={navBtn(isActive('eu-compliance'))} aria-current={isActive('eu-compliance') ? 'page' : undefined}>
-              <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: isActive('eu-compliance') ? 1 : 0.7 }}><EUIcon /></span>
-              <span style={{ flex: 1 }}>EU Compliance</span>
-              <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.15)', padding: '1px 4px', borderRadius: '3px', letterSpacing: '0.5px' }}>NEW</span>
-            </button>
-          </div>
-        )}
 
         {/* Settings */}
         <div style={{ marginTop: spacing.md }}>

@@ -557,6 +557,8 @@ function App() {
           <FTASchemes
             selectedCountries={selectedCountries}
             selectedProduct={selectedProduct as any}
+            selectedHsCode={selectedHsCode}
+            selectedHsProductName={selectedHsProductName}
           />
         )
       case 'shipments':

@@ -40,9 +40,11 @@ interface SavingsResult {
 export interface FTASchemesProps {
   selectedCountries: CountryCode[]
   selectedProduct?: ProductCode
+  selectedHsCode?: string | null
+  selectedHsProductName?: string | null
 }
 
-export function FTASchemes({ selectedCountries, selectedProduct }: FTASchemesProps) {
+export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode, selectedHsProductName }: FTASchemesProps) {
   const [savingsInput, setSavingsInput] = useState(1000000)
 
   // API-fetched data
@@ -181,16 +183,43 @@ export function FTASchemes({ selectedCountries, selectedProduct }: FTASchemesPro
         </p>
       </div>
 
-      {/* FTA Savings Calculator */}
+      {/* Landed Cost & Margin Calculator */}
       {(savingsResults.length > 0 || savingsLoading) && (
         <div style={{ ...sectionStyle, padding: spacing.lg, backgroundColor: '#E8F5E9', borderRadius: borderRadius.lg, border: `3px solid #4CAF50` }}>
+
+          {/* HS Code context pill */}
+          <div style={{ marginBottom: spacing.md }}>
+            {selectedHsCode ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                backgroundColor: '#F3F4F6', border: '1px solid #D1D5DB',
+                borderRadius: borderRadius.sm, padding: '3px 10px',
+                fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace",
+              }}>
+                📦 HS Code: {selectedHsCode}{selectedHsProductName ? ` — ${selectedHsProductName}` : ''}
+                <span style={{ color: '#6B7280', fontFamily: 'inherit', fontSize: '0.7rem' }}>
+                  &nbsp;[Rates shown for this product]
+                </span>
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                backgroundColor: '#FFFBEB', border: '1px solid #FDE68A',
+                borderRadius: borderRadius.sm, padding: '3px 10px',
+                fontSize: '0.75rem', color: '#92400E',
+              }}>
+                💡 Tip: Select a specific product in My Checklist to see HS-code-accurate duty rates.
+              </span>
+            )}
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
             <div>
               <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.xs }}>
-                💰 FTA Duty Savings Calculator
+                📉 Landed Cost & Margin Calculator
               </h3>
               <p style={{ fontSize: '0.75rem', color: colors.textMuted, margin: 0 }}>
-                Estimated savings from preferential tariffs vs. MFN rates
+                Full cost of exporting — duty, savings, and government rebates
               </p>
             </div>
             {totalSavings > 0 && !savingsLoading && (
@@ -272,6 +301,90 @@ export function FTASchemes({ selectedCountries, selectedProduct }: FTASchemesPro
           </div>
         </div>
       )}
+
+      {/* Government Export Rebates Card */}
+      {savingsResults.length > 0 && !savingsLoading && savingsInput > 0 && (() => {
+        const rodtepRebate = savingsInput * 0.005
+        const totalMfnDuty = savingsResults.reduce((s, d) => s + d.mfn_duty, 0)
+        const totalFtaSavings = savingsResults.reduce((s, d) => s + d.savings, 0)
+        const netDuty = Math.max(0, totalMfnDuty - totalFtaSavings - rodtepRebate)
+        return (
+          <div style={{
+            ...sectionStyle,
+            padding: spacing.lg,
+            backgroundColor: '#EFF6FF',
+            borderRadius: borderRadius.lg,
+            border: '3px solid #BFDBFE',
+          }}>
+            <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.md }}>
+              🏛️ Government Export Rebates (Estimated)
+            </h3>
+
+            <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: colors.text, marginBottom: spacing.sm }}>
+              RoDTEP & Export Rebates
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs, marginBottom: spacing.md }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
+              }}>
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>Country</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>All export markets</span>
+              </div>
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
+              }}>
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>RoDTEP rebate (0.5% of FOB)</span>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#2563EB', fontFamily: "'JetBrains Mono', monospace" }}>
+                  ₹{rodtepRebate.toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
+              }}>
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>MEIS / RoSCTL</span>
+                <a
+                  href="https://www.dgft.gov.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: '0.8125rem', color: '#2563EB', textDecoration: 'underline' }}
+                >
+                  Check DGFT portal
+                </a>
+              </div>
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
+              }}>
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>Export value entered</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+                  ₹{savingsInput.toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 12px', backgroundColor: '#DBEAFE', borderRadius: borderRadius.md,
+              }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Net duty after FTA + RoDTEP</span>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#1D4ED8', fontFamily: "'JetBrains Mono', monospace" }}>
+                  ₹{netDuty.toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5 }}>
+              ⚠️ RoDTEP rates vary by HS code. 0.5% is a conservative estimate. Check official CBIC schedule.
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Free Trade Agreements Section */}
       <div style={sectionStyle}>

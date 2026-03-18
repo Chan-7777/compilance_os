@@ -2,14 +2,11 @@
 // Dashboard View - v2 (plain language, phase-conditional widgets, ROI first)
 // ============================================================================
 
-import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
-import { RiskGauge } from '@/components/RiskGauge'
 import { EmptyState } from '@/components/EmptyState'
 import { J } from '@/components/JargonTip'
 import { colors, spacing, borderRadius } from '@theme/index'
-import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import type { RiskResult, Alert, CompanyProfile, ViewType, CountryCode } from '@/types'
 
@@ -43,11 +40,6 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
   const timeSavedSublabel = processedShipments > 0
     ? `Saved across ${processedShipments} processed shipment${processedShipments > 1 ? 's' : ''}`
     : 'Avg. time saved per shipment on documentation'
-
-  const label: React.CSSProperties = {
-    fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px', color: colors.textMuted, marginBottom: spacing.xs,
-  }
 
   const bigNum: React.CSSProperties = {
     fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.1,
@@ -135,51 +127,110 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
             </div>
           </div>
 
-          {/* Summary cards */}
-          <div className="grid-4col" style={{ marginBottom: spacing.xl }}>
-            <Card>
-              <CardContent>
-                <div style={label}>How complex is your compliance?</div>
-                {overallRisk ? (
-                  <RiskGauge score={overallRisk.score} level={overallRisk.level} size="sm" />
-                ) : (
-                  <div style={{ color: colors.textMuted, fontSize: '0.875rem' }}>Not yet calculated</div>
-                )}
-              </CardContent>
-            </Card>
+          {/* Problem Cockpit */}
+          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: spacing.md, marginBottom: spacing.xl }}>
+            {/* 🚨 Shipment At Risk */}
+            <div style={{
+              flex: '1 1 280px', padding: spacing.lg,
+              backgroundColor: '#FFF5F5', borderRadius: borderRadius.lg,
+              border: '1px solid #FED7D7', borderLeft: '4px solid #E53E3E',
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#C53030', marginBottom: spacing.xs }}>
+                🚨 Shipment At Risk
+              </div>
+              <div style={{
+                ...bigNum,
+                color: overallRisk?.level === 'high' ? '#C53030' : overallRisk?.level === 'medium' ? '#D97706' : overallRisk?.level === 'low' ? '#276749' : colors.textMuted,
+              }}>
+                {overallRisk?.level.toUpperCase() || '—'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
+                Compliance gaps detected
+              </div>
+              <button onClick={() => onNavigate('risk')} style={{
+                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
+                color: '#C53030', backgroundColor: '#FED7D7',
+                border: '1px solid #FCA5A5', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                View risk breakdown →
+              </button>
+            </div>
 
-            <Card>
-              <CardContent>
-                <div style={label}>Urgent actions needed</div>
-                <div data-testid="critical-count" style={{ ...bigNum, color: criticalAlerts.length > 0 ? colors.risk.high : colors.risk.low }}>
-                  {criticalAlerts.length}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{alerts.length} total updates</div>
-              </CardContent>
-            </Card>
+            {/* 📋 Buyer Docs Needed */}
+            <div style={{
+              flex: '1 1 280px', padding: spacing.lg,
+              backgroundColor: '#FFFBEB', borderRadius: borderRadius.lg,
+              border: '1px solid #FDE68A', borderLeft: '4px solid #D97706',
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#92400E', marginBottom: spacing.xs }}>
+                📋 Buyer Docs Needed
+              </div>
+              <div style={{ ...bigNum, color: '#92400E' }}>
+                Open checklist
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
+                Generate your export document pack
+              </div>
+              <button onClick={() => onNavigate('checklist')} style={{
+                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
+                color: '#92400E', backgroundColor: '#FDE68A',
+                border: '1px solid #F6D860', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                Open checklist →
+              </button>
+            </div>
 
-            <Card>
-              <CardContent>
-                <div style={label}>Your markets</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: spacing.xs }}>
-                  {selectedCountries.map(c => (
-                    <Badge key={c} variant="info">{REGULATORY_DB[c]?.flag} {c}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* 📉 Margin Under Pressure */}
+            <div style={{
+              flex: '1 1 280px', padding: spacing.lg,
+              backgroundColor: '#F0FDF4', borderRadius: borderRadius.lg,
+              border: '1px solid #BBF7D0', borderLeft: '4px solid #16A34A',
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#166534', marginBottom: spacing.xs }}>
+                📉 Margin Under Pressure
+              </div>
+              <div style={{ ...bigNum, color: '#166534', fontSize: '1.5rem' }}>
+                {activeFTACount > 0
+                  ? `${activeFTACount} FTA${activeFTACount > 1 ? 's' : ''} available`
+                  : 'Calculate savings'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
+                {activeFTACount > 0
+                  ? 'Trade deals you can use right now'
+                  : 'Check if FTA applies to your product'}
+              </div>
+              <button onClick={() => onNavigate('fta')} style={{
+                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
+                color: '#166534', backgroundColor: '#BBF7D0',
+                border: '1px solid #86EFAC', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                See savings →
+              </button>
+            </div>
 
-            <Card>
-              <CardContent>
-                <div style={label}>Active trade deals</div>
-                <div style={{ ...bigNum, color: activeFTACount > 0 ? colors.primary : colors.textMuted }}>
-                  {activeFTACount}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
-                  of {selectedCountries.length} market{selectedCountries.length !== 1 ? 's' : ''}
-                </div>
-              </CardContent>
-            </Card>
+            {/* 💰 Finance This Shipment */}
+            <div style={{
+              flex: '1 1 280px', padding: spacing.lg,
+              backgroundColor: '#EFF6FF', borderRadius: borderRadius.lg,
+              border: '1px solid #BFDBFE', borderLeft: '4px solid #2563EB',
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#1E40AF', marginBottom: spacing.xs }}>
+                💰 Finance This Shipment
+              </div>
+              <div style={{ ...bigNum, color: '#1E40AF' }}>
+                {`${shipments.length} shipment${shipments.length !== 1 ? 's' : ''}`}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
+                Track finance &amp; execution status
+              </div>
+              <button onClick={() => onNavigate('shipments')} style={{
+                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
+                color: '#1E40AF', backgroundColor: '#BFDBFE',
+                border: '1px solid #93C5FD', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                Open shipments →
+              </button>
+            </div>
           </div>
 
           {/* Carbon compliance widget — only for EU + carbon-heavy products */}
