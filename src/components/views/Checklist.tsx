@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@/theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { searchHSProducts } from '@/data/hs-product-db'
-import { fetchHSLookup } from '@/lib/api'
+import { fetchHSLookup, generateChecklistPDF } from '@/lib/api'
 import type { HSLookupResult } from '@/lib/api'
 import type { ChecklistItem, CountryCode } from '@/types'
 
@@ -35,6 +35,7 @@ export function Checklist({
 }: ChecklistProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [showAllPhases, setShowAllPhases] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const { toasts, removeToast, success } = useToast()
 
   // Inline product switcher
@@ -226,6 +227,15 @@ export function Checklist({
       }
     })
     success(checked ? `Marked all ${category} items complete` : `Reset all ${category} items`)
+  }
+
+  const handleGenerateDocPack = async () => {
+    setPdfLoading(true)
+    try {
+      await generateChecklistPDF(selectedProduct, selectedCountries, checklist, checkedItems)
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   const handleExportChecklist = () => {
@@ -450,9 +460,19 @@ export function Checklist({
             </div>
           )}
         </div>
-        <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
-          Copy to Clipboard
-        </Button>
+        <div style={{ display: 'flex', gap: spacing.sm, flexShrink: 0 }}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleGenerateDocPack}
+            disabled={pdfLoading || checklist.length === 0}
+          >
+            {pdfLoading ? '⏳ Generating…' : '📄 Generate Doc Pack'}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
+            Copy to Clipboard
+          </Button>
+        </div>
       </div>
 
       {/* Progress Bar */}

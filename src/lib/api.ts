@@ -682,3 +682,126 @@ export function revokeAPIKey(id: string): Promise<void> {
   saveKeys(loadKeys().filter(k => k.id !== id))
   return Promise.resolve(undefined as void)
 }
+
+// ─── Compliance Doc Pack PDF ──────────────────────────────────
+export async function generateChecklistPDF(
+  selectedProduct: string,
+  selectedCountries: string[],
+  checklist: Array<{ id: string | number; item: string; category: string; priority: string; phase: string; details?: string }>,
+  checkedItems: Record<string, boolean>
+): Promise<void> {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W = 210
+  const margin = 18
+  const colW = W - margin * 2
+  let y = 20
+
+  // Header
+  doc.setFillColor(15, 23, 42)
+  doc.rect(0, 0, W, 28, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text('ComplianceOS — Export Compliance Pack', margin, 12)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Product: ${selectedProduct}   |   Markets: ${selectedCountries.join(', ')}   |   ${new Date().toLocaleDateString('en-IN')}`, margin, 21)
+  y = 36
+
+  // Progress summary
+  const total = checklist.length
+  const completed = checklist.filter(i => checkedItems[String(i.id)]).length
+  const critical = checklist.filter(i => i.priority === 'critical' && !checkedItems[String(i.id)]).length
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+
+  doc.setTextColor(30, 30, 30)
+  doc.setFillColor(240, 253, 244)
+  doc.roundedRect(margin, y, colW, 18, 2, 2, 'F')
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(22, 101, 52)
+  doc.text(`${completed}/${total} items complete — ${pct}%`, margin + 4, y + 7)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  doc.text(
+    critical > 0 ? `  ${critical} critical item${critical > 1 ? 's' : ''} still pending` : 'All critical items complete',
+    margin + 4, y + 14
+  )
+  y += 26
+
+  // Group by category
+  const categories = [...new Set(checklist.map(i => i.category))]
+
+  const priorityColor = (p: string): [number, number, number] => {
+    if (p === 'critical') return [220, 38, 38]
+    if (p === 'high') return [234, 88, 12]
+    if (p === 'medium') return [202, 138, 4]
+    return [100, 116, 139]
+  }
+
+  for (const category of categories) {
+    const items = checklist.filter(i => i.category === category)
+    if (items.length === 0) continue
+
+    if (y > 260) { doc.addPage(); y = 20 }
+    doc.setFillColor(241, 245, 249)
+    doc.rect(margin, y, colW, 8, 'F')
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(category.toUpperCase(), margin + 3, y + 5.5)
+    const catDone = items.filter(i => checkedItems[String(i.id)]).length
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    doc.text(`${catDone}/${items.length}`, margin + colW - 12, y + 5.5)
+    y += 10
+
+    for (const item of items) {
+      if (y > 272) { doc.addPage(); y = 20 }
+      const checked = !!checkedItems[String(item.id)]
+      const [r, g, b] = priorityColor(item.priority)
+
+      doc.setDrawColor(180, 180, 180)
+      doc.setLineWidth(0.3)
+      doc.rect(margin, y + 0.5, 4, 4)
+      if (checked) {
+        doc.setTextColor(22, 163, 74)
+        doc.setFontSize(8)
+        doc.text('v', margin + 0.7, y + 3.8)
+      }
+
+      doc.setFillColor(r, g, b)
+      doc.circle(margin + 7, y + 2.5, 1.2, 'F')
+
+      doc.setTextColor(checked ? 140 : 30, checked ? 140 : 30, checked ? 140 : 30)
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'normal')
+      const lines = doc.splitTextToSize(item.item, colW - 30) as string[]
+      doc.text(lines, margin + 10, y + 3.5)
+
+      doc.setTextColor(100, 116, 139)
+      doc.setFontSize(7)
+      doc.text(item.phase, margin + colW - 20, y + 3.5)
+
+      y += Math.max(6, lines.length * 4.5)
+    }
+    y += 3
+  }
+
+  // Footer on each page
+  const pageCount = (doc as any).internal.getNumberOfPages()
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p)
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.line(margin, 287, W - margin, 287)
+    doc.setFontSize(7)
+    doc.setTextColor(148, 163, 184)
+    doc.text('ComplianceOS — informational guidance only. Not legal, tax, or trade advice.', margin, 292)
+    doc.text(`Page ${p}/${pageCount}`, W - margin - 15, 292)
+  }
+
+  doc.save(`compliance-pack-${selectedProduct.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`)
+}
