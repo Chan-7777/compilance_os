@@ -31,7 +31,7 @@ export function TopBar({ title, userName = 'User', isMobile = false, onMenuToggl
   return (
     <div style={{
       position: 'fixed', top: 0,
-      left: isMobile ? 0 : 210,
+      left: isMobile ? 0 : 232,
       right: 0, height: 56,
       backgroundColor: colors.white,
       borderBottom: `1px solid ${colors.border}`,
