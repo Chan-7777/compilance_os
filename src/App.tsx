@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Auth } from '@/components/Auth'
 import { Spinner } from '@/components/Spinner'
 import { Onboarding } from '@/components/Onboarding'
+import { ProblemSelector } from '@/components/ProblemSelector'
 import { TopBar } from '@/components/TopBar'
 import { useMobile } from '@/hooks/useMobile'
 import {
@@ -60,6 +61,8 @@ function App() {
 
   // Show onboarding to first-time users (no stored product/market selection)
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false)
+  // Show problem selector once per login session for users who have completed onboarding
+  const [showProblemSelector, setShowProblemSelector] = useState<boolean>(false)
 
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
   const [selectedHsCode, setSelectedHsCode] = useState<string | null>(null)
@@ -206,6 +209,11 @@ function App() {
         if (data) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
+          // Show problem selector once per browser session for returning users
+          const sessionKey = `cos_problem_seen_${auth.profile.company_id}`
+          if (!sessionStorage.getItem(sessionKey)) {
+            setShowProblemSelector(true)
+          }
         } else {
           // No saved settings — show onboarding
           setShowOnboarding(true)
@@ -306,6 +314,7 @@ function App() {
       if (hsCode) setSelectedHsCode(hsCode)
       if (hsProductName) setSelectedHsProductName(hsProductName)
       setShowOnboarding(false)
+      setShowProblemSelector(true)
       persistSettings(product, countries)
       if (companyDetails && (companyDetails.iec || companyDetails.gstin)) {
         setCompanyProfile(prev => {
@@ -317,6 +326,24 @@ function App() {
     },
     [persistSettings, persistProfile]
   )
+
+  const handleProblemSelect = useCallback(
+    (view: ViewType) => {
+      if (auth.profile) {
+        sessionStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
+      }
+      setShowProblemSelector(false)
+      startTransition(() => setCurrentView(view))
+    },
+    [auth.profile, startTransition]
+  )
+
+  const handleProblemSkip = useCallback(() => {
+    if (auth.profile) {
+      sessionStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
+    }
+    setShowProblemSelector(false)
+  }, [auth.profile])
 
   const handleNavigate = useCallback(
     (view: ViewType) => {
@@ -615,6 +642,11 @@ function App() {
       {/* Onboarding overlay for first-time users */}
       {showOnboarding && (
         <Onboarding onComplete={handleOnboardingComplete} />
+      )}
+
+      {/* Problem selector — shown once per session after onboarding or on first login */}
+      {!showOnboarding && showProblemSelector && (
+        <ProblemSelector onSelect={handleProblemSelect} onSkip={handleProblemSkip} />
       )}
 
       <TopBar
