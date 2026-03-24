@@ -155,7 +155,7 @@ async function injectDutyDrawbackItem(items: import('@/types').ChecklistItem[], 
     category: 'Indian Compliance',
     item: `Claim Duty Drawback — India's import duty on HS ${normaliseHS(hsCode)} is ${indiaRate}%`,
     priority: 'high',
-    phase: 'post-shipment',
+    phase: 'per-shipment',
     details: `India charges ${indiaRate}% MFN duty on this product. If you used any imported inputs in manufacture, file a duty drawback claim at ICEGATE within 3 months of export using your Shipping Bill number. Even if inputs were domestic, All-Industry Rate (AIR) drawback may apply. Check CBIC Drawback Schedule.`,
   }
 
