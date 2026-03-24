@@ -239,6 +239,8 @@ function App() {
             hsCode: s.hs_code,
             shipmentValue: s.shipment_value ? parseFloat(s.shipment_value) : undefined,
             gateStatus: s.gate_status,
+            buyerName: s.buyer_name,
+            sanctionsRisk: s.sanctions_risk ?? undefined,
           }))
         )
       })
@@ -393,6 +395,7 @@ function App() {
         }
         if (shipment.hsCode) insertData.hs_code = shipment.hsCode
         if (shipment.shipmentValue) insertData.shipment_value = shipment.shipmentValue
+        if (shipment.buyerName) insertData.buyer_name = shipment.buyerName
 
         const { data, error } = await supabase
           .from('shipments')
@@ -423,9 +426,32 @@ function App() {
               hsCode: data.hs_code,
               shipmentValue: data.shipment_value ? parseFloat(data.shipment_value) : undefined,
               gateStatus: data.gate_status,
+              buyerName: data.buyer_name,
+              sanctionsRisk: data.sanctions_risk ?? undefined,
             },
             ...prev,
           ])
+
+          // Auto-screen buyer against OFAC sanctions in the background
+          if (shipment.buyerName && shipment.buyerName.trim().length > 2) {
+            supabase.functions
+              .invoke('sanctions-check', { body: { name: shipment.buyerName } })
+              .then(({ data: sData }) => {
+                if (!sData?.risk_level) return
+                const risk = sData.risk_level as 'clear' | 'flag' | 'block'
+                // Persist to DB
+                supabase
+                  .from('shipments')
+                  .update({ sanctions_risk: risk })
+                  .eq('id', data.id)
+                  .then(() => {})
+                // Update local state immediately
+                setShipments(prev =>
+                  prev.map(s => s.id === data.id ? { ...s, sanctionsRisk: risk } : s)
+                )
+              })
+              .catch(() => {})
+          }
         }
       } else {
         const newShipment: Shipment = {

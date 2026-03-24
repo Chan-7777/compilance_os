@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Badge } from '@/components/Badge'
 import { Spinner } from '@/components/Spinner'
 import { colors, spacing, borderRadius } from '@theme/index'
-import { fetchFTAAgreements, fetchExportSchemes, fetchBatchFTASavings, fetchCountries } from '@/lib/api'
+import { fetchFTAAgreements, fetchExportSchemes, fetchBatchFTASavings, fetchCountries, fetchIndiaMFNRate, fetchRodtepRate } from '@/lib/api'
 import type { CountryCode, ProductCode } from '@/types'
 
 interface FTAAgreement {
@@ -53,6 +53,9 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
   const [countries, setCountries] = useState<Record<string, CountryInfo>>({})
   const [savingsResults, setSavingsResults] = useState<SavingsResult[]>([])
 
+  const [indiaRate, setIndiaRate] = useState<number | null>(null)
+  const [rodtepRate, setRodtepRate] = useState<number>(0.5)
+
   const [loading, setLoading] = useState(true)
   const [savingsLoading, setSavingsLoading] = useState(false)
 
@@ -92,7 +95,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
     let cancelled = false
     setSavingsLoading(true)
 
-    fetchBatchFTASavings(selectedCountries, savingsInput, selectedProduct)
+    fetchBatchFTASavings(selectedCountries, savingsInput, selectedProduct, selectedHsCode ?? undefined)
       .then(data => {
         if (!cancelled) setSavingsResults(data.results || [])
       })
@@ -105,7 +108,14 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
       })
 
     return () => { cancelled = true }
-  }, [selectedCountries, selectedProduct, savingsInput])
+  }, [selectedCountries, selectedProduct, selectedHsCode, savingsInput])
+
+  // Fetch India's own import duty and RoDTEP rate for this HS code
+  useEffect(() => {
+    if (!selectedHsCode) { setIndiaRate(null); setRodtepRate(0.5); return }
+    fetchIndiaMFNRate(selectedHsCode).then(rate => setIndiaRate(rate))
+    fetchRodtepRate(selectedHsCode).then(rate => setRodtepRate(rate))
+  }, [selectedHsCode])
 
   // Styles
   const containerStyle: React.CSSProperties = { padding: spacing.lg }
@@ -265,6 +275,34 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             </div>
           </div>
 
+          {/* India origin duty — shown when HS code is selected */}
+          {indiaRate !== null && selectedHsCode && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 14px', marginBottom: spacing.xs,
+              backgroundColor: '#FFF7ED', borderRadius: borderRadius.md,
+              border: '1px solid #FED7AA',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.125rem' }}>🇮🇳</span>
+                <div>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#92400E' }}>India (origin) import duty</div>
+                  <div style={{ fontSize: '0.625rem', color: '#B45309' }}>
+                    {indiaRate > 0
+                      ? `${indiaRate}% MFN — duty drawback claimable on imported inputs`
+                      : 'Nil duty — product is fully exempt in India'}
+                  </div>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400E', fontFamily: "'JetBrains Mono', monospace" }}>
+                  {indiaRate}%
+                </div>
+                <div style={{ fontSize: '0.625rem', color: '#B45309' }}>HS {selectedHsCode}</div>
+              </div>
+            </div>
+          )}
+
           {savingsLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: spacing.md }}>
               <Spinner />
@@ -304,7 +342,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
 
       {/* Government Export Rebates Card */}
       {savingsResults.length > 0 && !savingsLoading && savingsInput > 0 && (() => {
-        const rodtepRebate = savingsInput * 0.005
+        const rodtepRebate = savingsInput * (rodtepRate / 100)
         const totalMfnDuty = savingsResults.reduce((s, d) => s + d.mfn_duty, 0)
         const totalFtaSavings = savingsResults.reduce((s, d) => s + d.savings, 0)
         const netDuty = Math.max(0, totalMfnDuty - totalFtaSavings - rodtepRebate)
@@ -337,7 +375,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
               }}>
-                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>RoDTEP rebate (0.5% of FOB)</span>
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>RoDTEP rebate ({rodtepRate}% of FOB)</span>
                 <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#2563EB', fontFamily: "'JetBrains Mono', monospace" }}>
                   ₹{rodtepRebate.toLocaleString('en-IN')}
                 </span>
@@ -380,7 +418,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             </div>
 
             <div style={{ fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5 }}>
-              ⚠️ RoDTEP rates vary by HS code. 0.5% is a conservative estimate. Check official CBIC schedule.
+              ⚠️ RoDTEP rate sourced from DGFT Appendix 4R (Notification No. 32, wef 10.10.2024) with 50% reduction applied to Ch 25+ per Notification 60/2025-26. Chapters 1–24 at full rate. Verify at DGFT FTP portal for your exact 8-digit ITC-HS code.
             </div>
           </div>
         )

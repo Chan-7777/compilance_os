@@ -35,13 +35,16 @@ serve(async (req) => {
 
         // ── Parse Payload ────────────────────────────────────────────
         const body = await req.json()
-        const { weight_kg, hs_code, origin_country, product_type } = body
+        const { weight_kg, hs_code, origin_country, product_type, destination_country } = body
 
         if (!weight_kg) {
             return new Response(JSON.stringify({ error: 'Missing weight_kg' }), {
                 status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
+
+        // ── CBAM covered product types ───────────────────────────────
+        const CBAM_COVERED_PRODUCTS = ['steel', 'aluminium', 'cement', 'chemicals', 'machinery']
 
         // ── Map product/HS code to Climatiq activity ID ──────────────
         // Climatiq uses specific activity_ids for different commodity types.
@@ -101,7 +104,7 @@ serve(async (req) => {
                 activity_id: activityId,
                 source: climatiqData.emission_factor?.source || 'BEIS',
                 year: climatiqData.emission_factor?.year || 2023,
-                cbam_applicable: true,
+                cbam_applicable: destination_country === 'EU' && CBAM_COVERED_PRODUCTS.includes(product_type || ''),
                 formatted: `${((climatiqData.co2e ?? 0) / 1000).toFixed(2)} tCO₂e`,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

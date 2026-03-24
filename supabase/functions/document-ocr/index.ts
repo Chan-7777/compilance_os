@@ -95,18 +95,80 @@ If a value is not found, make a smart guess based on the context (e.g. Origin is
         jsonStr = jsonStr.replace("```", "").replace("```", "").trim()
     }
 
-    const extractedData = JSON.parse(jsonStr)
+    let extractedData: any
+    try {
+      extractedData = JSON.parse(jsonStr)
+    } catch (parseErr) {
+      throw new Error('AI returned invalid JSON — please try again or upload a clearer image')
+    }
 
-    // Ensure name is meaningful
-    if (!extractedData.name || extractedData.name.length < 2) {
-        extractedData.name = `Imported from ${filename}`
+    // Validate and sanitize extracted data
+    const warnings: string[] = []
+
+    // Ensure required string fields are proper strings
+    if (typeof extractedData.name !== 'string' || extractedData.name.length < 2) {
+      extractedData.name = `Imported from ${filename}`
+    }
+    if (typeof extractedData.product !== 'string' || !extractedData.product) {
+      extractedData.product = 'general'
+      warnings.push('Product type could not be identified — defaulted to general')
+    }
+    if (typeof extractedData.description !== 'string') {
+      extractedData.description = ''
+    }
+    if (typeof extractedData.country !== 'string' || !extractedData.country) {
+      warnings.push('Destination country not found in document — please set manually')
+      extractedData.country = ''
+    }
+
+    // Validate country code — must be one of our supported codes or map common ones
+    const COUNTRY_MAP: Record<string, string> = {
+      'US': 'US', 'USA': 'US', 'UNITED STATES': 'US',
+      'EU': 'EU', 'EUROPEAN UNION': 'EU', 'DE': 'EU', 'FR': 'EU', 'NL': 'EU',
+      'UK': 'UK', 'GB': 'UK', 'UNITED KINGDOM': 'UK',
+      'UAE': 'UAE', 'AE': 'UAE', 'UNITED ARAB EMIRATES': 'UAE',
+      'JP': 'Japan', 'JAPAN': 'Japan',
+      'AU': 'Australia', 'AUSTRALIA': 'Australia',
+    }
+    if (extractedData.country) {
+      const normalized = COUNTRY_MAP[extractedData.country.toUpperCase().trim()]
+      if (normalized) {
+        extractedData.country = normalized
+      } else {
+        warnings.push(`Unrecognized country code "${extractedData.country}" — please verify`)
+      }
+    }
+
+    // Validate numeric fields
+    if (typeof extractedData.value !== 'number' || isNaN(extractedData.value) || extractedData.value < 0) {
+      warnings.push('Shipment value not found or invalid — please enter manually')
+      extractedData.value = 0
+    }
+    if (typeof extractedData.weight !== 'number' || isNaN(extractedData.weight) || extractedData.weight < 0) {
+      extractedData.weight = 0
+    }
+
+    // Validate HS code — should be numeric digits, 6-8 chars
+    if (extractedData.hsCode) {
+      const hsClean = String(extractedData.hsCode).replace(/[^0-9]/g, '')
+      if (hsClean.length >= 4) {
+        // Format with dot: XXXX.XX or XXXX.XX.XX
+        extractedData.hsCode = hsClean.length >= 6
+          ? `${hsClean.slice(0,4)}.${hsClean.slice(4,6)}${hsClean.length > 6 ? '.' + hsClean.slice(6) : ''}`
+          : hsClean
+      } else {
+        warnings.push('HS Code found but appears too short — please verify')
+      }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         data: extractedData,
-        message: 'Invoice parsed successfully via GPT-4o',
+        warnings: warnings.length > 0 ? warnings : undefined,
+        message: warnings.length > 0
+          ? `Invoice parsed with ${warnings.length} warning(s). Please review highlighted fields.`
+          : 'Invoice parsed successfully via GPT-4o',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

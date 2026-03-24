@@ -6,6 +6,7 @@ import { FTA_DATABASE } from '@/data/fta'
 import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { getHSProduct } from '@/data/hs-product-db'
+import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -16,6 +17,53 @@ const MFN_RATES: Record<string, number> = {
 
 function getMFNRate(country: string): number {
   return MFN_RATES[country] ?? 5.0
+}
+
+// Get RoDTEP rate for a given HS code from Appendix 4R DB table.
+// Looks up 8-digit first, falls back to best match on 6-digit prefix.
+// Rates already reflect Notification 60/2025-26 (ch25+ halved).
+export async function fetchRodtepRate(hsCode: string): Promise<number> {
+  const digits = hsCode.replace(/\D/g, '')
+  if (digits.length < 4) return 0.5
+  const hs8 = digits.padEnd(8, '0')
+  const hs6prefix = digits.slice(0, 6)
+
+  // Try exact 8-digit match first
+  const { data: exact } = await supabase
+    .from('rodtep_rates')
+    .select('rate')
+    .eq('hs_code', hs8)
+    .maybeSingle()
+  if (exact?.rate != null) return Number(exact.rate)
+
+  // Fall back to first row matching 6-digit prefix
+  const { data: approx } = await supabase
+    .from('rodtep_rates')
+    .select('rate')
+    .like('hs_code', `${hs6prefix}%`)
+    .limit(1)
+    .maybeSingle()
+  if (approx?.rate != null) return Number(approx.rate)
+
+  return 0.5 // default if not in schedule
+}
+
+// Normalise HS code to DB format XXXX.XX (6 digits, dot after 4th)
+function normaliseHS(code: string): string {
+  const digits = code.replace(/\D/g, '').padStart(6, '0')
+  return `${digits.slice(0, 4)}.${digits.slice(4, 6)}`
+}
+
+// Fetch India's own MFN import duty for a given HS code (used for duty drawback calculation)
+export async function fetchIndiaMFNRate(hsCode: string): Promise<number | null> {
+  if (!hsCode || hsCode.replace(/\D/g, '').length < 6) return null
+  const { data } = await supabase
+    .from('hs_tariff_rates')
+    .select('mfn_rate')
+    .eq('hs_code', normaliseHS(hsCode))
+    .eq('country_code', 'IN')
+    .maybeSingle()
+  return data?.mfn_rate ?? null
 }
 
 // ─── Risk ──────────────────────────────────────────────────────
@@ -84,49 +132,91 @@ export async function fetchChecklist(
       const aiItems = await fetchAIChecklist(hsCode, name, countries)
 
       // Merge: base items first (documentation, COO, packaging etc.), then AI-specific items
-      return { items: [...baseItems, ...aiItems] }
+      const merged = [...baseItems, ...aiItems]
+      const withDrawback = await injectDutyDrawbackItem(merged, hsCode)
+      return { items: withDrawback }
     }
+
+    // In local DB — inject drawback item if applicable
+    const withDrawback = await injectDutyDrawbackItem(baseItems, hsCode)
+    return { items: withDrawback }
   }
 
-  // HS code is in local DB (or no HS code) — base + local DB items (already merged by generateChecklist)
+  // No HS code — return base items as-is
   return { items: baseItems }
 }
 
+async function injectDutyDrawbackItem(items: import('@/types').ChecklistItem[], hsCode: string): Promise<import('@/types').ChecklistItem[]> {
+  const indiaRate = await fetchIndiaMFNRate(hsCode)
+  if (!indiaRate || indiaRate <= 0) return items
+
+  const drawbackItem: import('@/types').ChecklistItem = {
+    id: 9001,
+    category: 'Indian Compliance',
+    item: `Claim Duty Drawback — India's import duty on HS ${normaliseHS(hsCode)} is ${indiaRate}%`,
+    priority: 'high',
+    phase: 'post-shipment',
+    details: `India charges ${indiaRate}% MFN duty on this product. If you used any imported inputs in manufacture, file a duty drawback claim at ICEGATE within 3 months of export using your Shipping Bill number. Even if inputs were domestic, All-Industry Rate (AIR) drawback may apply. Check CBIC Drawback Schedule.`,
+  }
+
+  return [...items, drawbackItem]
+}
+
 // ─── FTA Savings ───────────────────────────────────────────────
-export function fetchFTASavings(
+export async function fetchFTASavings(
   country: string,
   shipmentValue: number,
-  _hsCode?: string,
+  hsCode?: string,
   _product?: string
 ) {
   const fta = FTA_DATABASE[country as CountryCode]
-  const mfnRate = getMFNRate(country)
-  const prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
-  return Promise.resolve({
+  let mfnRate = getMFNRate(country)
+  let prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
+  let agreement: string | undefined = fta?.name
+
+  if (hsCode && hsCode.replace(/\D/g, '').length >= 6) {
+    const { data } = await supabase
+      .from('hs_tariff_rates')
+      .select('mfn_rate, preferential_rate, agreement')
+      .eq('hs_code', normaliseHS(hsCode))
+      .eq('country_code', country)
+      .maybeSingle()
+
+    if (data) {
+      mfnRate = data.mfn_rate
+      prefRate = data.preferential_rate
+      agreement = data.agreement
+    }
+  }
+
+  return {
     country,
-    agreement: fta?.name,
+    agreement,
     mfn_rate: mfnRate,
     preferential_rate: prefRate,
     mfn_duty: shipmentValue * (mfnRate / 100),
     preferential_duty: shipmentValue * (prefRate / 100),
     savings: shipmentValue * ((mfnRate - prefRate) / 100),
-  })
+  }
 }
 
-export async function classifyProductHSCode(description: string, destinationCountry: string) {
-  // Call the Supabase Edge Function securely
-  const { data, error } = await supabase.functions.invoke('zonos-classify', {
-    body: { description, destination_country: destinationCountry },
+export async function classifyProductHSCode(description: string, _destinationCountry: string, category?: string) {
+  const { data, error } = await supabase.functions.invoke('hs-lookup', {
+    body: { query: description, category },
   })
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
-  return data as {
-    hs_code: string
-    confidence: number
-    description: string
+  const results: Array<{ hsCode: string; name: string; confidence: string; reason: string }> =
+    data?.results ?? []
+
+  if (results.length === 0) throw new Error('No HS codes found for that description')
+
+  return {
+    hs_code: results[0].hsCode,
+    confidence: results[0].confidence === 'high' ? 0.9 : 0.6,
+    description: results[0].name,
+    suggestions: results,
   }
 }
 
@@ -238,19 +328,38 @@ export function fetchBatchRiskScore(
 }
 
 // ─── Batch FTA Savings ────────────────────────────────────────
-export function fetchBatchFTASavings(
+export async function fetchBatchFTASavings(
   countries: string[],
   shipmentValue: number,
   _product?: string,
-  _hsCode?: string
+  hsCode?: string
 ) {
+  // Try to look up per-country rates from DB if we have a 6-digit HS code
+  const dbRates: Record<string, { mfn_rate: number; preferential_rate: number; agreement: string }> = {}
+
+  if (hsCode && hsCode.replace(/\D/g, '').length >= 6) {
+    const { data } = await supabase
+      .from('hs_tariff_rates')
+      .select('country_code, mfn_rate, preferential_rate, agreement')
+      .eq('hs_code', normaliseHS(hsCode))
+      .in('country_code', countries)
+
+    if (data) {
+      for (const row of data) {
+        dbRates[row.country_code] = { mfn_rate: row.mfn_rate, preferential_rate: row.preferential_rate, agreement: row.agreement }
+      }
+    }
+  }
+
   const results = countries.map(country => {
     const fta = FTA_DATABASE[country as CountryCode]
-    const mfnRate = getMFNRate(country)
-    const prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
+    const db = dbRates[country]
+    const mfnRate = db?.mfn_rate ?? getMFNRate(country)
+    const prefRate = db?.preferential_rate ?? (fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate)
+    const agreement = db?.agreement ?? fta?.name
     return {
       country,
-      agreement: fta?.name,
+      agreement,
       mfn_rate: mfnRate,
       preferential_rate: prefRate,
       mfn_duty: shipmentValue * (mfnRate / 100),
@@ -258,7 +367,7 @@ export function fetchBatchFTASavings(
       savings: shipmentValue * ((mfnRate - prefRate) / 100),
     }
   })
-  return Promise.resolve({ results })
+  return { results }
 }
 
 // ─── Countries ───────────────────────────────────────────────
@@ -310,7 +419,7 @@ export function triggerScraper(_scraperName: string) {
 }
 
 // ─── Compliance Gate (real logic) ─────────────────────────────
-export function runGateCheck(
+export async function runGateCheck(
   shipment: Shipment,
   checkedItems: Record<string, boolean> = {},
   companyProfile: CompanyProfile = { name: '', size: 'small' }
@@ -326,17 +435,94 @@ export function runGateCheck(
   const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0
 
   const fta = FTA_DATABASE[shipment.country as CountryCode]
-  const mfnRate = MFN_RATES[shipment.country] ?? 5.0
-  const prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
   const shipmentValue = shipment.shipmentValue || 0
+
+  // Look up real tariff rates from DB if HS code is available
+  let mfnRate = MFN_RATES[shipment.country] ?? 5.0
+  let prefRate = fta?.preferentialTariff ? Math.max(0, mfnRate - 3.5) : mfnRate
+  let indiaImportDuty: number | undefined
+
+  // Sanctions check + CBAM emissions — fire in parallel with tariff lookups
+  let sanctionsResult: import('@/types').SanctionsCheckResult | undefined
+  const sanctionsPromise = shipment.buyerName && shipment.buyerName.trim().length > 2
+    ? supabase.functions.invoke('sanctions-check', { body: { name: shipment.buyerName } })
+    : Promise.resolve(null)
+
+  // CBAM emissions estimate — only for EU + CBAM-scoped HS code
+  let cbamEmissions: { co2e_tonnes: number; formatted: string; activity_id: string } | undefined
+  const cbamEmissionsPromise =
+    shipment.hsCode && isCBAMScope(shipment.hsCode, shipment.country) && shipmentValue > 0
+      ? supabase.functions.invoke('climatiq-emissions', {
+          body: {
+            weight_kg: Math.round(shipmentValue / 150), // rough estimate: ₹150/kg for industrial goods
+            hs_code: shipment.hsCode,
+            product_type: shipment.product,
+            origin_country: 'IN',
+            destination_country: shipment.country,
+          },
+        })
+      : Promise.resolve(null)
+
+  if (shipment.hsCode && shipment.hsCode.replace(/\D/g, '').length >= 6) {
+    const [destData, indiaData] = await Promise.all([
+      supabase
+        .from('hs_tariff_rates')
+        .select('mfn_rate, preferential_rate')
+        .eq('hs_code', normaliseHS(shipment.hsCode))
+        .eq('country_code', shipment.country)
+        .maybeSingle(),
+      supabase
+        .from('hs_tariff_rates')
+        .select('mfn_rate')
+        .eq('hs_code', normaliseHS(shipment.hsCode))
+        .eq('country_code', 'IN')
+        .maybeSingle(),
+    ])
+    if (destData.data) {
+      mfnRate = destData.data.mfn_rate
+      prefRate = destData.data.preferential_rate
+    }
+    if (indiaData.data) {
+      indiaImportDuty = indiaData.data.mfn_rate
+    }
+  }
+
+  // Resolve CBAM emissions
+  const cbamEmissionsResponse = await cbamEmissionsPromise
+  if (cbamEmissionsResponse?.data) {
+    cbamEmissions = cbamEmissionsResponse.data
+  }
+
+  // Resolve sanctions check (was kicked off in parallel)
+  const sanctionsResponse = await sanctionsPromise
+  if (sanctionsResponse?.data) {
+    sanctionsResult = sanctionsResponse.data as import('@/types').SanctionsCheckResult
+  }
 
   // ── Gate decision ─────────────────────────────────────────
   const blockingReasons: string[] = []
   const conditionalReasons: string[] = []
 
+  if (sanctionsResult?.risk_level === 'block') {
+    blockingReasons.push(`Buyer "${shipment.buyerName}" matches OFAC sanctions list (${sanctionsResult.matches[0]?.program}) — transaction prohibited`)
+  } else if (sanctionsResult?.risk_level === 'flag') {
+    conditionalReasons.push(`Buyer name similar to sanctioned entity "${sanctionsResult.matches[0]?.name}" — manual verification required`)
+  }
+
   if (risk.score >= 70) blockingReasons.push(`Risk score is high (${risk.score}/100) — lender approval unlikely`)
   if (criticalPending > 2) blockingReasons.push(`${criticalPending} critical compliance items are incomplete`)
   if (completionPct < 40) blockingReasons.push(`Checklist only ${completionPct}% complete — below 40% minimum`)
+
+  // CBAM check: EU shipments for covered goods require CBAM declaration
+  const cbamSector = shipment.hsCode ? getCBAMSector(shipment.hsCode) : null
+  if (shipment.hsCode && isCBAMScope(shipment.hsCode, shipment.country)) {
+    const emissionsText = cbamEmissions
+      ? ` Estimated embedded emissions: ${cbamEmissions.formatted} (≈ €${Math.round(cbamEmissions.co2e_tonnes * 65)} CBAM levy at €65/tCO₂e).`
+      : ''
+    conditionalReasons.push(
+      `CBAM scope: HS ${shipment.hsCode} (${cbamSector}) requires EU Carbon Border Adjustment report — file via EU CBAM portal before customs clearance.${emissionsText}`
+    )
+  }
 
   if (risk.score >= 50 && risk.score < 70) conditionalReasons.push(`Moderate risk (${risk.score}/100) — lender review required`)
   if (criticalPending === 1 || criticalPending === 2) conditionalReasons.push(`${criticalPending} critical item(s) pending — resolve before disbursement`)
@@ -377,6 +563,7 @@ export function runGateCheck(
       potential_savings: fta?.preferentialTariff
         ? Math.round(shipmentValue * ((mfnRate - prefRate) / 100))
         : 0,
+      india_import_duty: indiaImportDuty,
     },
     coo_requirement: {
       required: fta?.preferentialTariff ?? false,
@@ -398,9 +585,17 @@ export function runGateCheck(
       total_items: total,
       critical_pending: criticalPending,
     },
+    sanctions_check: sanctionsResult,
+    cbam_scope: {
+      applies: !!(shipment.hsCode && isCBAMScope(shipment.hsCode, shipment.country)),
+      sector: cbamSector,
+      co2e_tonnes: cbamEmissions?.co2e_tonnes,
+      estimated_levy_eur: cbamEmissions ? Math.round(cbamEmissions.co2e_tonnes * 65) : undefined,
+      emissions_formatted: cbamEmissions?.formatted,
+    },
   }
 
-  return Promise.resolve(result)
+  return result
 }
 
 export function getGateStatus(shipment: Shipment, checkedItems?: Record<string, boolean>, companyProfile?: CompanyProfile) {

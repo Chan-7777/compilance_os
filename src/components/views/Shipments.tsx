@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
+import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
 import { runGateCheck, downloadCOOPdf, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing } from '@/lib/api'
 import type { Shipment, CountryCode, GateCheckResult, LandedCostResult, CompanyProfile } from '@/types'
 
@@ -55,6 +56,7 @@ export function Shipments({
   const [gateResults, setGateResults] = useState<Record<string, GateCheckResult>>({})
   const [gateLoading, setGateLoading] = useState<Record<string, boolean>>({})
   const [isClassifying, setIsClassifying] = useState(false)
+  const [hsSuggestions, setHsSuggestions] = useState<Array<{ hsCode: string; name: string; confidence: string; reason: string }>>([])
   const [isProcessingOCR, setIsProcessingOCR] = useState(false)
   const [landedCosts, setLandedCosts] = useState<Record<string, LandedCostResult>>({})
   const [landedCostLoading, setLandedCostLoading] = useState<Record<string, boolean>>({})
@@ -370,23 +372,18 @@ export function Shipments({
     if (!formData.description || !formData.country) return
 
     setIsClassifying(true)
+    setHsSuggestions([])
     try {
-      // Mocking the backend API call if the real backend isn't up
-      // In production, this hits Zonos API securely via our backend orchestrator.
-      const result = await classifyProductHSCode(formData.description, formData.country)
-      if (result && result.hs_code) {
+      const result = await classifyProductHSCode(formData.description, formData.country, formData.product || undefined)
+      if (result.suggestions && result.suggestions.length > 1) {
+        // Show picker so user can choose the right subheading
+        setHsSuggestions(result.suggestions)
+        updateFormData(prev => ({ ...prev, hsCode: result.hs_code }))
+      } else if (result.hs_code) {
         updateFormData(prev => ({ ...prev, hsCode: result.hs_code }))
       }
-    } catch (err) {
-      // SIMULATED MOCK FALLBACK FOR DEMO PURPOSES
-      setTimeout(() => {
-        const mockCode = formData.description.toLowerCase().includes('cotton') ? '5201.00'
-          : formData.description.toLowerCase().includes('steel') ? '7208.51'
-            : '8517.12'
-        updateFormData(prev => ({ ...prev, hsCode: mockCode }))
-        setIsClassifying(false)
-      }, 1500)
-      return
+    } catch (err: any) {
+      toastError(`HS classification failed: ${err.message}`)
     } finally {
       setIsClassifying(false)
     }
@@ -624,6 +621,66 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                   </div>
                 </div>
               </div>
+
+              {/* Sanctions Check */}
+              {gate.sanctions_check && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm,
+                  borderRadius: borderRadius.sm,
+                  backgroundColor: gate.sanctions_check.risk_level === 'block' ? '#fee2e2'
+                    : gate.sanctions_check.risk_level === 'flag' ? '#fef9c3'
+                    : colors.surface,
+                }}>
+                  <span>
+                    {gate.sanctions_check.risk_level === 'block' ? '🚫'
+                      : gate.sanctions_check.risk_level === 'flag' ? '⚠️' : '✅'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <strong>OFAC Sanctions Screen</strong>
+                    <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                      {gate.sanctions_check.risk_level === 'clear'
+                        ? `"${gate.sanctions_check.query_name}" — No match on SDN list`
+                        : gate.sanctions_check.risk_level === 'flag'
+                        ? `Possible match: ${gate.sanctions_check.matches[0]?.name} [${gate.sanctions_check.matches[0]?.program}] — verify before proceeding`
+                        : `BLOCKED: Matches "${gate.sanctions_check.matches[0]?.name}" [${gate.sanctions_check.matches[0]?.program}]`}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CBAM Scope + Emissions */}
+              {gate.cbam_scope?.applies && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.sm,
+                  borderRadius: borderRadius.sm, backgroundColor: '#ecfdf5', border: '1px solid #6ee7b7',
+                }}>
+                  <span style={{ fontSize: '1.2rem', marginTop: 2 }}>🌿</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+                      <strong>EU CBAM Required — {gate.cbam_scope.sector}</strong>
+                      {gate.cbam_scope.emissions_formatted && (
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px',
+                          borderRadius: 99, backgroundColor: '#d1fae5', color: '#065f46',
+                        }}>
+                          {gate.cbam_scope.emissions_formatted}
+                        </span>
+                      )}
+                      {gate.cbam_scope.estimated_levy_eur !== undefined && (
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px',
+                          borderRadius: 99, backgroundColor: '#fef3c7', color: '#92400e',
+                        }}>
+                          ≈ €{gate.cbam_scope.estimated_levy_eur.toLocaleString()} CBAM levy
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#065f46', marginTop: 2 }}>
+                      Submit embedded emissions declaration via EU CBAM portal before customs clearance. Non-compliance: penalty up to 3× carbon price per tCO₂e.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Checklist Progress */}
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.surface }}>
@@ -904,8 +961,48 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                 placeholder="e.g., 7208.51"
               />
               <span style={{ fontSize: '0.7rem', color: colors.textMuted }}>
-                Zonos AI Classify
+                DB + AI classification (hs-lookup)
               </span>
+              {/* HS suggestion picker */}
+              {hsSuggestions.length > 0 && (
+                <div style={{
+                  marginTop: spacing.xs, border: `1px solid ${colors.border}`,
+                  borderRadius: borderRadius.sm, overflow: 'hidden', backgroundColor: colors.white,
+                }}>
+                  <div style={{ padding: '4px 8px', fontSize: '0.7rem', fontWeight: 600, color: colors.textMuted, backgroundColor: colors.surface }}>
+                    {hsSuggestions.length} suggestions — click to select
+                  </div>
+                  {hsSuggestions.map((s, i) => (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        updateFormData(prev => ({ ...prev, hsCode: s.hsCode }))
+                        setHsSuggestions([])
+                      }}
+                      style={{
+                        padding: '6px 8px', cursor: 'pointer', display: 'flex', gap: spacing.sm,
+                        alignItems: 'flex-start', borderTop: i > 0 ? `1px solid ${colors.border}` : 'none',
+                        backgroundColor: formData.hsCode === s.hsCode ? `${colors.primary}10` : 'transparent',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = `${colors.primary}08`)}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = formData.hsCode === s.hsCode ? `${colors.primary}10` : 'transparent')}
+                    >
+                      <span style={{ fontWeight: 700, fontFamily: 'monospace', color: colors.primary, minWidth: 60, fontSize: '0.85rem' }}>
+                        {s.hsCode}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: colors.text, flex: 1 }}>{s.name}</span>
+                      <span style={{
+                        fontSize: '0.65rem', fontWeight: 600, padding: '1px 6px', borderRadius: 99,
+                        backgroundColor: s.confidence === 'high' ? '#dcfce7' : '#fef9c3',
+                        color: s.confidence === 'high' ? '#166534' : '#92400e',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {s.confidence}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={formFieldStyle}>
               <label style={labelStyle} htmlFor="shipment-value">
@@ -998,6 +1095,21 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                       {shipment.gateStatus && (
                         <Badge variant={getGateVariant(shipment.gateStatus)} size="sm">
                           🛡️ {shipment.gateStatus}
+                        </Badge>
+                      )}
+                      {/* Sanctions auto-screen badge — shown as soon as shipment is saved */}
+                      {shipment.sanctionsRisk && shipment.sanctionsRisk !== 'clear' && (
+                        <Badge
+                          variant={shipment.sanctionsRisk === 'block' ? 'danger' : 'warning'}
+                          size="sm"
+                        >
+                          {shipment.sanctionsRisk === 'block' ? '🚫 SANCTIONS BLOCK' : '⚠️ SANCTIONS FLAG'}
+                        </Badge>
+                      )}
+                      {/* CBAM badge — shown for EU shipments with covered HS codes */}
+                      {shipment.hsCode && isCBAMScope(shipment.hsCode, shipment.country) && (
+                        <Badge variant="info" size="sm">
+                          🌿 CBAM: {getCBAMSector(shipment.hsCode)}
                         </Badge>
                       )}
                     </div>

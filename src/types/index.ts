@@ -193,6 +193,7 @@ export interface Shipment {
   buyer?: string
   quantity?: number
   transportMode?: string
+  sanctionsRisk?: 'clear' | 'flag' | 'block'
 }
 
 // ----------------------------------------------------------------------------
@@ -212,6 +213,7 @@ export interface FTAEligibilityResult {
   mfn_rate: number
   preferential_rate: number
   potential_savings: number
+  india_import_duty?: number  // India's own MFN rate on this product (for duty drawback)
 }
 
 export interface COORequirement {
@@ -233,6 +235,22 @@ export interface ChecklistProgressResult {
   completion_percentage: number
 }
 
+export interface SanctionsMatch {
+  uid: string
+  name: string
+  matched_as: string
+  entity_type: string
+  program: string
+  score: number
+}
+
+export interface SanctionsCheckResult {
+  risk_level: 'clear' | 'flag' | 'block'
+  matches: SanctionsMatch[]
+  query_name: string
+  checked_at: string
+}
+
 export interface GateCheckResult {
   shipment_id: string
   gate_status: GateStatus
@@ -242,6 +260,14 @@ export interface GateCheckResult {
   coo_requirement: COORequirement
   rules_of_origin: RulesOfOriginResult
   checklist_progress: ChecklistProgressResult
+  sanctions_check?: SanctionsCheckResult
+  cbam_scope?: {
+    applies: boolean
+    sector: string | null
+    co2e_tonnes?: number
+    estimated_levy_eur?: number
+    emissions_formatted?: string
+  }
   checked_at: string
 }
 

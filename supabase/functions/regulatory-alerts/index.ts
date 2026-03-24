@@ -61,18 +61,24 @@ serve(async (req) => {
       })
     }
 
-    const supabaseClient = createClient(
+    // Validate the user JWT
+    const anonClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } },
     )
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    const { data: { user }, error: userError } = await anonClient.auth.getUser()
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Use service role for DB query — regulatory_changes is public data, bypass RLS
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
 
     // ── Parse payload ───────────────────────────────────────────────────────
     const body = await req.json()
