@@ -23,7 +23,7 @@ if (SENTRY_DSN) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
     // Don't send PII
-    beforeSend(event) {
+    beforeSend(event: Sentry.ErrorEvent) {
       if (event.user) {
         delete event.user.email
         delete event.user.ip_address
