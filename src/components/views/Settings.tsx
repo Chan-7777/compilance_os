@@ -10,6 +10,7 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
 import { fetchAPIKeys, createAPIKey, revokeAPIKey } from '@/lib/api'
+import { useToast } from '@/hooks/useToast'
 import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
 
 export interface SettingsProps {
@@ -48,6 +49,7 @@ export function Settings({
   onNavigateToDashboard,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState(0)
+  const { success: toastSuccess, error: toastError } = useToast()
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
@@ -60,7 +62,7 @@ export function Settings({
     setApiKeysLoading(true)
     fetchAPIKeys()
       .then(keys => setApiKeys(keys || []))
-      .catch(err => console.error('Failed to load API keys:', err))
+      .catch(err => toastError(`Failed to load API keys: ${err?.message}`))
       .finally(() => setApiKeysLoading(false))
   }, [])
 
@@ -70,11 +72,11 @@ export function Settings({
       const result = await createAPIKey(newKeyName.trim())
       setNewKeyPlaintext(result.key)
       setNewKeyName('')
-      // Refresh keys list
+      toastSuccess('API key created')
       const keys = await fetchAPIKeys()
       setApiKeys(keys || [])
-    } catch (err) {
-      console.error('Failed to create API key:', err)
+    } catch (err: any) {
+      toastError(`Failed to create API key: ${err?.message}`)
     }
   }
 
@@ -82,8 +84,9 @@ export function Settings({
     try {
       await revokeAPIKey(id)
       setApiKeys(prev => prev.filter(k => k.id !== id))
-    } catch (err) {
-      console.error('Failed to revoke API key:', err)
+      toastSuccess('API key revoked')
+    } catch (err: any) {
+      toastError(`Failed to revoke key: ${err?.message}`)
     }
   }
 

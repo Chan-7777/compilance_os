@@ -77,6 +77,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
       })
       .catch(err => {
         console.error('Failed to load FTA data:', err)
+        if (!cancelled) setLoading(false)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -101,7 +102,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
       })
       .catch(err => {
         console.error('Savings calc failed:', err)
-        if (!cancelled) setSavingsResults([])
+        if (!cancelled) { setSavingsResults([]); setSavingsLoading(false) }
       })
       .finally(() => {
         if (!cancelled) setSavingsLoading(false)

@@ -28,27 +28,28 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
   const productLabel =
     PRODUCT_CATEGORIES.find(p => p.id === selectedProduct)?.label || selectedProduct
 
+  // Map product category to a representative HS code for emissions estimation
+  const PRODUCT_HS_MAP: Record<string, string> = {
+    steel: '7208.51',
+    textiles: '5208.11',
+    chemicals: '2901.10',
+    electronics: '8471.30',
+    pharma: '3004.90',
+    automotive: '8703.23',
+    machinery: '8428.90',
+    food: '1001.99',
+    general: '9999.99',
+  }
+
   const handleEstimateEmissions = async (countryCode: string, weight: number) => {
     setIsEstimating(prev => ({ ...prev, [countryCode]: true }))
     try {
-      const result = await estimateEmissions(weight, '7208.00', 'IN', selectedProduct, countryCode)
+      const hsCode = PRODUCT_HS_MAP[selectedProduct] ?? '9999.99'
+      const result = await estimateEmissions(weight, hsCode, 'IN', selectedProduct, countryCode)
       setEmissionsData(prev => ({ ...prev, [countryCode]: result }))
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to estimate emissions:', err)
-      // MOCK FALLBACK for demo when API is unavailable or returns 401
-      setEmissionsData(prev => ({
-        ...prev,
-        [countryCode]: {
-          co2e: 2154.5,
-          co2e_unit: 'kg',
-          co2e_tonnes: 2.15,
-          activity_id: 'steel-type_steel_product_hot_rolled_coil (simulated fallback)',
-          source: 'BEIS',
-          year: 2023,
-          formatted: '2.15 tCO₂e',
-          cbam_applicable: true,
-        },
-      }))
+      setEmissionsData(prev => ({ ...prev, [countryCode]: { error: err?.message ?? 'Estimation failed' } }))
     } finally {
       setIsEstimating(prev => ({ ...prev, [countryCode]: false }))
     }
@@ -311,23 +312,29 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                     </div>
 
                     {emissionsData[result.country] && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm, marginTop: spacing.md }}>
-                        <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
-                          <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Est. Emissions (Per Tonne)</div>
-                          <div style={{ fontWeight: 700, fontSize: '1.25rem', fontFamily: "'JetBrains Mono', monospace", color: '#166534' }}>
-                            {emissionsData[result.country].formatted}
+                      emissionsData[result.country].error ? (
+                        <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: '#fef2f2', borderRadius: borderRadius.sm, fontSize: '0.8rem', color: '#991b1b' }}>
+                          ⚠️ {emissionsData[result.country].error}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm, marginTop: spacing.md }}>
+                          <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
+                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Est. Emissions (Per Tonne)</div>
+                            <div style={{ fontWeight: 700, fontSize: '1.25rem', fontFamily: "'JetBrains Mono', monospace", color: '#166534' }}>
+                              {emissionsData[result.country].formatted}
+                            </div>
+                          </div>
+                          <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
+                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Data Source</div>
+                            <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                              {emissionsData[result.country].source} ({emissionsData[result.country].year})
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: colors.textMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {emissionsData[result.country].activity_id}
+                            </div>
                           </div>
                         </div>
-                        <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
-                          <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Data Source</div>
-                          <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                            {emissionsData[result.country].source} ({emissionsData[result.country].year})
-                          </div>
-                          <div style={{ fontSize: '0.65rem', color: colors.textMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {emissionsData[result.country].activity_id}
-                          </div>
-                        </div>
-                      </div>
+                      )
                     )}
 
                     <CBAMReadiness product={productLabel} />

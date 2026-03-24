@@ -357,8 +357,8 @@ export function Shipments({
     try {
       const result = await runGateCheck(shipment, checkedItems, companyProfile)
       setGateResults(prev => ({ ...prev, [shipmentId]: result }))
-    } catch (err) {
-      // gate check error handled silently
+    } catch (err: any) {
+      toastError(`Gate check failed: ${err?.message ?? 'Unknown error'}`)
     } finally {
       setGateLoading(prev => ({ ...prev, [shipmentId]: false }))
     }
@@ -399,8 +399,8 @@ export function Shipments({
       a.download = `coo_${shipmentId}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-    } catch (err) {
-      // CoO PDF download error handled silently
+    } catch (err: any) {
+      toastError(`CoO download failed: ${err?.message ?? 'Please try again'}`)
     }
   }
 
@@ -413,25 +413,8 @@ export function Shipments({
     try {
       const result = await calculateLandedCost(hsCode, value, shipment.country)
       setLandedCosts(prev => ({ ...prev, [shipment.id]: result }))
-    } catch (err) {
-      // MOCK FALLBACK for demo when API is unavailable
-      const mockDutyRate = shipment.country === 'EU' ? 0.05 : shipment.country === 'US' ? 0.07 : 0.03
-      const mockTaxRate = shipment.country === 'EU' ? 0.20 : shipment.country === 'US' ? 0.0 : 0.05
-      const duties = value * mockDutyRate
-      const taxes = value * mockTaxRate
-      const fees = 2500
-      setLandedCosts(prev => ({
-        ...prev, [shipment.id]: {
-          duties: [{ amount: duties, currency: 'INR', description: 'Import Duty (simulated)', type: 'duty' }],
-          taxes: [{ amount: taxes, currency: 'INR', description: shipment.country === 'EU' ? 'VAT 20% (simulated)' : 'Sales Tax (simulated)', type: 'tax' }],
-          fees: [{ amount: fees, currency: 'INR', description: 'Customs processing fee (simulated)', type: 'fee' }],
-          total_duties: duties,
-          total_taxes: taxes,
-          total_fees: fees,
-          grand_total: value + duties + taxes + fees,
-          currency: 'INR',
-        }
-      }))
+    } catch (err: any) {
+      toastError(`Landed cost calculation failed: ${err?.message ?? 'Please add HS code and value'}`)
     } finally {
       setLandedCostLoading(prev => ({ ...prev, [shipment.id]: false }))
     }
@@ -442,8 +425,8 @@ export function Shipments({
     try {
       const result = await generateCustomsPayload(shipment)
       setFilingResults(prev => ({ ...prev, [shipment.id]: result }))
-    } catch (err) {
-      alert('Failed to generate customs payload.')
+    } catch (err: any) {
+      toastError(`Customs filing failed: ${err?.message ?? 'Please try again'}`)
     } finally {
       setFilingLoading(prev => ({ ...prev, [shipment.id]: false }))
     }
