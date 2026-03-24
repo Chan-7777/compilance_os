@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +14,21 @@ serve(async (req) => {
   }
 
   try {
+    // ── Auth + rate limit ────────────────────────────────────────
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader) {
+      const anonClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      )
+      const { data: { user } } = await anonClient.auth.getUser()
+      if (user) {
+        const rl = await checkRateLimit(user.id, 'document-ocr')
+        if (!rl.allowed) return rateLimitResponse(rl.limit)
+      }
+    }
+
     const { fileBase64, filename } = await req.json()
 
     if (!fileBase64 || !filename) {
