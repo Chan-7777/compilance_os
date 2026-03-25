@@ -179,6 +179,14 @@ function App() {
   // Load persisted data from Supabase when authenticated
   // -------------------------------------------------------------------------
 
+  // New user: logged in but no company profile yet → show onboarding
+  useEffect(() => {
+    if (!SUPABASE_ENABLED || auth.loading) return
+    if (auth.user && !auth.profile) {
+      setShowOnboarding(true)
+    }
+  }, [auth.loading, auth.user, auth.profile])
+
   useEffect(() => {
     if (!SUPABASE_ENABLED || !auth.profile) return
 
