@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
@@ -33,6 +34,7 @@ export function Checklist({
   onToggleItem,
   onUpdateHsProduct,
 }: ChecklistProps) {
+  const isMobile = useMobile()
   const [activeTab, setActiveTab] = useState(0)
   const [showAllPhases, setShowAllPhases] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
@@ -371,7 +373,7 @@ export function Checklist({
 
   return (
     <div style={containerStyle}>
-      <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ ...headerStyle, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md }}>
         <div>
           <h2 style={titleStyle}>Compliance Checklist</h2>
           {/* Product context pill */}
@@ -460,7 +462,7 @@ export function Checklist({
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: spacing.sm, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: spacing.sm, flexShrink: 0, flexWrap: 'wrap' }}>
           <Button
             variant="primary"
             size="sm"

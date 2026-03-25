@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Card, CardContent } from '@/components/Card'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
@@ -21,6 +22,7 @@ export interface RiskAnalysisProps {
 }
 
 export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps) {
+  const isMobile = useMobile()
   const [emissionsData, setEmissionsData] = useState<Record<string, any>>({})
   const [isEstimating, setIsEstimating] = useState<Record<string, boolean>>({})
   const [emissionsWeight, setEmissionsWeight] = useState<Record<string, string>>({})
@@ -82,7 +84,7 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
     gap: spacing.lg,
   }
 

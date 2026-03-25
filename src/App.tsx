@@ -735,7 +735,7 @@ function App() {
         euEnabled={selectedCountries.includes('EU')}
       />
       <main
-        style={{ flex: 1, marginLeft: isMobile ? 0 : '232px', marginTop: '56px', overflow: 'auto', paddingBottom: '24px' }}
+        style={{ flex: 1, marginLeft: isMobile ? 0 : '232px', marginTop: '56px', overflow: 'auto', overflowX: 'hidden', paddingBottom: '24px', maxWidth: '100vw' }}
         data-testid="main-content"
       >
         <>

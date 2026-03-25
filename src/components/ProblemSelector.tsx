@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { colors, borderRadius, spacing } from '@theme/index'
+import { useMobile } from '@/hooks/useMobile'
 import type { ViewType } from '@/types'
 
 interface Problem {
@@ -57,6 +58,7 @@ interface ProblemSelectorProps {
 }
 
 export function ProblemSelector({ onSelect, onSkip }: ProblemSelectorProps) {
+  const isMobile = useMobile()
   return (
     <div style={{
       position: 'fixed',
@@ -101,7 +103,7 @@ export function ProblemSelector({ onSelect, onSkip }: ProblemSelectorProps) {
         {/* Problem tiles */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
           gap: spacing.md,
           marginBottom: spacing.lg,
         }}>
@@ -175,13 +177,14 @@ export function ProblemSelector({ onSelect, onSkip }: ProblemSelectorProps) {
             onClick={onSkip}
             style={{
               background: 'none',
-              border: 'none',
+              border: `1px solid ${colors.border}`,
               color: colors.textMuted,
-              fontSize: '0.8rem',
+              fontSize: '0.875rem',
               cursor: 'pointer',
               fontFamily: 'inherit',
-              textDecoration: 'underline',
-              padding: 0,
+              textDecoration: 'none',
+              padding: '10px 20px',
+              borderRadius: borderRadius.md,
             }}
           >
             Skip — take me to the dashboard

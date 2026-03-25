@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { colors, spacing, borderRadius } from '@theme/index'
 import type { CountryCode } from '@/types'
 import { searchHSProducts } from '@/data/hs-product-db'
@@ -96,6 +97,7 @@ const DESIGNATIONS = [
 ]
 
 export function Onboarding({ onComplete }: OnboardingProps) {
+  const isMobile = useMobile()
   const TOTAL_STEPS = 6
   const [step, setStep] = useState(1)
 
@@ -314,7 +316,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <p style={title}>About your company</p>
             <p style={subtitle}>This helps us personalise your compliance dashboard.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
                 <div>
                   <label style={label}>Company Name *</label>
                   <input style={inputStyle} value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="ABC Exports Pvt Ltd" />
@@ -327,7 +329,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
                 <div>
                   <label style={label}>City / State</label>
                   <input style={inputStyle} value={city} onChange={e => setCity(e.target.value)} placeholder="Tirupur, Tamil Nadu" />
@@ -337,7 +339,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   <input style={inputStyle} value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="+91 98400 00000" />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
                 <div>
                   <label style={label}>Annual Export Turnover</label>
                   <select style={selectStyle} value={turnoverRange} onChange={e => setTurnoverRange(e.target.value)}>
@@ -362,7 +364,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <>
             <p style={title}>What do you trade?</p>
             <p style={subtitle}>Choose your product category, then search for the exact product for HS code-specific compliance.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.sm, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
               {PRODUCTS.map(p => (
                 <button key={p.id} onClick={() => { setProduct(p.id); setSelectedHsProduct(null); setHsQuery(''); setHsResults([]) }}
                   style={{ ...card(product === p.id), flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>

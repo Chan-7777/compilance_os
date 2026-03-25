@@ -22,7 +22,11 @@ body {
   min-width: 320px; min-height: 100vh;
   background-color: #F3F4F6;
   color: #111827;
+  overflow-x: hidden;
 }
+
+/* Prevent any child from causing horizontal scroll */
+#root { overflow-x: hidden; }
 
 #root { min-height: 100vh; }
 

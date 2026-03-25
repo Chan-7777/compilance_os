@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Spinner } from '@/components/Spinner'
 import { colors, spacing, borderRadius } from '@theme/index'
@@ -45,6 +46,7 @@ export interface FTASchemesProps {
 }
 
 export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode, selectedHsProductName }: FTASchemesProps) {
+  const isMobile = useMobile()
   const [savingsInput, setSavingsInput] = useState(1000000)
 
   // API-fetched data
@@ -139,7 +141,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
     fontWeight: 600, marginBottom: spacing.xs, display: 'flex', alignItems: 'center', gap: spacing.sm,
   }
   const ftaNotesStyle: React.CSSProperties = { fontSize: '0.875rem', color: colors.textMuted, marginTop: spacing.xs }
-  const schemeGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: spacing.md }
+  const schemeGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: spacing.md }
   const schemeCardStyle: React.CSSProperties = {
     padding: spacing.md, backgroundColor: colors.white,
     border: `1px solid ${colors.border}`, borderRadius: borderRadius.lg,
@@ -224,7 +226,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md, gap: spacing.sm }}>
             <div>
               <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.xs }}>
                 📉 Landed Cost & Margin Calculator
@@ -252,12 +254,12 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
               value={savingsInput}
               onChange={e => setSavingsInput(Number(e.target.value) || 0)}
               style={{
-                width: 240, padding: '10px 14px', backgroundColor: colors.white,
+                width: '100%', maxWidth: 240, padding: '10px 14px', backgroundColor: colors.white,
                 border: `1px solid ${colors.border}`, borderRadius: borderRadius.md, color: colors.text,
                 fontSize: '0.875rem', fontFamily: "'JetBrains Mono', monospace", outline: 'none', boxSizing: 'border-box',
               }}
             />
-            <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs }}>
+            <div style={{ display: 'flex', gap: spacing.xs, marginTop: spacing.xs, flexWrap: 'wrap' }}>
               {[500000, 1000000, 5000000, 10000000].map(v => (
                 <button
                   key={v}
