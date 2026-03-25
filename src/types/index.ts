@@ -104,6 +104,15 @@ export interface CompanyProfile {
   pin?: string
   stateCode?: string
   portOfLoading?: string
+  // Onboarding profile fields
+  designation?: string
+  whatsapp?: string
+  turnoverRange?: string
+  yearsExporting?: string
+  knownRegulations?: string[]
+  complianceConfidence?: number
+  pastComplianceIssues?: string[]
+  painPoints?: string[]
 }
 
 // ----------------------------------------------------------------------------

@@ -307,6 +307,14 @@ function App() {
           pin: profile.pin,
           state_code: profile.stateCode,
           port_of_loading: profile.portOfLoading,
+          designation: profile.designation,
+          whatsapp: profile.whatsapp,
+          turnover_range: profile.turnoverRange,
+          years_exporting: profile.yearsExporting,
+          known_regulations: profile.knownRegulations,
+          compliance_confidence: profile.complianceConfidence,
+          past_compliance_issues: profile.pastComplianceIssues,
+          pain_points: profile.painPoints,
         })
         .eq('id', auth.profile.company_id)
     },
@@ -318,7 +326,7 @@ function App() {
   // -------------------------------------------------------------------------
 
   const handleOnboardingComplete = useCallback(
-    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string }, hsCode?: string, hsProductName?: string) => {
+    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string; name?: string; designation?: string; city?: string; whatsapp?: string; turnoverRange?: string; yearsExporting?: string; knownRegulations?: string[]; complianceConfidence?: number; pastComplianceIssues?: string[]; painPoints?: string[] }, hsCode?: string, hsProductName?: string) => {
       setSelectedProduct(product)
       setSelectedCountries(countries)
       if (hsCode) setSelectedHsCode(hsCode)
@@ -326,9 +334,23 @@ function App() {
       setShowOnboarding(false)
       setShowProblemSelector(true)
       persistSettings(product, countries)
-      if (companyDetails && (companyDetails.iec || companyDetails.gstin)) {
+      if (companyDetails) {
         setCompanyProfile(prev => {
-          const updated = { ...prev, ...companyDetails }
+          const updated = {
+            ...prev,
+            ...(companyDetails.name && { name: companyDetails.name }),
+            ...(companyDetails.iec && { iec: companyDetails.iec }),
+            ...(companyDetails.gstin && { gstin: companyDetails.gstin }),
+            ...(companyDetails.city && { city: companyDetails.city }),
+            ...(companyDetails.designation && { designation: companyDetails.designation }),
+            ...(companyDetails.whatsapp && { whatsapp: companyDetails.whatsapp }),
+            ...(companyDetails.turnoverRange && { turnoverRange: companyDetails.turnoverRange }),
+            ...(companyDetails.yearsExporting && { yearsExporting: companyDetails.yearsExporting }),
+            ...(companyDetails.knownRegulations && { knownRegulations: companyDetails.knownRegulations }),
+            ...(companyDetails.complianceConfidence !== undefined && { complianceConfidence: companyDetails.complianceConfidence }),
+            ...(companyDetails.pastComplianceIssues && { pastComplianceIssues: companyDetails.pastComplianceIssues }),
+            ...(companyDetails.painPoints && { painPoints: companyDetails.painPoints }),
+          }
           persistProfile(updated)
           return updated
         })
