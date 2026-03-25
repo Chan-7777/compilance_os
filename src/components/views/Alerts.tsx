@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'
@@ -58,6 +59,7 @@ function getDeadlineCountdown(dateStr: string): { label: string; color: string }
 }
 
 export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
+  const isMobile = useMobile()
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [dismissedIds, setDismissedIds] = useState<number[]>(() => loadDismissed())
@@ -122,8 +124,10 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
 
   const titleRowStyle: React.CSSProperties = {
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: isMobile ? 'flex-start' : 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
     marginBottom: spacing.xs,
   }
 

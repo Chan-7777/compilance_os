@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
@@ -48,6 +49,7 @@ export function Settings({
   onToggleCountry,
   onNavigateToDashboard,
 }: SettingsProps) {
+  const isMobile = useMobile()
   const [activeTab, setActiveTab] = useState(0)
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -97,7 +99,9 @@ export function Settings({
   }
 
   const containerStyle: React.CSSProperties = {
-    padding: spacing.lg,
+    padding: isMobile ? spacing.md : spacing.lg,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   }
 
   const headerStyle: React.CSSProperties = {

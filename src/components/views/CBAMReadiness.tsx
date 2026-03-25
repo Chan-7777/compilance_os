@@ -48,7 +48,7 @@ export function CBAMReadiness({ product }: { product: string }) {
         fontSize: '0.875rem',
         outline: 'none',
         width: '100%',
-        maxWidth: '300px'
+        boxSizing: 'border-box',
     }
 
     return (
@@ -68,7 +68,7 @@ export function CBAMReadiness({ product }: { product: string }) {
             <div style={{ padding: spacing.lg, backgroundColor: colors.background, borderRadius: borderRadius.md }}>
                 <h4 style={{ margin: `0 0 ${spacing.md} 0`, color: colors.text }}>Request Vendor Data via WhatsApp</h4>
 
-                <div style={{ display: 'flex', gap: spacing.md, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
                     <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: colors.textMuted, marginBottom: spacing.xs }}>
                             Vendor Name

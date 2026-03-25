@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react'
+import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { useToast } from '@/hooks/useToast'
@@ -32,6 +33,7 @@ export function Shipments({
   onAddShipment,
   onSelectShipment,
 }: ShipmentsProps) {
+  const isMobile = useMobile()
   const [showForm, setShowForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [formData, setFormData] = useState<{
@@ -117,13 +119,17 @@ export function Shipments({
   }
 
   const containerStyle: React.CSSProperties = {
-    padding: spacing.lg,
+    padding: isMobile ? spacing.md : spacing.lg,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   }
 
   const headerStyle: React.CSSProperties = {
     display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: isMobile ? 'flex-start' : 'center',
+    gap: spacing.md,
     marginBottom: spacing.xl,
   }
 

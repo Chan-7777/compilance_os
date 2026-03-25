@@ -180,7 +180,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                 flexWrap: 'wrap',
             }}>
                 {/* Product Selector */}
-                <div style={{ flex: '1 1 250px' }}>
+                <div style={{ flex: '1 1 150px', minWidth: 0 }}>
                     <label style={{
                         display: 'block',
                         fontSize: '0.75rem',
@@ -213,7 +213,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                 </div>
 
                 {/* Country Selector */}
-                <div style={{ flex: '1 1 250px' }}>
+                <div style={{ flex: '1 1 150px', minWidth: 0 }}>
                     <label style={{
                         display: 'block',
                         fontSize: '0.75rem',
