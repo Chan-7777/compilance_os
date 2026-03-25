@@ -180,10 +180,12 @@ function App() {
   // -------------------------------------------------------------------------
 
   // New user: logged in but no company profile yet → show onboarding
+  // Uses localStorage so onboarding doesn't repeat if profile row is missing
   useEffect(() => {
     if (!SUPABASE_ENABLED || auth.loading) return
     if (auth.user && !auth.profile) {
-      setShowOnboarding(true)
+      const done = localStorage.getItem(`cos_ob_${auth.user.id}`)
+      if (!done) setShowOnboarding(true)
     }
   }, [auth.loading, auth.user, auth.profile])
 
@@ -214,7 +216,7 @@ function App() {
       .eq('company_id', auth.profile.company_id)
       .single()
       .then(({ data }) => {
-        if (data) {
+        if (data && data.selected_product) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
           // Show problem selector once per browser session for returning users
@@ -223,7 +225,7 @@ function App() {
             setShowProblemSelector(true)
           }
         } else {
-          // No saved settings — show onboarding
+          // No saved settings (or empty trigger-created row) — show onboarding
           setShowOnboarding(true)
         }
       })
@@ -334,6 +336,10 @@ function App() {
       setShowOnboarding(false)
       setShowProblemSelector(true)
       persistSettings(product, countries)
+      // Mark onboarding done in localStorage so it won't reappear if profile row is missing
+      if (auth.user) {
+        localStorage.setItem(`cos_ob_${auth.user.id}`, '1')
+      }
       if (companyDetails) {
         setCompanyProfile(prev => {
           const updated = {
