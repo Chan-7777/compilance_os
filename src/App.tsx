@@ -63,6 +63,8 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false)
   // Show problem selector once per login session for users who have completed onboarding
   const [showProblemSelector, setShowProblemSelector] = useState<boolean>(false)
+  // Guard against re-running onboarding logic on auth token refreshes (tab switches)
+  const settingsLoadedRef = useRef(false)
 
   const [selectedProduct, setSelectedProduct] = useState<string>('steel')
   const [selectedHsCode, setSelectedHsCode] = useState<string | null>(null)
@@ -191,6 +193,10 @@ function App() {
 
   useEffect(() => {
     if (!SUPABASE_ENABLED || !auth.profile) return
+    // Skip re-loading on token refreshes (e.g. browser tab switches) — settings
+    // are already in state and re-running this would re-trigger onboarding.
+    if (settingsLoadedRef.current) return
+    settingsLoadedRef.current = true
 
     // Load company profile
     if (auth.profile.company) {
