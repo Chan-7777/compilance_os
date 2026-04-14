@@ -226,7 +226,9 @@ function App() {
           }
         } else {
           // No saved settings (or empty trigger-created row) — show onboarding
-          setShowOnboarding(true)
+          // But only if the user hasn't already completed it (localStorage guard)
+          const done = localStorage.getItem(`cos_ob_${auth.profile.id}`)
+          if (!done) setShowOnboarding(true)
         }
       })
 
