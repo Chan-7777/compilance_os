@@ -222,19 +222,47 @@ function App() {
       .eq('company_id', auth.profile.company_id)
       .single()
       .then(({ data }) => {
+        const userId = auth.profile.id
         if (data && data.selected_product) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
+          // Clean up any stale localStorage backup now that Supabase has the data
+          localStorage.removeItem(`cos_sel_${userId}`)
           // Show problem selector once per browser session for returning users
           const sessionKey = `cos_problem_seen_${auth.profile?.company_id}`
           if (!sessionStorage.getItem(sessionKey)) {
             setShowProblemSelector(true)
           }
         } else {
-          // No saved settings (or empty trigger-created row) — show onboarding
-          // But only if the user hasn't already completed it (localStorage guard)
-          const done = localStorage.getItem(`cos_ob_${auth.profile.id}`)
-          if (!done) setShowOnboarding(true)
+          // No saved settings in Supabase — check localStorage backup written during
+          // onboarding (happens when auth.profile wasn't loaded yet, so persistSettings
+          // returned early without saving to Supabase)
+          const savedSel = localStorage.getItem(`cos_sel_${userId}`)
+          if (savedSel) {
+            try {
+              const { product: p, countries: c } = JSON.parse(savedSel) as { product: string; countries: CountryCode[] }
+              setSelectedProduct(p)
+              setSelectedCountries(c)
+              // Profile is now loaded — save to Supabase and clean up the backup
+              supabase
+                .from('user_settings')
+                .upsert({ company_id: auth.profile.company_id, selected_product: p, selected_countries: c }, { onConflict: 'company_id' })
+                .then(() => localStorage.removeItem(`cos_sel_${userId}`))
+                .catch(() => {})
+              const sessionKey = `cos_problem_seen_${auth.profile?.company_id}`
+              if (!sessionStorage.getItem(sessionKey)) {
+                setShowProblemSelector(true)
+              }
+            } catch {
+              // Corrupt backup — fall through to onboarding check
+              const done = localStorage.getItem(`cos_ob_${userId}`)
+              if (!done) setShowOnboarding(true)
+            }
+          } else {
+            // No backup either — show onboarding unless already completed
+            const done = localStorage.getItem(`cos_ob_${userId}`)
+            if (!done) setShowOnboarding(true)
+          }
         }
       })
 
@@ -344,9 +372,12 @@ function App() {
       setShowOnboarding(false)
       setShowProblemSelector(true)
       persistSettings(product, countries)
-      // Mark onboarding done in localStorage so it won't reappear if profile row is missing
-      if (auth.user) {
+      // Mark onboarding done in localStorage so it won't reappear if profile row is missing.
+      // Also save the selection as a backup — if auth.profile wasn't loaded yet when
+      // persistSettings ran (e.g. slow DB trigger), Effect 2 will restore + re-save it.
+      if (auth.user?.id) {
         localStorage.setItem(`cos_ob_${auth.user.id}`, '1')
+        localStorage.setItem(`cos_sel_${auth.user.id}`, JSON.stringify({ product, countries }))
       }
       if (companyDetails) {
         setCompanyProfile(prev => {
@@ -370,7 +401,7 @@ function App() {
         })
       }
     },
-    [persistSettings, persistProfile]
+    [persistSettings, persistProfile, auth.user]
   )
 
   const handleProblemSelect = useCallback(
