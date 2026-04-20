@@ -25,7 +25,7 @@ import {
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { fetchBatchRiskScore, fetchChecklist, fetchAlerts } from '@/lib/api'
+import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate } from '@/lib/api'
 import { colors } from '@theme/index'
 import type {
   ViewType,
@@ -75,6 +75,7 @@ function App() {
   const [activeAlertFilter, setActiveAlertFilter] = useState<'all' | AlertSeverity>('all')
 
   const [shipments, setShipments] = useState<Shipment[]>([])
+  const [rodtepEstimate, setRodtepEstimate] = useState<number | null>(null)
 
   // -------------------------------------------------------------------------
   // API-fetched data (replaces static utils from Phase 1)
@@ -176,6 +177,25 @@ function App() {
 
     return () => { cancelled = true }
   }, [selectedProduct, selectedCountries, auth.user])
+
+  // Compute RoDTEP ₹ entitlement estimate for dashboard
+  useEffect(() => {
+    const TURNOVER_MIDPOINTS: Record<string, number> = {
+      '< ₹1 Crore': 5_000_000,
+      '₹1–5 Crore': 30_000_000,
+      '₹5–25 Crore': 150_000_000,
+      '₹25–100 Crore': 625_000_000,
+      '₹100 Crore+': 2_000_000_000,
+    }
+    const midpoint = companyProfile.turnoverRange ? TURNOVER_MIDPOINTS[companyProfile.turnoverRange] : null
+    const hsCode = selectedHsCode || (productInfo.hsPrefix?.[0] ?? null)
+    if (!midpoint || !hsCode) { setRodtepEstimate(null); return }
+    let cancelled = false
+    fetchRodtepRate(hsCode).then(rate => {
+      if (!cancelled) setRodtepEstimate(midpoint * (rate / 100))
+    }).catch(() => { if (!cancelled) setRodtepEstimate(null) })
+    return () => { cancelled = true }
+  }, [selectedHsCode, companyProfile.turnoverRange, productInfo.hsPrefix])
 
   // -------------------------------------------------------------------------
   // Load persisted data from Supabase when authenticated
@@ -649,6 +669,7 @@ function App() {
             alerts={alerts}
             onNavigate={handleNavigate}
             shipments={shipments}
+            rodtepEstimate={rodtepEstimate}
           />
         )
       case 'risk':

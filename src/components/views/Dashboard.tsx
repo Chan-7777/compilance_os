@@ -18,11 +18,18 @@ export interface DashboardProps {
   alerts: Alert[]
   onNavigate: (view: ViewType) => void
   shipments?: { gateStatus?: string }[]
+  rodtepEstimate?: number | null
+}
+
+function formatINR(value: number): string {
+  if (value >= 1_00_00_000) return `₹${(value / 1_00_00_000).toFixed(1)} Cr`
+  if (value >= 1_00_000) return `₹${(value / 1_00_000).toFixed(1)} L`
+  return `₹${Math.round(value).toLocaleString('en-IN')}`
 }
 
 const CBAM_PRODUCTS = ['steel', 'chemicals', 'aluminium', 'cement', 'fertilizer', 'electricity']
 
-export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [] }: DashboardProps) {
+export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [], rodtepEstimate = null }: DashboardProps) {
   const overallRisk = riskResults.length > 0 ? {
     score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
     level: (() => {
@@ -36,10 +43,6 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
   const showCBAM = selectedCountries.includes('EU') && CBAM_PRODUCTS.includes(productId)
   const activeFTACount = selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length
   const processedShipments = shipments.filter(s => s.gateStatus === 'approved' || s.gateStatus === 'blocked').length
-  const timeSavedLabel = processedShipments > 0 ? `${processedShipments * 4} hrs` : '~4 hrs'
-  const timeSavedSublabel = processedShipments > 0
-    ? `Saved across ${processedShipments} processed shipment${processedShipments > 1 ? 's' : ''}`
-    : 'Avg. time saved per shipment on documentation'
 
   const bigNum: React.CSSProperties = {
     fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.1,
@@ -111,10 +114,25 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
                 </div>
               )}
               <div>
-                <div style={{ ...bigNum, color: colors.text }}>{timeSavedLabel}</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: 2 }}>
-                  {timeSavedSublabel}
+                <div style={{ ...bigNum, color: '#15803D' }}>
+                  {rodtepEstimate != null ? formatINR(rodtepEstimate) : '—'}
                 </div>
+                <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
+                  Estimated unclaimed RoDTEP entitlement
+                </div>
+                {rodtepEstimate != null ? (
+                  <button onClick={() => onNavigate('fta')} style={{
+                    marginTop: 6, padding: '2px 10px', fontSize: '0.75rem', fontWeight: 600,
+                    color: '#15803D', backgroundColor: 'transparent',
+                    border: '1px solid #86EFAC', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    → Run full recovery audit
+                  </button>
+                ) : (
+                  <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 4 }}>
+                    Add your HS code in Settings to see estimate
+                  </div>
+                )}
               </div>
               <div>
                 <div style={{ ...bigNum, color: '#D97706' }}>
