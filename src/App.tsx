@@ -246,6 +246,9 @@ function App() {
         if (data && data.selected_product) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
+          // Backfill the onboarding-done flag so Effect 1 never shows onboarding
+          // again on a new browser or after localStorage is cleared.
+          localStorage.setItem(`cos_ob_${userId}`, '1')
           // Clean up any stale localStorage backup now that Supabase has the data
           localStorage.removeItem(`cos_sel_${userId}`)
           // Show problem selector once per browser session for returning users
