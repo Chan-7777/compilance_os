@@ -21,6 +21,7 @@ import {
   Settings,
   LabelValidator,
   EUCompliance,
+  RoDTEPCalculator,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
@@ -752,6 +753,12 @@ function App() {
             selectedProduct={productInfo.label}
             selectedCountries={selectedCountries}
             shipments={shipments}
+          />
+        )
+      case 'rodtep':
+        return (
+          <RoDTEPCalculator
+            companyProfile={companyProfile}
           />
         )
       default:

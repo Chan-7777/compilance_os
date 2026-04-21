@@ -61,6 +61,11 @@ const EUIcon = () => (
     <path d="M6.3 6.3l11.4 11.4M17.7 6.3L6.3 17.7" strokeWidth="1.2" strokeDasharray="2 2"/>
   </svg>
 )
+const RoDTEPIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+  </svg>
+)
 
 type NavGroup = {
   label: string
@@ -122,7 +127,8 @@ export function Sidebar({ currentView, onNavigate, alertCount = 0, isMobile = fa
       label: 'MARGINS & SAVINGS',
       accent: '#10B981',
       items: [
-        { id: 'fta', label: 'Trade Deals & Savings', Icon: FTAIcon, tier: 'pro' },
+        { id: 'fta',    label: 'Trade Deals & Savings', Icon: FTAIcon,    tier: 'pro' },
+        { id: 'rodtep', label: 'RoDTEP Recovery',       Icon: RoDTEPIcon, tier: 'pro' },
       ],
     },
     {

@@ -330,6 +330,7 @@ export type ViewType =
   | 'settings'
   | 'label-validator'
   | 'eu-compliance'
+  | 'rodtep'
 
 export interface AppState {
   currentView: ViewType
