@@ -42,7 +42,6 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
   const productId = PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id || selectedProduct
   const showCBAM = selectedCountries.includes('EU') && CBAM_PRODUCTS.includes(productId)
   const activeFTACount = selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length
-  const processedShipments = shipments.filter(s => s.gateStatus === 'approved' || s.gateStatus === 'blocked').length
 
   const bigNum: React.CSSProperties = {
     fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.1,

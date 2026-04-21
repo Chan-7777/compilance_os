@@ -238,13 +238,14 @@ function App() {
     }
 
     // Load user settings (selected product/countries)
+    const profile = auth.profile
     supabase
       .from('user_settings')
       .select('*')
-      .eq('company_id', auth.profile.company_id)
+      .eq('company_id', profile.company_id)
       .single()
       .then(({ data }) => {
-        const userId = auth.profile.id
+        const userId = profile.id
         if (data && data.selected_product) {
           setSelectedProduct(data.selected_product)
           setSelectedCountries(data.selected_countries as CountryCode[])
@@ -254,7 +255,7 @@ function App() {
           // Clean up any stale localStorage backup now that Supabase has the data
           localStorage.removeItem(`cos_sel_${userId}`)
           // Show problem selector once per browser session for returning users
-          const sessionKey = `cos_problem_seen_${auth.profile?.company_id}`
+          const sessionKey = `cos_problem_seen_${profile.company_id}`
           if (!sessionStorage.getItem(sessionKey)) {
             setShowProblemSelector(true)
           }
@@ -269,12 +270,12 @@ function App() {
               setSelectedProduct(p)
               setSelectedCountries(c)
               // Profile is now loaded — save to Supabase and clean up the backup
-              supabase
-                .from('user_settings')
-                .upsert({ company_id: auth.profile.company_id, selected_product: p, selected_countries: c }, { onConflict: 'company_id' })
-                .then(() => localStorage.removeItem(`cos_sel_${userId}`))
-                .catch(() => {})
-              const sessionKey = `cos_problem_seen_${auth.profile?.company_id}`
+              void Promise.resolve(
+                supabase
+                  .from('user_settings')
+                  .upsert({ company_id: profile.company_id, selected_product: p, selected_countries: c }, { onConflict: 'company_id' })
+              ).then(() => localStorage.removeItem(`cos_sel_${userId}`), () => {})
+              const sessionKey = `cos_problem_seen_${profile.company_id}`
               if (!sessionStorage.getItem(sessionKey)) {
                 setShowProblemSelector(true)
               }
