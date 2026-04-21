@@ -22,6 +22,7 @@ import {
   LabelValidator,
   EUCompliance,
   RoDTEPCalculator,
+  PublicCBAMChecker,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
@@ -634,6 +635,11 @@ function App() {
   // -------------------------------------------------------------------------
   // Auth Gate — show login if Supabase is configured but user is not authed
   // -------------------------------------------------------------------------
+
+  // Public pages bypass auth gate
+  if (window.location.search.includes('public=cbam')) {
+    return <PublicCBAMChecker />
+  }
 
   if (SUPABASE_ENABLED) {
     if (auth.loading) {

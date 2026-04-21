@@ -4,5 +4,8 @@
       "path": "/api/cron/fetch-feeds",
       "schedule": "0 2 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/cbam-check", "destination": "/?public=cbam" }
   ]
 }

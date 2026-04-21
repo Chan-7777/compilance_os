@@ -31,3 +31,5 @@ export type { EUComplianceProps } from './EUCompliance'
 
 export { RoDTEPCalculator } from './RoDTEPCalculator'
 export type { RoDTEPCalculatorProps } from './RoDTEPCalculator'
+
+export { PublicCBAMChecker } from './PublicCBAMChecker'
