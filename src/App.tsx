@@ -49,6 +49,9 @@ const DEFAULT_PROFILE: CompanyProfile = {
   size: 'small',
 }
 
+const HIGH_TURNOVER_BANDS = new Set(['₹25–100 Crore', '₹100 Crore+'])
+const isHighTurnover = (range?: string) => !!range && HIGH_TURNOVER_BANDS.has(range)
+
 function App() {
   const auth = useAuth()
   const isMobile = useMobile()
@@ -396,7 +399,6 @@ function App() {
       if (hsCode) setSelectedHsCode(hsCode)
       if (hsProductName) setSelectedHsProductName(hsProductName)
       setShowOnboarding(false)
-      setShowProblemSelector(true)
       persistSettings(product, countries)
       // Mark onboarding done in localStorage so it won't reappear if profile row is missing.
       // Also save the selection as a backup — if auth.profile wasn't loaded yet when
@@ -426,8 +428,13 @@ function App() {
           return updated
         })
       }
+      if (countries.includes('EU') && isHighTurnover(companyDetails?.turnoverRange)) {
+        startTransition(() => setCurrentView('eu-compliance'))
+      } else {
+        setShowProblemSelector(true)
+      }
     },
-    [persistSettings, persistProfile, auth.user]
+    [persistSettings, persistProfile, auth.user, startTransition]
   )
 
   const handleProblemSelect = useCallback(
