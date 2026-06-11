@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import './index.css'
 import App from './App.tsx'
+import { DesignSystemDemo } from './components/DesignSystemDemo'
+import { colors } from '@theme/index'
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN
 
@@ -33,24 +35,26 @@ if (SENTRY_DSN) {
   })
 }
 
+const isDemo = new URLSearchParams(window.location.search).has('demo')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Sentry.ErrorBoundary
+    {isDemo ? <DesignSystemDemo /> : <Sentry.ErrorBoundary
       fallback={
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', height: '100vh', gap: 16,
-          fontFamily: 'sans-serif', color: '#374151',
+          fontFamily: 'sans-serif', color: colors.text,
         }}>
           <div style={{ fontSize: '2rem' }}>⚠️</div>
           <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Something went wrong</div>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+          <div style={{ fontSize: '0.875rem', color: colors.textMuted }}>
             Our team has been notified. Please refresh to continue.
           </div>
           <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '8px 20px', backgroundColor: '#1e3a8a', color: '#fff',
+              padding: '8px 20px', backgroundColor: colors.primary, color: colors.white,
               border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem',
             }}
           >
@@ -60,6 +64,6 @@ createRoot(document.getElementById('root')!).render(
       }
     >
       <App />
-    </Sentry.ErrorBoundary>
+    </Sentry.ErrorBoundary>}
   </StrictMode>,
 )

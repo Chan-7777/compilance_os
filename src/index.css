@@ -2,13 +2,14 @@
  * ComplianceOS - Global Styles (v3 - Dark Sidebar / LegalInspect Style)
  * ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+/* Space Grotesk + JetBrains Mono loaded via index.html <link> */
 
 *, *::before, *::after { box-sizing: border-box; }
 
 :root {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  font-size: 16px;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -20,8 +21,8 @@
 body {
   margin: 0; padding: 0;
   min-width: 320px; min-height: 100vh;
-  background-color: #F3F4F6;
-  color: #111827;
+  background-color: #FAFAF8;
+  color: #1E293B;
   overflow-x: hidden;
 }
 
@@ -30,7 +31,7 @@ body {
 
 #root { min-height: 100vh; }
 
-a { color: #2563EB; text-decoration: none; }
+a { color: #0D9488; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; line-height: 1.2; }
@@ -41,11 +42,11 @@ button {
   font-family: inherit; font-size: inherit;
   border: none; background: none; cursor: pointer; padding: 0; margin: 0;
 }
-button:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+button:focus-visible { outline: 2px solid #0D9488; outline-offset: 2px; }
 
 input, select, textarea { font-family: inherit; font-size: inherit; }
 input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid #2563EB; outline-offset: 2px;
+  outline: 2px solid #0D9488; outline-offset: 2px;
 }
 
 img { max-width: 100%; height: auto; display: block; }
@@ -53,11 +54,11 @@ table { border-collapse: collapse; width: 100%; }
 code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #F3F4F6; }
-::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+::-webkit-scrollbar-track { background: #FAFAF8; }
+::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
 
-::selection { background-color: #BFDBFE; color: #111827; }
+::selection { background-color: #CCFBF1; color: #111827; }
 html { scroll-behavior: smooth; }
 
 /* JargonTip */

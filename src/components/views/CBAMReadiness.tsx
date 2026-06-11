@@ -22,7 +22,7 @@ export function CBAMReadiness({ product }: { product: string }) {
                 companyName: 'ComplianceOS Exporter'
             })
             if (result.success) {
-                success('WhatsApp request sent successfully!')
+                success('Request preview generated — WhatsApp Business API integration required to send live messages.')
                 setVendorName('')
                 setPhoneNumber('')
             }
@@ -55,8 +55,9 @@ export function CBAMReadiness({ product }: { product: string }) {
         <div style={sectionStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text }}>
-                        🌍 Supply Chain Data Collection (CBAM Scope 3)
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /><path d="M2 12h20" /></svg>
+                        <span>Supply Chain Data Collection (CBAM Scope 3)</span>
                     </h3>
                     <p style={{ margin: `${spacing.xs} 0 0 0`, color: colors.textMuted, fontSize: '0.875rem' }}>
                         EU regulations require primary emissions data from your tier-2 suppliers. Collect this data frictionlessly via WhatsApp.
@@ -98,14 +99,17 @@ export function CBAMReadiness({ product }: { product: string }) {
                             onClick={handleSendRequest}
                             disabled={isSending || !vendorName || !phoneNumber}
                         >
-                            {isSending ? 'Sending...' : '📱 Send Request'}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                <span>{isSending ? 'Generating...' : 'Preview Request'}</span>
+                            </span>
                         </Button>
                     </div>
                 </div>
 
-                <div style={{ marginTop: spacing.md, padding: spacing.sm, backgroundColor: '#dcfce7', borderRadius: borderRadius.md, border: '1px solid #86efac' }}>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#166534' }}>
-                        <strong>WhatsApp Preview:</strong> "ComplianceOS request from ComplianceOS Exporter: Please reply with your monthly energy usage for {product || 'your supplied materials'} to ensure EU export compliance."
+                <div style={{ marginTop: spacing.md, padding: spacing.sm, backgroundColor: colors.surfaces.warningBg, borderRadius: borderRadius.md, border: `1px solid ${colors.status.pending}44` }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: colors.surfaces.warningText }}>
+                        <strong>Template Preview</strong> (requires WhatsApp Business API to send live): "ComplianceOS request from ComplianceOS Exporter: Please reply with your monthly energy usage for {product || 'your supplied materials'} to ensure EU export compliance."
                     </p>
                 </div>
             </div>

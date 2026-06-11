@@ -198,38 +198,41 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
 
       {/* Landed Cost & Margin Calculator */}
       {(savingsResults.length > 0 || savingsLoading) && (
-        <div style={{ ...sectionStyle, padding: spacing.lg, backgroundColor: '#E8F5E9', borderRadius: borderRadius.lg, border: `3px solid #4CAF50` }}>
+        <div style={{ ...sectionStyle, padding: spacing.lg, backgroundColor: colors.surfaces.successBg, borderRadius: borderRadius.lg, border: `3px solid ${colors.status.success}66` }}>
 
           {/* HS Code context pill */}
           <div style={{ marginBottom: spacing.md }}>
             {selectedHsCode ? (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                backgroundColor: '#F3F4F6', border: '1px solid #D1D5DB',
+                backgroundColor: colors.surface, border: `1px solid ${colors.border}`,
                 borderRadius: borderRadius.sm, padding: '3px 10px',
                 fontSize: '0.75rem', color: colors.textMuted, fontFamily: "'JetBrains Mono', monospace",
               }}>
-                📦 HS Code: {selectedHsCode}{selectedHsProductName ? ` — ${selectedHsProductName}` : ''}
-                <span style={{ color: '#6B7280', fontFamily: 'inherit', fontSize: '0.7rem' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"/><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"/><polygon points="12 12 21 6.92 12 1.84 3 6.92 12 12"/></svg>
+                <span>HS Code: {selectedHsCode}{selectedHsProductName ? ` — ${selectedHsProductName}` : ''}</span>
+                <span style={{ color: colors.textMuted, fontFamily: 'inherit', fontSize: '0.7rem' }}>
                   &nbsp;[Rates shown for this product]
                 </span>
               </span>
             ) : (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                backgroundColor: '#FFFBEB', border: '1px solid #FDE68A',
+                backgroundColor: colors.surfaces.amberBg, border: `1px solid ${colors.status.pending}44`,
                 borderRadius: borderRadius.sm, padding: '3px 10px',
-                fontSize: '0.75rem', color: '#92400E',
+                fontSize: '0.75rem', color: colors.surfaces.amberText,
               }}>
-                💡 Tip: Select a specific product in My Checklist to see HS-code-accurate duty rates.
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.surfaces.amberText, flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Tip: Select a specific product in My Checklist to see HS-code-accurate duty rates.</span>
               </span>
             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md, gap: spacing.sm }}>
             <div>
-              <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.xs }}>
-                📉 Landed Cost & Margin Calculator
+              <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.xs, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.status.success, flexShrink: 0 }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <span>Landed Cost & Margin Calculator</span>
               </h3>
               <p style={{ fontSize: '0.75rem', color: colors.textMuted, margin: 0 }}>
                 Full cost of exporting — duty, savings, and government rebates
@@ -238,7 +241,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             {totalSavings > 0 && !savingsLoading && (
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.625rem', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Total Savings</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#4CAF50', fontFamily: "'JetBrains Mono', monospace" }}>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: colors.status.success, fontFamily: "'JetBrains Mono', monospace" }}>
                   ₹{totalSavings.toLocaleString('en-IN')}
                 </div>
               </div>
@@ -266,9 +269,9 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                   onClick={() => setSavingsInput(v)}
                   style={{
                     padding: '4px 10px', borderRadius: borderRadius.sm, fontSize: '0.625rem', fontWeight: 600,
-                    border: `1px solid ${savingsInput === v ? '#4CAF50' : colors.border}`,
-                    backgroundColor: savingsInput === v ? '#E8F5E9' : 'transparent',
-                    color: savingsInput === v ? '#4CAF50' : colors.textMuted,
+                    border: `1px solid ${savingsInput === v ? colors.accent : colors.border}`,
+                    backgroundColor: savingsInput === v ? colors.accentSurface : 'transparent',
+                    color: savingsInput === v ? colors.accent : colors.textMuted,
                     cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace",
                   }}
                 >
@@ -283,14 +286,14 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 14px', marginBottom: spacing.xs,
-              backgroundColor: '#FFF7ED', borderRadius: borderRadius.md,
-              border: '1px solid #FED7AA',
+              backgroundColor: colors.surfaces.amberBg, borderRadius: borderRadius.md,
+              border: `1px solid ${colors.status.pending}44`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: '1.125rem' }}>🇮🇳</span>
                 <div>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#92400E' }}>India (origin) import duty</div>
-                  <div style={{ fontSize: '0.625rem', color: '#B45309' }}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: colors.surfaces.amberText }}>India (origin) import duty</div>
+                  <div style={{ fontSize: '0.625rem', color: colors.surfaces.amberText }}>
                     {indiaRate > 0
                       ? `${indiaRate}% MFN — duty drawback claimable on imported inputs`
                       : 'Nil duty — product is fully exempt in India'}
@@ -298,10 +301,10 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400E', fontFamily: "'JetBrains Mono', monospace" }}>
+                <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: colors.surfaces.amberText, fontFamily: "'JetBrains Mono', monospace" }}>
                   {indiaRate}%
                 </div>
-                <div style={{ fontSize: '0.625rem', color: '#B45309' }}>HS {selectedHsCode}</div>
+                <div style={{ fontSize: '0.625rem', color: colors.surfaces.amberText }}>HS {selectedHsCode}</div>
               </div>
             </div>
           )}
@@ -327,7 +330,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#4CAF50', fontFamily: "'JetBrains Mono', monospace" }}>
+                    <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: colors.status.success, fontFamily: "'JetBrains Mono', monospace" }}>
                       ₹{s.savings.toLocaleString('en-IN')}
                     </div>
                     <div style={{ fontSize: '0.625rem', color: colors.textMuted }}>saved per shipment</div>
@@ -337,8 +340,9 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
             </div>
           ) : null}
 
-          <div style={{ marginTop: spacing.sm, fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5 }}>
-            ℹ️ Rates are indicative. Actual preferential tariffs depend on HS code and Rules of Origin compliance. Ensure Certificate of Origin is filed correctly to claim benefits.
+          <div style={{ marginTop: spacing.sm, fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Rates are indicative. Actual preferential tariffs depend on HS code and Rules of Origin compliance. Ensure Certificate of Origin is filed correctly to claim benefits.</span>
           </div>
         </div>
       )}
@@ -353,12 +357,13 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
           <div style={{
             ...sectionStyle,
             padding: spacing.lg,
-            backgroundColor: '#EFF6FF',
+            backgroundColor: colors.accentSurface,
             borderRadius: borderRadius.lg,
-            border: '3px solid #BFDBFE',
+            border: `3px solid ${colors.accent}44`,
           }}>
-            <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.md }}>
-              🏛️ Government Export Rebates (Estimated)
+            <h3 style={{ ...sectionTitleStyle, margin: 0, marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent, flexShrink: 0 }}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="16"/><line x1="15" y1="22" x2="15" y2="16"/><line x1="9" y1="16" x2="15" y2="16"/><path d="M12 7v4"/><path d="M9 9h6"/></svg>
+              <span>Government Export Rebates (Estimated)</span>
             </h3>
 
             <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: colors.text, marginBottom: spacing.sm }}>
@@ -379,7 +384,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                 padding: '8px 12px', backgroundColor: colors.white, borderRadius: borderRadius.md,
               }}>
                 <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>RoDTEP rebate ({rodtepRate}% of FOB)</span>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#2563EB', fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: colors.accent, fontFamily: "'JetBrains Mono', monospace" }}>
                   ₹{rodtepRebate.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -393,7 +398,7 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
                   href="https://www.dgft.gov.in"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: '0.8125rem', color: '#2563EB', textDecoration: 'underline' }}
+                  style={{ fontSize: '0.8125rem', color: colors.accent, textDecoration: 'underline' }}
                 >
                   Check DGFT portal
                 </a>
@@ -411,17 +416,18 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
 
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 12px', backgroundColor: '#DBEAFE', borderRadius: borderRadius.md,
+                padding: '10px 12px', backgroundColor: colors.accentSurface, borderRadius: borderRadius.md,
               }}>
                 <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Net duty after FTA + RoDTEP</span>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#1D4ED8', fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: colors.accent, fontFamily: "'JetBrains Mono', monospace" }}>
                   ₹{netDuty.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5 }}>
-              ⚠️ RoDTEP rate sourced from DGFT Appendix 4R (Notification No. 32, wef 10.10.2024) with 50% reduction applied to Ch 25+ per Notification 60/2025-26. Chapters 1–24 at full rate. Verify at DGFT FTP portal for your exact 8-digit ITC-HS code.
+            <div style={{ fontSize: '0.625rem', color: colors.textMuted, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.textMuted, flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>RoDTEP rate sourced from DGFT Appendix 4R (Notification No. 32, wef 10.10.2024) with 50% reduction applied to Ch 25+ per Notification 60/2025-26. Chapters 1–24 at full rate. Verify at DGFT FTP portal for your exact 8-digit ITC-HS code.</span>
             </div>
           </div>
         )

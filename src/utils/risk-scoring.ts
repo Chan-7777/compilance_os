@@ -12,7 +12,7 @@ import type {
 } from '@/types'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { FTA_DATABASE } from '@/data/fta'
-import { COLORS } from '@/styles/colors'
+import { colors } from '@theme/index'
 
 /**
  * Calculate comprehensive risk score for a product-country-company combination
@@ -215,13 +215,13 @@ export function getRiskLevel(score: number): RiskLevel {
 export function getRiskColor(level: RiskLevel): string {
   switch (level) {
     case 'high':
-      return COLORS.red
+      return colors.risk.high
     case 'medium':
-      return COLORS.yellow
+      return colors.risk.medium
     case 'low':
-      return COLORS.green
+      return colors.risk.low
     default:
-      return COLORS.textMuted
+      return colors.textMuted
   }
 }
 
@@ -231,11 +231,11 @@ export function getRiskColor(level: RiskLevel): string {
 export function getRiskBgColor(level: RiskLevel): string {
   switch (level) {
     case 'high':
-      return COLORS.redDim
+      return colors.surfaces.dangerBg
     case 'medium':
-      return COLORS.yellowDim
+      return colors.surfaces.warningBg
     case 'low':
-      return COLORS.greenDim
+      return colors.surfaces.successBg
     default:
       return 'transparent'
   }
@@ -247,17 +247,17 @@ export function getRiskBgColor(level: RiskLevel): string {
 export function getSeverityColor(severity: RiskSeverity): string {
   switch (severity) {
     case 'high':
-      return COLORS.red
+      return colors.risk.high
     case 'medium':
-      return COLORS.yellow
+      return colors.risk.medium
     case 'low':
-      return COLORS.textMuted
+      return colors.textMuted
     case 'positive':
-      return COLORS.green
+      return colors.risk.low
     case 'info':
-      return COLORS.blue
+      return colors.accent
     default:
-      return COLORS.textMuted
+      return colors.textMuted
   }
 }
 

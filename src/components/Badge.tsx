@@ -1,9 +1,9 @@
 // ============================================================================
-// Badge Component - Status and label indicators
+// Badge Component
 // ============================================================================
 
 import type { ReactNode } from 'react'
-import { colors } from '@theme/index'
+import { colors, borderRadius, fontWeight } from '@theme/index'
 
 export type BadgeVariant =
   | 'default'
@@ -12,6 +12,11 @@ export type BadgeVariant =
   | 'warning'
   | 'danger'
   | 'info'
+  | 'success-soft'
+  | 'warning-soft'
+  | 'danger-soft'
+  | 'info-soft'
+  | 'amber-soft'
   | 'risk-high'
   | 'risk-medium'
   | 'risk-low'
@@ -27,12 +32,12 @@ export interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, React.CSSProperties> = {
   default: {
-    backgroundColor: colors.surface,
-    color: colors.text,
+    backgroundColor: colors.surfaces.neutralBg,
+    color: colors.surfaces.neutralText,
     border: `1px solid ${colors.border}`,
   },
   primary: {
-    backgroundColor: colors.orange,
+    backgroundColor: colors.primary,
     color: colors.white,
   },
   success: {
@@ -41,7 +46,7 @@ const variantStyles: Record<BadgeVariant, React.CSSProperties> = {
   },
   warning: {
     backgroundColor: colors.status.pending,
-    color: colors.charcoal,
+    color: colors.text,
   },
   danger: {
     backgroundColor: colors.status.error,
@@ -51,47 +56,66 @@ const variantStyles: Record<BadgeVariant, React.CSSProperties> = {
     backgroundColor: colors.severity.info,
     color: colors.white,
   },
+  // Soft (tinted bg + dark text) — use these inside cards/tables
+  'success-soft': {
+    backgroundColor: colors.surfaces.successBg,
+    color: colors.surfaces.successText,
+  },
+  'warning-soft': {
+    backgroundColor: colors.surfaces.warningBg,
+    color: colors.surfaces.warningText,
+  },
+  'danger-soft': {
+    backgroundColor: colors.surfaces.dangerBg,
+    color: colors.surfaces.dangerText,
+  },
+  'info-soft': {
+    backgroundColor: colors.surfaces.infoBg,
+    color: colors.surfaces.infoText,
+  },
+  'amber-soft': {
+    backgroundColor: colors.surfaces.amberBg,
+    color: colors.surfaces.amberText,
+  },
   'risk-high': {
     backgroundColor: colors.risk.high,
     color: colors.white,
   },
   'risk-medium': {
-    backgroundColor: colors.risk.medium,
-    color: colors.charcoal,
+    backgroundColor: colors.surfaces.warningBg,
+    color: colors.surfaces.warningText,
   },
   'risk-low': {
-    backgroundColor: colors.risk.low,
-    color: colors.white,
+    backgroundColor: colors.surfaces.successBg,
+    color: colors.surfaces.successText,
   },
 }
 
 const sizeStyles: Record<BadgeSize, React.CSSProperties> = {
   sm: {
     fontSize: '0.75rem',
-    padding: '0.125rem 0.5rem',
+    padding: '0.2rem 0.5rem',
+    minHeight: '24px',
   },
   md: {
-    fontSize: '0.875rem',
-    padding: '0.25rem 0.75rem',
+    fontSize: '0.8125rem',
+    padding: '0.25rem 0.625rem',
+    minHeight: '28px',
   },
   lg: {
-    fontSize: '1rem',
-    padding: '0.375rem 1rem',
+    fontSize: '0.875rem',
+    padding: '0.375rem 0.875rem',
+    minHeight: '32px',
   },
 }
 
-export function Badge({
-  children,
-  variant = 'default',
-  size = 'md',
-  className = '',
-}: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'md', className = '' }: BadgeProps) {
   const baseStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '9999px',
-    fontWeight: 500,
+    borderRadius: borderRadius.full,
+    fontWeight: fontWeight.medium,
     lineHeight: 1,
     whiteSpace: 'nowrap',
     ...variantStyles[variant],
@@ -99,13 +123,7 @@ export function Badge({
   }
 
   return (
-    <span
-      role="status"
-      data-variant={variant}
-      data-size={size}
-      className={className}
-      style={baseStyle}
-    >
+    <span role="status" data-variant={variant} data-size={size} className={className} style={baseStyle}>
       {children}
     </span>
   )

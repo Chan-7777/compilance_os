@@ -47,12 +47,12 @@ function getDeadlineCountdown(dateStr: string): { label: string; color: string }
     const diffMs = deadline.getTime() - now.getTime()
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
     if (diffDays < 0) {
-      return { label: `${Math.abs(diffDays)}d overdue`, color: colors.risk?.high ?? '#DC2626' }
+      return { label: `${Math.abs(diffDays)}d overdue`, color: colors.risk.high }
     }
     const label = diffDays === 0 ? 'Due today' : diffDays === 1 ? '1 day left' : `${diffDays} days left`
-    if (diffDays <= 7) return { label, color: colors.risk?.high ?? '#DC2626' }
-    if (diffDays <= 30) return { label, color: '#D97706' }
-    return { label, color: colors.textMuted ?? '#6B7280' }
+    if (diffDays <= 7) return { label, color: colors.risk.high }
+    if (diffDays <= 30) return { label, color: colors.risk.medium }
+    return { label, color: colors.textMuted }
   } catch {
     return null
   }
@@ -287,7 +287,7 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
             {/* Plain-language impact text — always visible, shown first */}
             <div style={{
               fontSize: '0.8rem',
-              color: alert.severity === 'critical' ? colors.risk.high : alert.severity === 'warning' ? '#D97706' : colors.textMuted,
+              color: alert.severity === 'critical' ? colors.risk.high : alert.severity === 'warning' ? colors.risk.medium : colors.textMuted,
               fontWeight: 500,
               marginBottom: spacing.xs,
               lineHeight: 1.4,
@@ -305,19 +305,23 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 color: colors.textMuted,
-                padding: `0 ${spacing.xs}`,
+                padding: spacing.xs,
                 flexShrink: 0,
-                lineHeight: 1,
               }}
               aria-label="Dismiss alert"
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           )}
-          <span style={{ fontSize: '0.75rem', color: colors.textMuted, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
-            ▼
+          <span style={{ display: 'inline-flex', alignItems: 'center', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.textMuted }}><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </div>
         {isExpanded && (
@@ -428,7 +432,12 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
       {/* Alert List */}
       {alerts.length === 0 ? (
         <EmptyState
-          icon="🔔"
+          icon={
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          }
           title="No regulatory alerts"
           description="We'll notify you when new regulations affecting your selected markets and products are announced. Make sure you've configured your target markets in Settings."
           actionLabel="Go to Settings"

@@ -238,7 +238,7 @@ export function Tab({ children, disabled = false, className = '' }: TabProps) {
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
     fontWeight: isSelected ? 600 : 400,
-    color: isSelected ? colors.orange : colors.textMuted,
+    color: isSelected ? colors.accent : colors.textMuted,
     transition: `all ${transition.fast}`,
     position: 'relative',
   }
@@ -247,20 +247,20 @@ export function Tab({ children, disabled = false, className = '' }: TabProps) {
   const variantSelectedStyles: Record<TabsVariant, React.CSSProperties> = {
     default: isSelected
       ? {
-          borderBottom: `2px solid ${colors.orange}`,
+          borderBottom: `2px solid ${colors.accent}`,
           marginBottom: '-2px',
         }
       : {},
     pills: isSelected
       ? {
-          backgroundColor: colors.orange,
+          backgroundColor: colors.accent,
           color: colors.white,
           borderRadius: borderRadius.md,
         }
       : {},
     underline: isSelected
       ? {
-          borderBottom: `2px solid ${colors.orange}`,
+          borderBottom: `2px solid ${colors.accent}`,
           marginBottom: '-1px',
         }
       : {},

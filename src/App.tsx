@@ -10,6 +10,7 @@ import { Spinner } from '@/components/Spinner'
 import { Onboarding } from '@/components/Onboarding'
 import { ProblemSelector } from '@/components/ProblemSelector'
 import { TopBar } from '@/components/TopBar'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useMobile } from '@/hooks/useMobile'
 import {
   Dashboard,
@@ -23,6 +24,7 @@ import {
   EUCompliance,
   RoDTEPCalculator,
   PublicCBAMChecker,
+  Upgrade,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
@@ -94,8 +96,23 @@ function App() {
   // Product info (UI labels only — stays client-side)
   const productInfo = useMemo(() => {
     const product = getProductById(selectedProduct)
-    return product || { id: selectedProduct, label: selectedProduct, icon: '📦', hsPrefix: [] }
+    return product || { id: selectedProduct, label: selectedProduct, icon: '', hsPrefix: [] }
   }, [selectedProduct])
+
+  // After Razorpay redirects back with ?payment=success, refresh the session so
+  // the updated plan column is visible without requiring a manual page reload.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') === 'success' && auth.user) {
+      supabase.auth.refreshSession().then(() => {
+        // Remove the query param so a refresh doesn't re-trigger this
+        const clean = window.location.pathname
+        window.history.replaceState({}, '', clean)
+        // Force a hard reload so useAuth re-fetches the updated company plan
+        window.location.reload()
+      })
+    }
+  }, [auth.user])
 
   // Fetch risk scores from API
   useEffect(() => {
@@ -675,6 +692,15 @@ function App() {
   // Render
   // -------------------------------------------------------------------------
 
+  // Plan enforcement: 'free' users are gated to dashboard / risk / alerts only.
+  const userPlan: string = auth.profile?.company?.plan ?? 'free'
+  const isPaid = userPlan !== 'free'
+
+  const gate = (feature: string) =>
+    !isPaid ? (
+      <Upgrade onNavigate={handleNavigate} currentPlan={userPlan} blockedFeature={feature} />
+    ) : null
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
@@ -698,7 +724,7 @@ function App() {
           />
         )
       case 'checklist':
-        return (
+        return gate('Compliance Checklist') ?? (
           <Checklist
             selectedProduct={selectedHsProductName ? `${selectedHsProductName} (${selectedHsCode})` : productInfo.label}
             selectedCountries={selectedCountries}
@@ -720,7 +746,7 @@ function App() {
           />
         )
       case 'fta':
-        return (
+        return gate('FTA Tariff Savings') ?? (
           <FTASchemes
             selectedCountries={selectedCountries}
             selectedProduct={selectedProduct as any}
@@ -729,7 +755,7 @@ function App() {
           />
         )
       case 'shipments':
-        return (
+        return gate('Shipments & Gate Check') ?? (
           <Shipments
             shipments={shipments}
             selectedProduct={selectedProduct}
@@ -753,7 +779,7 @@ function App() {
           />
         )
       case 'label-validator':
-        return (
+        return gate('Label Validator') ?? (
           <LabelValidator
             selectedProduct={selectedProduct}
             selectedCountries={selectedCountries}
@@ -761,7 +787,7 @@ function App() {
           />
         )
       case 'eu-compliance':
-        return (
+        return gate('EU Compliance') ?? (
           <EUCompliance
             companyProfile={companyProfile}
             selectedProduct={productInfo.label}
@@ -770,10 +796,14 @@ function App() {
           />
         )
       case 'rodtep':
-        return (
+        return gate('RoDTEP Calculator') ?? (
           <RoDTEPCalculator
             companyProfile={companyProfile}
           />
+        )
+      case 'upgrade':
+        return (
+          <Upgrade onNavigate={handleNavigate} currentPlan={userPlan} />
         )
       default:
         return null
@@ -829,8 +859,10 @@ function App() {
         data-testid="main-content"
       >
         <>
-          {renderView()}
-          <div style={{ padding: '12px 24px 0', fontSize: '0.65rem', color: '#9CA3AF', borderTop: '1px solid #E5E7EB', marginTop: '24px' }}>
+          <ErrorBoundary label={currentView}>
+            {renderView()}
+          </ErrorBoundary>
+          <div style={{ padding: '12px 24px 0', fontSize: '0.65rem', color: colors.textSubtle, borderTop: `1px solid ${colors.border}`, marginTop: '24px' }}>
             ComplianceOS provides informational guidance only — not legal, tax, or trade advice. Always consult a qualified professional.
           </div>
         </>

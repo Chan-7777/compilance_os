@@ -1,11 +1,11 @@
 // ============================================================================
-// Button Component - Interactive button with variants
+// Button Component
 // ============================================================================
 
 import type { ReactNode, ButtonHTMLAttributes } from 'react'
-import { colors, borderRadius, spacing, transition } from '@theme/index'
+import { colors, borderRadius, spacing, fontSize, fontWeight, transition } from '@theme/index'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'cta' | 'secondary' | 'outline' | 'ghost' | 'danger'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,7 +20,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
-    backgroundColor: colors.orange,
+    backgroundColor: colors.primary,
+    color: colors.white,
+    border: 'none',
+  },
+  cta: {
+    backgroundColor: colors.cta,
     color: colors.white,
     border: 'none',
   },
@@ -31,8 +36,8 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   },
   outline: {
     backgroundColor: 'transparent',
-    color: colors.orange,
-    border: `2px solid ${colors.orange}`,
+    color: colors.primary,
+    border: `1.5px solid ${colors.primary}`,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -48,34 +53,38 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
 
 const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
   sm: {
-    fontSize: '0.875rem',
+    fontSize: fontSize.sm,
     padding: `${spacing.xs} ${spacing.sm}`,
-    minHeight: '32px',
+    minHeight: '36px',
   },
   md: {
-    fontSize: '1rem',
+    fontSize: fontSize.base,
     padding: `${spacing.sm} ${spacing.md}`,
-    minHeight: '40px',
+    minHeight: '44px',
   },
   lg: {
-    fontSize: '1.125rem',
+    fontSize: fontSize.lg,
     padding: `${spacing.sm} ${spacing.lg}`,
-    minHeight: '48px',
+    minHeight: '52px',
   },
 }
 
-function Spinner() {
-  const spinnerStyle: React.CSSProperties = {
-    display: 'inline-block',
-    width: '1em',
-    height: '1em',
-    border: '2px solid currentColor',
-    borderRightColor: 'transparent',
-    borderRadius: '50%',
-    animation: 'spin 0.75s linear infinite',
-  }
-
-  return <span data-testid="button-spinner" style={spinnerStyle} aria-hidden="true" />
+function ButtonSpinner() {
+  return (
+    <span
+      data-testid="button-spinner"
+      aria-hidden="true"
+      style={{
+        display: 'inline-block',
+        width: '1em',
+        height: '1em',
+        border: '2px solid currentColor',
+        borderRightColor: 'transparent',
+        borderRadius: '50%',
+        animation: 'btn-spin 0.75s linear infinite',
+      }}
+    />
+  )
 }
 
 export function Button({
@@ -87,9 +96,9 @@ export function Button({
   leftIcon,
   rightIcon,
   disabled,
-  className = '',
   type = 'button',
   onClick,
+  style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading
@@ -100,18 +109,15 @@ export function Button({
     justifyContent: 'center',
     gap: spacing.sm,
     borderRadius: borderRadius.md,
-    fontWeight: 500,
+    fontFamily: 'inherit',
+    fontWeight: fontWeight.medium,
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     opacity: isDisabled ? 0.6 : 1,
-    transition: `all ${transition.fast}`,
+    transition: `opacity ${transition.fast}, background-color ${transition.fast}`,
     width: fullWidth ? '100%' : 'auto',
     ...variantStyles[variant],
     ...sizeStyles[size],
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (isDisabled) return
-    onClick?.(e)
+    ...style,
   }
 
   return (
@@ -120,14 +126,13 @@ export function Button({
       data-variant={variant}
       data-size={size}
       data-loading={loading}
-      data-full-width={fullWidth || undefined}
+      data-full-width={fullWidth ? 'true' : undefined}
       disabled={isDisabled}
-      className={className}
       style={baseStyle}
-      onClick={handleClick}
+      onClick={isDisabled ? undefined : onClick}
       {...props}
     >
-      {loading && <Spinner />}
+      {loading && <ButtonSpinner />}
       {!loading && leftIcon}
       <span>{children}</span>
       {!loading && rightIcon}
@@ -135,18 +140,13 @@ export function Button({
   )
 }
 
-// Add keyframes for spinner animation via style tag
+// Keyframes injected once at runtime
 if (typeof document !== 'undefined') {
-  const styleId = 'compliance-os-button-styles'
+  const styleId = 'cos-button-styles'
   if (!document.getElementById(styleId)) {
-    const style = document.createElement('style')
-    style.id = styleId
-    style.textContent = `
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    `
-    document.head.appendChild(style)
+    const s = document.createElement('style')
+    s.id = styleId
+    s.textContent = `@keyframes btn-spin { to { transform: rotate(360deg); } }`
+    document.head.appendChild(s)
   }
 }

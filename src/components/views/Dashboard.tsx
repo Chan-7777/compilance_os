@@ -74,15 +74,20 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
         <span>World Customs Org</span><span>·</span>
         <span>India DGFT</span><span>·</span>
         <span>EU Commission</span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#D97706', fontWeight: 500 }}>
-          ⚠ Reference data — verify critical deadlines with official sources
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: colors.status.pending, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+          Reference data — verify critical deadlines with official sources
         </span>
       </div>
 
       {/* Empty state */}
       {(selectedCountries.length === 0 || !selectedProduct) && (
         <EmptyState
-          icon="🚀"
+          icon={
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent }}>
+              <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5M12 2C6.5 2 2 6.5 2 12c0 2.5.5 4.5 1.5 6l12.5-12.5C14.5 4.5 12.5 4 12 2zM22 2s-5.5 2-8 4.5L19.5 12C22 9.5 22 2 22 2zM9 15c-1 0-2-1-2-2" />
+            </svg>
+          }
           title="Welcome to ComplianceOS!"
           description="Let's get started by setting up your compliance profile. Select your target markets and products to see personalised risk analysis, checklists, and trade deal savings."
           actionLabel="Set up my profile"
@@ -94,50 +99,50 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
         <>
           {/* ROI card — always first, most business-relevant */}
           <div style={{
-            padding: spacing.lg, backgroundColor: '#F0FDF4',
-            borderRadius: borderRadius.lg, border: '2px solid #86EFAC',
+            padding: spacing.lg, backgroundColor: colors.surfaces.successBg,
+            borderRadius: borderRadius.lg, border: `2px solid ${colors.status.success}66`,
             marginBottom: spacing.lg,
           }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#15803D', marginBottom: spacing.md }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.successText, marginBottom: spacing.md }}>
               Your compliance saves you money
             </div>
             <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' as const }}>
               {activeFTACount > 0 && (
                 <div>
-                  <div style={{ ...bigNum, color: '#15803D' }}>
+                  <div style={{ ...bigNum, color: colors.surfaces.successText }}>
                     {activeFTACount} active
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: 2 }}>
                     <J term="FTA">Trade deals</J> available for your markets — use the Trade Deals tab to calculate exact savings
                   </div>
                 </div>
               )}
               <div>
-                <div style={{ ...bigNum, color: '#15803D' }}>
+                <div style={{ ...bigNum, color: colors.surfaces.successText }}>
                   {rodtepEstimate != null ? formatINR(rodtepEstimate) : '—'}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
+                <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: 2 }}>
                   Estimated unclaimed RoDTEP entitlement
                 </div>
                 {rodtepEstimate != null ? (
                   <button onClick={() => onNavigate('fta')} style={{
                     marginTop: 6, padding: '2px 10px', fontSize: '0.75rem', fontWeight: 600,
-                    color: '#15803D', backgroundColor: 'transparent',
-                    border: '1px solid #86EFAC', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit',
+                    color: colors.surfaces.successText, backgroundColor: 'transparent',
+                    border: `1px solid ${colors.status.success}66`, borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit',
                   }}>
-                    → Run full recovery audit
+                    Run full recovery audit →
                   </button>
                 ) : (
-                  <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 4 }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: 4 }}>
                     Add your HS code in Settings to see estimate
                   </div>
                 )}
               </div>
               <div>
-                <div style={{ ...bigNum, color: '#D97706' }}>
+                <div style={{ ...bigNum, color: colors.status.pending }}>
                   {overallRisk ? overallRisk.level.toUpperCase() : '—'}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#D97706', marginTop: 2 }}>
+                <div style={{ fontSize: '0.75rem', color: colors.status.pending, marginTop: 2 }}>
                   Overall compliance risk level
                 </div>
               </div>
@@ -146,18 +151,18 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
 
           {/* Problem Cockpit */}
           <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: spacing.md, marginBottom: spacing.xl }}>
-            {/* 🚨 Shipment At Risk */}
+            {/* Shipment At Risk */}
             <div style={{
               flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: '#FFF5F5', borderRadius: borderRadius.lg,
-              border: '1px solid #FED7D7', borderLeft: '4px solid #E53E3E',
+              backgroundColor: colors.surfaces.dangerBg, borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.status.error}33`, borderLeft: `4px solid ${colors.status.error}`,
             }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#C53030', marginBottom: spacing.xs }}>
-                🚨 Shipment At Risk
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.dangerText, marginBottom: spacing.xs }}>
+                Shipment At Risk
               </div>
               <div style={{
                 ...bigNum,
-                color: overallRisk?.level === 'high' ? '#C53030' : overallRisk?.level === 'medium' ? '#D97706' : overallRisk?.level === 'low' ? '#276749' : colors.textMuted,
+                color: overallRisk?.level === 'high' ? colors.risk.high : overallRisk?.level === 'medium' ? colors.risk.medium : overallRisk?.level === 'low' ? colors.risk.low : colors.textMuted,
               }}>
                 {overallRisk?.level.toUpperCase() || '—'}
               </div>
@@ -166,23 +171,23 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               </div>
               <button onClick={() => onNavigate('risk')} style={{
                 padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: '#C53030', backgroundColor: '#FED7D7',
-                border: '1px solid #FCA5A5', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+                color: colors.surfaces.dangerText, backgroundColor: `${colors.status.error}22`,
+                border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 View risk breakdown →
               </button>
             </div>
 
-            {/* 📋 Buyer Docs Needed */}
+            {/* Buyer Docs Needed */}
             <div style={{
               flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: '#FFFBEB', borderRadius: borderRadius.lg,
-              border: '1px solid #FDE68A', borderLeft: '4px solid #D97706',
+              backgroundColor: colors.surfaces.warningBg, borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.status.pending}33`, borderLeft: `4px solid ${colors.status.pending}`,
             }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#92400E', marginBottom: spacing.xs }}>
-                📋 Buyer Docs Needed
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.warningText, marginBottom: spacing.xs }}>
+                Buyer Docs Needed
               </div>
-              <div style={{ ...bigNum, color: '#92400E' }}>
+              <div style={{ ...bigNum, color: colors.surfaces.warningText }}>
                 Open checklist
               </div>
               <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
@@ -190,23 +195,23 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               </div>
               <button onClick={() => onNavigate('checklist')} style={{
                 padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: '#92400E', backgroundColor: '#FDE68A',
-                border: '1px solid #F6D860', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+                color: colors.surfaces.warningText, backgroundColor: `${colors.status.pending}22`,
+                border: `1px solid ${colors.status.pending}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Open checklist →
               </button>
             </div>
 
-            {/* 📉 Margin Under Pressure */}
+            {/* Margin Under Pressure */}
             <div style={{
               flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: '#F0FDF4', borderRadius: borderRadius.lg,
-              border: '1px solid #BBF7D0', borderLeft: '4px solid #16A34A',
+              backgroundColor: colors.surfaces.successBg, borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.status.success}33`, borderLeft: `4px solid ${colors.status.success}`,
             }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#166534', marginBottom: spacing.xs }}>
-                📉 Margin Under Pressure
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.successText, marginBottom: spacing.xs }}>
+                Margin Under Pressure
               </div>
-              <div style={{ ...bigNum, color: '#166534', fontSize: '1.5rem' }}>
+              <div style={{ ...bigNum, color: colors.surfaces.successText, fontSize: '1.5rem' }}>
                 {activeFTACount > 0
                   ? `${activeFTACount} FTA${activeFTACount > 1 ? 's' : ''} available`
                   : 'Calculate savings'}
@@ -218,23 +223,23 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               </div>
               <button onClick={() => onNavigate('fta')} style={{
                 padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: '#166534', backgroundColor: '#BBF7D0',
-                border: '1px solid #86EFAC', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+                color: colors.surfaces.successText, backgroundColor: `${colors.status.success}22`,
+                border: `1px solid ${colors.status.success}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 See savings →
               </button>
             </div>
 
-            {/* 💰 Finance This Shipment */}
+            {/* Finance This Shipment */}
             <div style={{
               flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: '#EFF6FF', borderRadius: borderRadius.lg,
-              border: '1px solid #BFDBFE', borderLeft: '4px solid #2563EB',
+              backgroundColor: colors.accentSurface, borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.accent}33`, borderLeft: `4px solid ${colors.accent}`,
             }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#1E40AF', marginBottom: spacing.xs }}>
-                💰 Finance This Shipment
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.accentHover, marginBottom: spacing.xs }}>
+                Finance This Shipment
               </div>
-              <div style={{ ...bigNum, color: '#1E40AF' }}>
+              <div style={{ ...bigNum, color: colors.accent }}>
                 {`${shipments.length} shipment${shipments.length !== 1 ? 's' : ''}`}
               </div>
               <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
@@ -242,8 +247,8 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               </div>
               <button onClick={() => onNavigate('shipments')} style={{
                 padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: '#1E40AF', backgroundColor: '#BFDBFE',
-                border: '1px solid #93C5FD', borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+                color: colors.accent, backgroundColor: `${colors.accent}22`,
+                border: `1px solid ${colors.accent}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Open shipments →
               </button>
@@ -253,8 +258,8 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
           {/* Carbon compliance widget — only for EU + carbon-heavy products */}
           {showCBAM && (
             <div style={{
-              padding: spacing.lg, backgroundColor: '#FEF2F2',
-              borderRadius: borderRadius.lg, border: '2px solid #FCA5A5',
+              padding: spacing.lg, backgroundColor: colors.surfaces.dangerBg,
+              borderRadius: borderRadius.lg, border: `2px solid ${colors.status.error}44`,
               marginBottom: spacing.lg,
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md }}>
@@ -278,8 +283,8 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
                   </div>
                   <button onClick={() => onNavigate('settings')} style={{
                     padding: `${spacing.xs} ${spacing.md}`, fontSize: '0.8rem', fontWeight: 600,
-                    color: colors.risk.high, backgroundColor: '#FEE2E2',
-                    border: `1px solid #FCA5A5`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
+                    color: colors.surfaces.dangerText, backgroundColor: `${colors.status.error}22`,
+                    border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     Set up supplier data collection →
                   </button>
@@ -303,7 +308,7 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: spacing.sm }}>
                 {criticalAlerts.slice(0, 3).map(alert => (
                   <div key={alert.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.md, backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: borderRadius.md, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.md, backgroundColor: colors.surfaces.dangerBg, border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer' }}
                     onClick={() => onNavigate('alerts')} role="button" tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onNavigate('alerts') }}
                   >

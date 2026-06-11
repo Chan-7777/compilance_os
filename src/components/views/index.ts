@@ -33,3 +33,6 @@ export { RoDTEPCalculator } from './RoDTEPCalculator'
 export type { RoDTEPCalculatorProps } from './RoDTEPCalculator'
 
 export { PublicCBAMChecker } from './PublicCBAMChecker'
+
+export { Upgrade } from './Upgrade'
+export type { UpgradeProps } from './Upgrade'

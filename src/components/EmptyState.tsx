@@ -6,7 +6,7 @@ import { colors, spacing } from '@theme/index'
 import { Button } from './Button'
 
 export interface EmptyStateProps {
-    icon?: string
+    icon?: React.ReactNode
     title: string
     description: string
     actionLabel?: string
@@ -30,6 +30,9 @@ export function EmptyState({ icon, title, description, actionLabel, onAction, se
         fontSize: '3rem',
         marginBottom: spacing.lg,
         opacity: 0.6,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     }
 
     const titleStyle: React.CSSProperties = {

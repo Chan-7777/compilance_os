@@ -219,7 +219,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     display: 'inline-block', padding: '6px 14px',
     border: `1.5px solid ${selected ? colors.primary : colors.border}`,
     borderRadius: 20, fontSize: '0.8rem', cursor: 'pointer',
-    background: selected ? '#EFF6FF' : colors.white,
+    background: selected ? colors.accentSurface : colors.white,
     color: selected ? colors.primary : colors.text,
     fontWeight: selected ? 600 : 400, transition: 'all 150ms ease',
     margin: '4px 4px 4px 0',
@@ -229,7 +229,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     display: 'flex', alignItems: 'center', gap: spacing.md, padding: spacing.md,
     border: `2px solid ${selected ? colors.primary : colors.border}`,
     borderRadius: borderRadius.lg, cursor: 'pointer',
-    background: selected ? '#EFF6FF' : colors.white, transition: 'all 150ms ease',
+    background: selected ? colors.accentSurface : colors.white, transition: 'all 150ms ease',
     width: '100%', textAlign: 'left',
   })
 
@@ -303,7 +303,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: colors.text }}>{r.label}</div>
                     <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{r.description}</div>
                   </div>
-                  {role === r.id && <span style={{ marginLeft: 'auto', color: colors.primary, fontSize: '1.1rem' }}>✓</span>}
+                  {role === r.id && (
+                    <span style={{ marginLeft: 'auto', color: colors.primary, display: 'inline-flex', alignItems: 'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -396,15 +400,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     {hsResults.map(r => (
                       <button key={r.hsCode} onClick={() => handleSelectHsProduct(r)}
                         style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, width: '100%', padding: `${spacing.sm} ${spacing.md}`, border: 'none', borderBottom: `1px solid ${colors.border}`, background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>{r.hsCode}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: colors.accentSurface, padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>{r.hsCode}</span>
                         <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {selectedHsProduct && (
-                  <div style={{ marginTop: spacing.sm, padding: `${spacing.xs} ${spacing.sm}`, backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: borderRadius.md, fontSize: '0.8rem', color: colors.primary }}>
-                    ✓ <strong>{selectedHsProduct.hsCode}</strong> — {selectedHsProduct.name}
+                  <div style={{ marginTop: spacing.sm, padding: `${spacing.xs} ${spacing.sm}`, backgroundColor: colors.accentSurface, border: `1px solid ${colors.accent}44`, borderRadius: borderRadius.md, fontSize: '0.8rem', color: colors.primary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent, flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
+                    <span><strong>{selectedHsProduct.hsCode}</strong> — {selectedHsProduct.name}</span>
                   </div>
                 )}
               </div>
@@ -425,7 +430,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     <div style={{ fontWeight: 600, fontSize: '0.875rem', color: colors.text }}>{m.name}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{m.note}</div>
                   </div>
-                  {countries.includes(m.code) && <span style={{ color: colors.primary }}>✓</span>}
+                  {countries.includes(m.code) && (
+                    <span style={{ color: colors.primary, display: 'inline-flex', alignItems: 'center' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

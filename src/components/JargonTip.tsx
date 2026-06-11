@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { useState } from 'react'
+import { colors } from '@theme/index'
 
 interface JargonTipProps {
   term: string
@@ -29,7 +30,7 @@ export function JargonTip({ term, definition, children }: JargonTipProps) {
         role="definition"
         aria-label={`${term}: ${definition}`}
         style={{
-          borderBottom: '1px dashed #94A3B8',
+          borderBottom: `1px dashed ${colors.textSubtle}`,
           cursor: 'help',
           fontWeight: 500,
         }}
@@ -44,8 +45,8 @@ export function JargonTip({ term, definition, children }: JargonTipProps) {
           width: 14,
           height: 14,
           borderRadius: '50%',
-          backgroundColor: '#E2E8F0',
-          color: '#64748B',
+          backgroundColor: colors.border,
+          color: colors.textMuted,
           fontSize: '0.6rem',
           fontWeight: 700,
           cursor: 'help',
@@ -66,8 +67,8 @@ export function JargonTip({ term, definition, children }: JargonTipProps) {
             bottom: 'calc(100% + 8px)',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: '#1E293B',
-            color: '#F8FAFC',
+            background: colors.sidebar,
+            color: colors.white,
             fontSize: '0.72rem',
             fontWeight: 400,
             lineHeight: 1.4,
@@ -89,7 +90,7 @@ export function JargonTip({ term, definition, children }: JargonTipProps) {
               left: '50%',
               transform: 'translateX(-50%)',
               border: '5px solid transparent',
-              borderTopColor: '#1E293B',
+              borderTopColor: colors.sidebar,
               display: 'block',
             }}
           />

@@ -89,8 +89,8 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
             style={inputStyle}
           />
           {notif60 && (
-            <div style={{ fontSize: '0.7rem', color: '#D97706', marginTop: 4 }}>
-              ⚠ Chapter {chapter} — Notification 60/2025-26 revised rates apply
+            <div style={{ fontSize: '0.7rem', color: colors.status.pending, marginTop: 4 }}>
+              Chapter {chapter} — Notification 60/2025-26 revised rates apply
             </div>
           )}
         </div>
@@ -110,9 +110,9 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
                 onClick={() => { setExportValue(p.value); setResult(null) }}
                 style={{
                   padding: '4px 10px', borderRadius: borderRadius.sm, fontSize: '0.625rem', fontWeight: 600,
-                  border: `1px solid ${exportValue === p.value ? '#10B981' : colors.border}`,
-                  backgroundColor: exportValue === p.value ? '#D1FAE5' : 'transparent',
-                  color: exportValue === p.value ? '#065F46' : colors.textMuted,
+                  border: `1px solid ${exportValue === p.value ? colors.accent : colors.border}`,
+                  backgroundColor: exportValue === p.value ? colors.accentSurface : 'transparent',
+                  color: exportValue === p.value ? colors.surfaces.infoText : colors.textMuted,
                   cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace",
                 }}
               >
@@ -123,14 +123,14 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
         </div>
 
         {error && (
-          <div style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: spacing.sm }}>{error}</div>
+          <div style={{ fontSize: '0.8rem', color: colors.status.error, marginBottom: spacing.sm }}>{error}</div>
         )}
 
         <button
           onClick={handleCalculate}
           disabled={loading}
           style={{
-            padding: '10px 24px', backgroundColor: '#15803D', color: '#fff',
+            padding: '10px 24px', backgroundColor: colors.accent, color: colors.white,
             border: 'none', borderRadius: borderRadius.md, fontSize: '0.875rem',
             fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1, fontFamily: 'inherit',
@@ -143,18 +143,18 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
       {/* Result */}
       {result && (
         <div style={{
-          backgroundColor: '#F0FDF4', borderRadius: borderRadius.lg,
-          border: '2px solid #86EFAC', padding: spacing.lg,
+          backgroundColor: colors.surfaces.successBg, borderRadius: borderRadius.lg,
+          border: `2px solid ${colors.status.success}66`, padding: spacing.lg,
         }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#15803D', marginBottom: spacing.md }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.successText, marginBottom: spacing.md }}>
             Estimated Entitlement
           </div>
           <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' as const, marginBottom: spacing.lg }}>
             <div>
-              <div style={{ fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: '#15803D', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: colors.surfaces.successText, lineHeight: 1.1 }}>
                 {formatINR(result.entitlement)}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#16A34A', marginTop: 2 }}>
+              <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: 2 }}>
                 Unclaimed RoDTEP on {formatINR(exportValue)} export value
               </div>
             </div>
@@ -170,8 +170,8 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
 
           {notif60 && (
             <div style={{
-              padding: '8px 12px', backgroundColor: '#FFF7ED', borderRadius: borderRadius.md,
-              border: '1px solid #FED7AA', fontSize: '0.75rem', color: '#92400E', marginBottom: spacing.md,
+              padding: '8px 12px', backgroundColor: colors.surfaces.amberBg, borderRadius: borderRadius.md,
+              border: `1px solid ${colors.status.pending}44`, fontSize: '0.75rem', color: colors.surfaces.amberText, marginBottom: spacing.md,
             }}>
               Notification 60/2025-26: rates for HS ch{chapter}+ were revised in Feb 2026. Rate shown is post-revision.
             </div>
@@ -181,7 +181,7 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
             <button
               onClick={() => generateRoDTEPReport(hsCode, exportValue, result.rate, companyProfile.name || 'Exporter')}
               style={{
-                padding: '8px 18px', backgroundColor: '#15803D', color: '#fff',
+                padding: '8px 18px', backgroundColor: colors.accent, color: colors.white,
                 border: 'none', borderRadius: borderRadius.md, fontSize: '0.8rem',
                 fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               }}

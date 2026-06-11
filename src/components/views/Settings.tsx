@@ -490,12 +490,16 @@ export function Settings({
                 color: colors.textMuted,
                 lineHeight: 1.6,
               }}>
-                💡 <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-flex', marginRight: '6px', verticalAlign: 'middle', color: colors.accent }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
                 with third-party systems (ERP, customs software, etc.). You can use all features without configuring API keys.
               </div>
               <Card>
                 <CardContent>
-                  <h4 style={{ margin: 0, marginBottom: spacing.md, fontSize: '1rem', fontWeight: 600 }}>🔑 API Keys</h4>
+                  <h4 style={{ margin: 0, marginBottom: spacing.md, fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg>
+                    API Keys
+                  </h4>
                   {/* Create new key */}
                   <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
                     <input
@@ -515,11 +519,14 @@ export function Settings({
                     <div style={{
                       padding: spacing.md,
                       marginBottom: spacing.md,
-                      backgroundColor: '#dcfce7',
-                      border: '1px solid #86efac',
+                      backgroundColor: colors.surfaces.successBg,
+                      border: `1px solid ${colors.status.success}44`,
                       borderRadius: borderRadius.md,
                     }}>
-                      <div style={{ fontWeight: 600, marginBottom: spacing.xs }}>🎉 New API Key Created!</div>
+                      <div style={{ fontWeight: 600, marginBottom: spacing.xs, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.status.success }}><polyline points="20 6 9 17 4 12" /></svg>
+                        New API Key Created!
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
                         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.875rem', wordBreak: 'break-all', backgroundColor: colors.white, padding: spacing.sm, borderRadius: borderRadius.sm, flex: 1 }}>
                           {newKeyPlaintext}
@@ -532,8 +539,9 @@ export function Settings({
                           {copiedKeyId === '__new__' ? 'Copied!' : 'Copy'}
                         </Button>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: spacing.xs }}>
-                        ⚠️ Copy this key now — it will never be shown again!
+                      <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: spacing.xs, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.status.pending }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                        Copy this key now — it will never be shown again!
                       </div>
                       <Button variant="ghost" onClick={() => setNewKeyPlaintext(null)} style={{ marginTop: spacing.xs }}>
                         Dismiss

@@ -147,10 +147,10 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
             : colors.risk.high
 
     const statusLabel = result.overallStatus === 'compliant'
-        ? '✅ Compliant'
+        ? 'Compliant'
         : result.overallStatus === 'partially_compliant'
-            ? '⚠️ Partially Compliant'
-            : '❌ Non-Compliant'
+            ? 'Partially Compliant'
+            : 'Non-Compliant'
 
     const statusColor = result.overallStatus === 'compliant'
         ? colors.risk.low
@@ -164,8 +164,9 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
         <div style={{ padding: spacing.lg }}>
             {/* Header */}
             <div style={{ marginBottom: spacing.xl }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: colors.text }}>
-                    🏷️ Label Validator
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: colors.text, display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent, flexShrink: 0 }}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
+                    <span>Label Checker</span>
                 </h2>
                 <p style={{ color: colors.textMuted, margin: `${spacing.xs} 0 0`, fontSize: '0.875rem' }}>
                     Check if your product label meets destination country requirements
@@ -233,9 +234,9 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                 style={{
                                     padding: `${spacing.xs} ${spacing.sm}`,
                                     borderRadius: borderRadius.md,
-                                    border: `1px solid ${activeCountry === code ? colors.orange : colors.border}`,
-                                    backgroundColor: activeCountry === code ? `${colors.orange}15` : colors.white,
-                                    color: activeCountry === code ? colors.orange : colors.text,
+                                    border: `1px solid ${activeCountry === code ? colors.primary : colors.border}`,
+                                    backgroundColor: activeCountry === code ? `${colors.primary}15` : colors.white,
+                                    color: activeCountry === code ? colors.primary : colors.text,
                                     fontWeight: activeCountry === code ? 600 : 400,
                                     fontSize: '0.8rem',
                                     cursor: 'pointer',
@@ -300,12 +301,15 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                                 }}
                             >
-                                ✕
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                     ) : (
                         <>
-                            <div style={{ fontSize: '3rem', color: colors.textMuted }}>📸</div>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.textMuted, marginBottom: spacing.xs }}>
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                <circle cx="12" cy="13" r="4" />
+                            </svg>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text }}>Upload Label Artwork</h3>
                                 <p style={{ margin: `${spacing.xs} 0 0`, color: colors.textMuted, fontSize: '0.875rem' }}>
@@ -342,7 +346,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                             disabled={isScanning}
                             style={{ marginTop: spacing.md, width: '100%', maxWidth: 400 }}
                         >
-                            {isScanning ? '✨ Scanning with AI...' : '✨ Verify with AI Vision'}
+                            {isScanning ? 'Scanning with AI...' : 'Verify with AI Vision'}
                         </Button>
                     )}
                 </div>
@@ -377,7 +381,9 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                         {result.score}%
                     </div>
                     <div style={{
-                        display: 'inline-block',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
                         padding: `${spacing.xs} ${spacing.md}`,
                         borderRadius: borderRadius.full,
                         backgroundColor: `${statusColor}18`,
@@ -385,7 +391,14 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                         fontWeight: 600,
                         fontSize: '0.85rem',
                     }}>
-                        {statusLabel}
+                        {result.overallStatus === 'compliant' ? (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : result.overallStatus === 'partially_compliant' ? (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                        ) : (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        )}
+                        <span>{statusLabel}</span>
                     </div>
                     <div style={{ marginTop: spacing.md, fontSize: '0.8rem', color: colors.textMuted }}>
                         {countryData?.flag} {countryData?.name} — {PRODUCT_CATEGORIES.find(p => p.id === activeProduct)?.label}
@@ -463,7 +476,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                       setSavedToShipment(true)
                     }}
                   >
-                    {savedToShipment ? '✓ Saved' : 'Save Score'}
+                    {savedToShipment ? 'Saved' : 'Save Score'}
                   </Button>
                 </div>
                 {savedToShipment && (
@@ -477,10 +490,12 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.lg }}>
                 <Button variant="secondary" size="sm" onClick={handleMarkAllCompliant}>
-                    ✓ Mark All Compliant
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><polyline points="20 6 9 17 4 12" /></svg>
+                    Mark All Compliant
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleResetAll}>
-                    ↺ Reset All
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    Reset All
                 </Button>
             </div>
 
@@ -564,7 +579,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                                 width: 40,
                                                 height: 22,
                                                 borderRadius: 11,
-                                                backgroundColor: isCompliant ? colors.risk.low : '#ddd',
+                                                backgroundColor: isCompliant ? colors.risk.low : colors.border,
                                                 position: 'relative',
                                                 cursor: 'pointer',
                                                 transition: `background-color ${transition.fast}`,
@@ -610,14 +625,20 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                                     border: 'none',
                                                     cursor: 'pointer',
                                                     color: colors.textMuted,
-                                                    fontSize: '0.85rem',
                                                     padding: spacing.xs,
                                                     borderRadius: borderRadius.sm,
                                                     transition: `background-color ${transition.fast}`,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
                                                 }}
                                                 title="Show details"
                                             >
-                                                {isExpanded ? '▲' : '▼'}
+                                                {isExpanded ? (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                                ) : (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                                )}
                                             </button>
                                         </div>
 
@@ -632,12 +653,18 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                             }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
                                                     <div>
-                                                        <span style={{ fontWeight: 600, color: colors.textMuted }}>📖 Regulation: </span>
-                                                        <span style={{ color: colors.text }}>{rule.reference}</span>
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600, color: colors.textMuted }}>
+                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent }}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5L4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z"/></svg>
+                                                            Regulation:
+                                                        </span>
+                                                        {' '}<span style={{ color: colors.text }}>{rule.reference}</span>
                                                     </div>
                                                     <div>
-                                                        <span style={{ fontWeight: 600, color: colors.textMuted }}>💡 Guidance: </span>
-                                                        <span style={{ color: colors.text }}>{rule.guidance}</span>
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600, color: colors.textMuted }}>
+                                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                                            Guidance:
+                                                        </span>
+                                                        {' '}<span style={{ color: colors.text }}>{rule.guidance}</span>
                                                     </div>
                                                     {!isCompliant && isAnswered && (
                                                         <div style={{
@@ -648,8 +675,12 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                                                             border: `1px solid ${colors.risk.high}30`,
                                                             color: colors.risk.high,
                                                             fontWeight: 500,
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
                                                         }}>
-                                                            ⚠️ Action Required: This is a {rule.severity} requirement. Please review and address before shipping.
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                                            <span>Action Required: This is a {rule.severity} requirement. Please review and address before shipping.</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -672,8 +703,9 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                     border: `1px solid ${colors.risk.high}30`,
                     borderRadius: borderRadius.lg,
                 }}>
-                    <h3 style={{ margin: 0, marginBottom: spacing.sm, color: colors.risk.high, fontSize: '1rem' }}>
-                        ⚠️ {result.failedRules} Issue{result.failedRules > 1 ? 's' : ''} Found
+                    <h3 style={{ margin: 0, marginBottom: spacing.sm, color: colors.risk.high, fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>{result.failedRules} Issue{result.failedRules > 1 ? 's' : ''} Found</span>
                     </h3>
                     <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: colors.text }}>
                         {result.results
@@ -704,16 +736,26 @@ const statCardStyle: React.CSSProperties = {
     textAlign: 'center',
 }
 
-function getCategoryIcon(category: string): string {
-    const icons: Record<string, string> = {
-        'Language': '🌐',
-        'Nutrition': '🥗',
-        'Safety': '🛡️',
-        'Origin': '📍',
-        'Product-Specific': '🏭',
-        'Religious': '☪️',
-        'Environmental': '♻️',
-        'Identification': '🔖',
+function getCategoryIcon(category: string): React.ReactNode {
+    const iconStyle = { flexShrink: 0, color: colors.accent }
+    switch (category) {
+        case 'Language':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        case 'Nutrition':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        case 'Safety':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        case 'Origin':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        case 'Product-Specific':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M2 20V10l10-8 10 8v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        case 'Religious':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        case 'Environmental':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        case 'Identification':
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        default:
+            return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     }
-    return icons[category] || '📋'
 }

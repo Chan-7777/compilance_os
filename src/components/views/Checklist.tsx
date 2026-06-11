@@ -9,6 +9,7 @@ import { Button } from '@/components/Button'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { EmptyState } from '@/components/EmptyState'
 import { Toast } from '@/components/Toast'
+import { Spinner } from '@/components/Spinner'
 import { useToast } from '@/hooks/useToast'
 import { colors, spacing, borderRadius } from '@/theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
@@ -86,7 +87,7 @@ export function Checklist({
 
     if (!isCurrentlyChecked) {
       const item = checklist.find(i => i.id === itemId)
-      success(`✓ ${item?.item || 'Item'} completed!`)
+      success(`${item?.item || 'Item'} completed!`)
     }
   }
 
@@ -141,7 +142,7 @@ export function Checklist({
   const progressBarStyle: React.CSSProperties = {
     height: '100%',
     width: `${progress}%`,
-    backgroundColor: progress === 100 ? colors.risk.low : colors.orange,
+    backgroundColor: progress === 100 ? colors.risk.low : colors.primary,
     transition: 'width 0.3s ease',
   }
 
@@ -180,7 +181,7 @@ export function Checklist({
   const checkboxStyle: React.CSSProperties = {
     width: 18,
     height: 18,
-    accentColor: colors.orange,
+    accentColor: colors.primary,
     cursor: 'pointer',
   }
 
@@ -210,7 +211,11 @@ export function Checklist({
           <h2 style={titleStyle}>Compliance Checklist</h2>
         </div>
         <EmptyState
-          icon="✓"
+          icon={
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.risk.low }}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          }
           title="No checklist items yet"
           description="Your compliance checklist will appear here based on your selected markets and products. Start by configuring your target markets in Settings."
           actionLabel="Go to Settings"
@@ -244,7 +249,7 @@ export function Checklist({
     const lines = categories.map(category => {
       const categoryItems = checklist.filter(item => item.category === category)
       const itemLines = categoryItems.map(item => {
-        const checked = checkedItems[String(item.id)] ? '✓' : '☐'
+        const checked = checkedItems[String(item.id)] ? '[x]' : '[ ]'
         return `  ${checked} [${item.priority}] ${item.item} (${item.phase})`
       })
       return `${category}:\n${itemLines.join('\n')}`
@@ -266,9 +271,9 @@ export function Checklist({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: `${spacing.sm} ${spacing.md}`,
-            backgroundColor: '#EFF6FF',
+            backgroundColor: colors.accentSurface,
             borderRadius: borderRadius.md,
-            border: '1px solid #BFDBFE',
+            border: `1px solid ${colors.accent}33`,
             marginBottom: spacing.md,
             fontSize: '0.875rem',
           }}>
@@ -383,14 +388,23 @@ export function Checklist({
               onClick={() => setSearchOpen(o => !o)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                backgroundColor: searchOpen ? '#DBEAFE' : '#EFF6FF',
-                border: `1px solid ${searchOpen ? '#93C5FD' : '#BFDBFE'}`,
-                borderRadius: borderRadius.full, padding: '3px 10px',
+                backgroundColor: colors.accentSurface,
+                border: `1px solid ${searchOpen ? colors.accent : colors.accent + '44'}`,
+                borderRadius: borderRadius.full, padding: '4px 12px',
                 fontSize: '0.8rem', color: colors.primary, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              📦 {selectedProduct} <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>▼</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" />
+                <polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08" />
+                <polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08" />
+                <polygon points="12 12 21 6.92 12 1.84 3 6.92 12 12" />
+              </svg>
+              <span>{selectedProduct}</span>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6, transform: searchOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </button>
             {selectedCountries.map(c => (
               <span key={c} style={{
@@ -451,7 +465,7 @@ export function Checklist({
                         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const,
                       }}
                     >
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' as const }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.primary, backgroundColor: colors.accentSurface, padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' as const }}>
                         {r.hsCode}
                       </span>
                       <span style={{ fontSize: '0.875rem', color: colors.text, flex: 1 }}>{r.name}</span>
@@ -462,14 +476,26 @@ export function Checklist({
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: spacing.sm, flexShrink: 0, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: spacing.sm, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
           <Button
             variant="primary"
             size="sm"
             onClick={handleGenerateDocPack}
             disabled={pdfLoading || checklist.length === 0}
           >
-            {pdfLoading ? '⏳ Generating…' : '📄 Generate Doc Pack'}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {pdfLoading ? (
+                <>
+                  <Spinner size="sm" color={colors.white} />
+                  <span>Generating…</span>
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                  <span>Generate Doc Pack</span>
+                </>
+              )}
+            </span>
           </Button>
           <Button variant="secondary" size="sm" onClick={handleExportChecklist}>
             Copy to Clipboard
@@ -484,7 +510,7 @@ export function Checklist({
             {completedCount} of {checklist.length} items completed
           </span>
           <span style={{ fontWeight: 600, color: progress === 100 ? colors.risk.low : colors.text }}>
-            {progress}% {progress === 100 && '✓ Complete'}
+            {progress}% {progress === 100 && 'Complete'}
           </span>
         </div>
         <div style={progressBarContainerStyle} role="progressbar" aria-valuenow={progress}>

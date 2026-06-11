@@ -219,7 +219,10 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
         color: colors.textMuted,
         lineHeight: 1.6,
       }}>
-        <strong style={{ color: colors.text }}>📊 How is this score calculated?</strong>
+        <strong style={{ color: colors.text, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.accent, flexShrink: 0 }}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+          How is this score calculated?
+        </strong>
         <span style={{ marginLeft: spacing.sm }}>
           Scores are computed using a multi-factor model covering CBAM exposure, ESG Scope 3 requirements,
           certification complexity, FTA preferential access, and MSME capacity constraints.
@@ -261,8 +264,9 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                         <div style={factorDetailStyle}>
                           <strong>{factor.category}:</strong> {factor.detail}
                           {source && (
-                            <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: '2px', fontStyle: 'italic' }}>
-                              📖 {source}
+                            <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: '2px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: colors.textMuted, flexShrink: 0 }}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5L4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z"/></svg>
+                              <span>{source}</span>
                             </div>
                           )}
                         </div>
@@ -276,14 +280,14 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                   <div style={{
                     marginTop: spacing.md,
                     padding: spacing.md,
-                    backgroundColor: '#eff6ff', // blue-50
+                    backgroundColor: colors.accentSurface,
                     borderRadius: borderRadius.md,
-                    border: '1px solid #bfdbfe' // blue-200
+                    border: `1px solid ${colors.accent}44`,
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: emissionsData[result.country] ? spacing.sm : 0 }}>
                       <div>
-                        <div style={{ fontWeight: 600, color: '#1e3a8a' }}>🌍 CBAM CO₂e Scope 3 Estimate</div>
-                        <div style={{ fontSize: '0.75rem', color: '#3b82f6' }}>Powered by Climatiq API</div>
+                        <div style={{ fontWeight: 600, color: colors.primary }}>CBAM CO₂e Scope 3 Estimate</div>
+                        <div style={{ fontSize: '0.75rem', color: colors.accent }}>Powered by Climatiq API</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.sm }}>
@@ -302,7 +306,7 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                           backgroundColor: colors.white,
                         }}
                       />
-                      <span style={{ fontSize: '0.75rem', color: '#3b82f6' }}>kg per shipment</span>
+                      <span style={{ fontSize: '0.75rem', color: colors.accent }}>kg per shipment</span>
                       <Button
                         variant="primary"
                         size="sm"
@@ -315,18 +319,19 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
 
                     {emissionsData[result.country] && (
                       emissionsData[result.country].error ? (
-                        <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: '#fef2f2', borderRadius: borderRadius.sm, fontSize: '0.8rem', color: '#991b1b' }}>
-                          ⚠️ {emissionsData[result.country].error}
+                        <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaces.dangerBg, borderRadius: borderRadius.sm, fontSize: '0.8rem', color: colors.surfaces.dangerText, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span>{emissionsData[result.country].error}</span>
                         </div>
                       ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm, marginTop: spacing.md }}>
-                          <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
+                          <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.sm }}>
                             <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Est. Emissions (Per Tonne)</div>
-                            <div style={{ fontWeight: 700, fontSize: '1.25rem', fontFamily: "'JetBrains Mono', monospace", color: '#166534' }}>
+                            <div style={{ fontWeight: 700, fontSize: '1.25rem', fontFamily: "'JetBrains Mono', monospace", color: colors.surfaces.successText }}>
                               {emissionsData[result.country].formatted}
                             </div>
                           </div>
-                          <div style={{ padding: spacing.sm, backgroundColor: '#ffffff', borderRadius: borderRadius.sm }}>
+                          <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.sm }}>
                             <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Data Source</div>
                             <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>
                               {emissionsData[result.country].source} ({emissionsData[result.country].year})

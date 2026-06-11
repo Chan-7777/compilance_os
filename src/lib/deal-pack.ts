@@ -7,6 +7,7 @@ import { calculateRiskScore } from '@/utils/risk-scoring'
 import { generateChecklist } from '@/utils/checklist-generator'
 import { FTA_DATABASE } from '@/data/fta'
 import { REGULATORY_DB } from '@/data/regulatory-db'
+import { colors } from '@theme/index'
 import type { Shipment, CompanyProfile, CountryCode } from '@/types'
 
 const MFN_RATES: Record<string, number> = {
@@ -47,26 +48,26 @@ export function generateBankReadyDealPack(
 
   if (risk.score >= 70 || criticalPending > 2 || completionPct < 40) {
     gateStatus = 'BLOCKED'
-    gateColor = '#ef4444'
+    gateColor = colors.status.error
     if (risk.score >= 70) gateReasons.push(`Risk score is high (${risk.score}/100) — lender approval unlikely`)
     if (criticalPending > 2) gateReasons.push(`${criticalPending} critical compliance items are incomplete`)
     if (completionPct < 40) gateReasons.push(`Checklist only ${completionPct}% complete — below 40% minimum`)
   } else if (risk.score >= 50 || criticalPending > 0 || completionPct < 75) {
     gateStatus = 'CONDITIONAL'
-    gateColor = '#f59e0b'
+    gateColor = colors.status.pending
     if (risk.score >= 50) gateReasons.push(`Moderate risk score (${risk.score}/100) — lender review required`)
     if (criticalPending > 0) gateReasons.push(`${criticalPending} critical item(s) pending — resolve before disbursement`)
     if (completionPct < 75) gateReasons.push(`Checklist at ${completionPct}% — below 75% threshold`)
   } else {
     gateStatus = 'APPROVED'
-    gateColor = '#10b981'
+    gateColor = colors.status.success
     gateReasons.push(`All critical compliance items verified`)
     gateReasons.push(`Risk score within acceptable range (${risk.score}/100)`)
     gateReasons.push(`Checklist ${completionPct}% complete`)
   }
 
-  const riskColor = risk.level === 'high' ? '#ef4444' : risk.level === 'medium' ? '#f59e0b' : '#10b981'
-  const progressColor = completionPct >= 75 ? '#10b981' : completionPct >= 40 ? '#f59e0b' : '#ef4444'
+  const riskColor = risk.level === 'high' ? colors.status.error : risk.level === 'medium' ? colors.status.pending : colors.status.success
+  const progressColor = completionPct >= 75 ? colors.status.success : completionPct >= 40 ? colors.status.pending : colors.status.error
 
   const refNo = `COS-${shipment.id.toUpperCase().slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -205,7 +206,7 @@ export function generateBankReadyDealPack(
           <thead><tr><th>Factor</th><th>Severity</th><th>Detail</th></tr></thead>
           <tbody>
             ${risk.factors.slice(0, 7).map(f => {
-              const dotColor = f.severity === 'high' ? '#ef4444' : f.severity === 'medium' ? '#f59e0b' : f.severity === 'positive' ? '#10b981' : '#94a3b8'
+              const dotColor = f.severity === 'high' ? colors.status.error : f.severity === 'medium' ? colors.status.pending : f.severity === 'positive' ? colors.status.success : colors.textMuted
               return `<tr>
                 <td style="font-weight:600;white-space:nowrap">${f.category}</td>
                 <td><span class="dot" style="background:${dotColor}"></span>${f.severity}</td>
@@ -230,7 +231,7 @@ export function generateBankReadyDealPack(
       <div><div class="data-label">Verified</div><div class="data-value mono">${completed} / ${total}</div></div>
       <div>
         <div class="data-label">Critical Pending</div>
-        <div class="data-value mono" style="color:${criticalPending > 0 ? '#ef4444' : '#10b981'}">${criticalPending}</div>
+        <div class="data-value mono" style="color:${criticalPending > 0 ? colors.status.error : colors.status.success}">${criticalPending}</div>
       </div>
       <div>
         <div class="data-label">Status</div>

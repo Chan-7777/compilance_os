@@ -31,7 +31,7 @@ export function TopBar({ title, userName = 'User', isMobile = false, onMenuToggl
   return (
     <div style={{
       position: 'fixed', top: 0,
-      left: isMobile ? 0 : 232,
+      left: isMobile ? 0 : 228,
       right: 0, height: 56,
       backgroundColor: colors.white,
       borderBottom: `1px solid ${colors.border}`,
@@ -117,7 +117,7 @@ export function TopBar({ title, userName = 'User', isMobile = false, onMenuToggl
         width: 32, height: 32, borderRadius: '50%',
         backgroundColor: colors.primary,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+        color: colors.white, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
       }}
         title={userName}
       >

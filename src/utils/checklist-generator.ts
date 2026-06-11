@@ -43,7 +43,21 @@ export function generateChecklist(product: string, country: string, hsCode?: str
   checklist.push({
     id: id++,
     category: 'Documentation',
+    item: 'Proforma Invoice (preliminary quote for buyer/customs)',
+    priority: 'medium',
+    phase: 'pre-shipment',
+  })
+  checklist.push({
+    id: id++,
+    category: 'Documentation',
     item: 'Shipping Bill (Indian Customs)',
+    priority: 'critical',
+    phase: 'pre-shipment',
+  })
+  checklist.push({
+    id: id++,
+    category: 'Customs',
+    item: 'Customs Declaration (for destination country import clearance)',
     priority: 'critical',
     phase: 'pre-shipment',
   })
@@ -251,13 +265,42 @@ export function generateChecklist(product: string, country: string, hsCode?: str
     priority: 'medium',
     phase: 'per-shipment',
   })
-  checklist.push({
-    id: id++,
-    category: 'Indian Compliance',
-    item: 'Quality pre-shipment inspection (if mandated)',
-    priority: 'high',
-    phase: 'pre-shipment',
-  })
+  // ─── INSPECTION CERTIFICATE ───────────────────────────────────────────
+  const INSPECTION_CERT_PRODUCTS = ['food', 'pharma', 'chemicals', 'steel', 'textiles']
+  if (INSPECTION_CERT_PRODUCTS.includes(product)) {
+    checklist.push({
+      id: id++,
+      category: 'Documentation',
+      item: 'Inspection Certificate / Pre-shipment Inspection Report',
+      priority: product === 'food' || product === 'pharma' ? 'critical' : 'high',
+      phase: 'pre-shipment',
+    })
+  } else {
+    checklist.push({
+      id: id++,
+      category: 'Indian Compliance',
+      item: 'Quality pre-shipment inspection (if mandated)',
+      priority: 'high',
+      phase: 'pre-shipment',
+    })
+  }
+
+  // ─── PRODUCT-SPECIFIC EXPORT LICENSES (BEYOND IEC) ───────────────────
+  const EXPORT_LICENSE_RULES: Record<string, string> = {
+    chemicals: 'Hazardous chemicals / precursor export license (DGFT)',
+    pharma: 'Drug export license (CDSCO) + No Objection Certificate',
+    electronics: 'SCOMET license (if dual-use technology applies)',
+    automotive: 'STA-1 / export authorization (if restricted components)',
+  }
+  if (EXPORT_LICENSE_RULES[product]) {
+    checklist.push({
+      id: id++,
+      category: 'Indian Compliance',
+      item: EXPORT_LICENSE_RULES[product],
+      priority: 'critical',
+      phase: 'pre-shipment',
+    })
+  }
 
   // ─── HS CODE-SPECIFIC ITEMS ───────────────────────────────────────────
   if (hsCode) {

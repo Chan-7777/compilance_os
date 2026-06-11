@@ -85,8 +85,8 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
   const buttonStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px',
-    backgroundColor: colors.primary || colors.orange,
-    color: '#fff',
+    backgroundColor: colors.primary,
+    color: colors.white,
     border: 'none',
     borderRadius: borderRadius.md,
     fontSize: '0.875rem',
@@ -96,7 +96,7 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
   }
 
   const linkStyle: React.CSSProperties = {
-    color: colors.primary || colors.orange,
+    color: colors.accent,
     cursor: 'pointer',
     fontWeight: 600,
     background: 'none',
@@ -142,8 +142,8 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
             style={{
               padding: spacing.sm,
               marginBottom: spacing.md,
-              backgroundColor: '#FEE2E2',
-              color: '#DC2626',
+              backgroundColor: colors.surfaces.dangerBg,
+              color: colors.surfaces.dangerText,
               borderRadius: borderRadius.md,
               fontSize: '0.8125rem',
             }}
@@ -220,10 +220,28 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
             }}
           >
             {[
-              { icon: '🔒', label: 'ISO 27001' },
-              { icon: '🛡️', label: 'SOC 2 Type II' },
-              { icon: '🇮🇳', label: 'DPDP Act' },
-              { icon: '🔐', label: 'AES-256' },
+              {
+                icon: (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                ),
+                label: 'ISO 27001'
+              },
+              {
+                icon: (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                ),
+                label: 'SOC 2 Type II'
+              },
+              {
+                icon: '🇮🇳',
+                label: 'DPDP Act'
+              },
+              {
+                icon: (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                ),
+                label: 'AES-256'
+              },
             ].map(badge => (
               <div
                 key={badge.label}
@@ -239,7 +257,7 @@ export function Auth({ onSignIn, onSignUp }: AuthProps) {
                   border: `1px solid ${colors.border}`,
                 }}
               >
-                <span>{badge.icon}</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}>{badge.icon}</span>
                 <span style={{ fontWeight: 600 }}>{badge.label}</span>
               </div>
             ))}

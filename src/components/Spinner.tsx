@@ -9,7 +9,7 @@ export interface SpinnerProps {
     color?: string
 }
 
-export function Spinner({ size = 'md', color = colors.primary }: SpinnerProps) {
+export function Spinner({ size = 'md', color = colors.accent }: SpinnerProps) {
     const sizeMap = {
         sm: 16,
         md: 24,
