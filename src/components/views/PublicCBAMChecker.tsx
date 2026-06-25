@@ -14,9 +14,19 @@ interface HSResult {
   inScope: boolean
 }
 
+type Step = 'input' | 'gate' | 'results'
+
 export function PublicCBAMChecker() {
+  const [step, setStep] = useState<Step>('input')
   const [inputs, setInputs] = useState(['', '', ''])
+  const [pending, setPending] = useState<HSResult[]>([])
   const [results, setResults] = useState<HSResult[] | null>(null)
+
+  // Gate form state
+  const [email, setEmail] = useState('')
+  const [company, setCompany] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [gateError, setGateError] = useState<string | null>(null)
 
   function handleCheck() {
     const checked = inputs
@@ -27,14 +37,48 @@ export function PublicCBAMChecker() {
         sector: getCBAMSector(code),
         inScope: isCBAMScope(code, 'EU'),
       }))
-    if (checked.length > 0) setResults(checked)
+    if (checked.length > 0) {
+      setPending(checked)
+      setStep('gate')
+    }
   }
 
-  const inputStyle: React.CSSProperties = {
+  async function handleGateSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) { setGateError('Email is required'); return }
+    setGateError(null)
+    setSubmitting(true)
+
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      if (supabase) {
+        await supabase.from('cbam_leads').insert({
+          email: email.trim().toLowerCase(),
+          company: company.trim() || null,
+          hs_codes: pending.map(r => r.code),
+          any_in_scope: pending.some(r => r.inScope),
+          sectors: pending.filter(r => r.sector).map(r => r.sector as string),
+        })
+      }
+    } catch {
+      // Don't block the user if lead capture fails — results still show
+    }
+
+    setResults(pending)
+    setStep('results')
+    setSubmitting(false)
+  }
+
+  const sharedInputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 14px', backgroundColor: colors.white,
     border: `1px solid ${colors.border}`, borderRadius: borderRadius.md,
     color: colors.text, fontSize: '0.875rem',
-    fontFamily: "'JetBrains Mono', monospace", outline: 'none', boxSizing: 'border-box',
+    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  }
+
+  const hsInputStyle: React.CSSProperties = {
+    ...sharedInputStyle,
+    fontFamily: "'JetBrains Mono', monospace",
   }
 
   const anyInScope = results?.some(r => r.inScope)
@@ -61,47 +105,159 @@ export function PublicCBAMChecker() {
           </p>
         </div>
 
-        {/* Input card */}
-        <div style={{
-          backgroundColor: colors.white, borderRadius: borderRadius.lg,
-          border: `1px solid ${colors.border}`, padding: spacing.lg, marginBottom: spacing.lg,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, marginBottom: spacing.md }}>
-            Enter HS Codes (4–8 digits)
+        {/* Step 1 — HS code input */}
+        {step === 'input' && (
+          <div style={{
+            backgroundColor: colors.white, borderRadius: borderRadius.lg,
+            border: `1px solid ${colors.border}`, padding: spacing.lg,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, marginBottom: spacing.md }}>
+              Enter HS Codes (4–8 digits)
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.md }}>
+              {inputs.map((val, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  placeholder={`HS Code ${i + 1} — e.g. 72081000`}
+                  value={val}
+                  onChange={e => {
+                    const next = [...inputs]
+                    next[i] = e.target.value
+                    setInputs(next)
+                  }}
+                  maxLength={10}
+                  style={hsInputStyle}
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleCheck}
+              style={{
+                padding: '10px 24px', backgroundColor: colors.accent, color: colors.white,
+                border: 'none', borderRadius: borderRadius.md, fontSize: '0.875rem',
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Check CBAM Exposure →
+            </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.md }}>
-            {inputs.map((val, i) => (
-              <input
-                key={i}
-                type="text"
-                placeholder={`HS Code ${i + 1} — e.g. 72081000`}
-                value={val}
-                onChange={e => {
-                  const next = [...inputs]
-                  next[i] = e.target.value
-                  setInputs(next)
-                  setResults(null)
-                }}
-                maxLength={10}
-                style={inputStyle}
-              />
-            ))}
-          </div>
-          <button
-            onClick={handleCheck}
-            style={{
-              padding: '10px 24px', backgroundColor: colors.accent, color: colors.white,
-              border: 'none', borderRadius: borderRadius.md, fontSize: '0.875rem',
-              fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Check CBAM Exposure
-          </button>
-        </div>
+        )}
 
-        {/* Results */}
-        {results && (
+        {/* Step 2 — Email gate */}
+        {step === 'gate' && (
+          <div style={{
+            backgroundColor: colors.white, borderRadius: borderRadius.lg,
+            border: `1px solid ${colors.border}`, padding: spacing.lg,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          }}>
+            {/* Preview teaser */}
+            <div style={{
+              backgroundColor: colors.accentSurface,
+              border: `1px solid ${colors.accent}44`,
+              borderRadius: borderRadius.md,
+              padding: spacing.md,
+              marginBottom: spacing.lg,
+            }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.primary, marginBottom: spacing.xs }}>
+                Your results are ready
+              </div>
+              <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+                {pending.map(r => (
+                  <span key={r.code} style={{
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: '0.8rem', fontWeight: 700,
+                    padding: '2px 10px', borderRadius: '999px',
+                    backgroundColor: r.inScope ? colors.status.error : colors.status.success,
+                    color: colors.white,
+                  }}>
+                    {r.code}
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.accent, marginTop: spacing.xs }}>
+                {pending.some(r => r.inScope)
+                  ? 'One or more of your codes fall under CBAM — see the full breakdown below.'
+                  : 'Your codes appear out of CBAM scope — confirm by viewing the full report.'}
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, marginBottom: spacing.md }}>
+              Where should we send your CBAM report?
+            </div>
+
+            <form onSubmit={handleGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: colors.text, marginBottom: spacing.xs }}>
+                  Work email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  style={sharedInputStyle}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: colors.text, marginBottom: spacing.xs }}>
+                  Company name <span style={{ fontWeight: 400, color: colors.textMuted }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="ABC Exports Pvt Ltd"
+                  value={company}
+                  onChange={e => setCompany(e.target.value)}
+                  style={sharedInputStyle}
+                />
+              </div>
+
+              {gateError && (
+                <div style={{
+                  fontSize: '0.8rem', color: colors.surfaces.dangerText,
+                  backgroundColor: colors.surfaces.dangerBg,
+                  borderRadius: borderRadius.sm, padding: `${spacing.xs} ${spacing.sm}`,
+                }}>
+                  {gateError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{
+                    padding: '10px 24px', backgroundColor: colors.accent, color: colors.white,
+                    border: 'none', borderRadius: borderRadius.md, fontSize: '0.875rem',
+                    fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', opacity: submitting ? 0.7 : 1,
+                  }}
+                >
+                  {submitting ? 'Loading…' : 'View my CBAM results →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep('input')}
+                  style={{
+                    background: 'none', border: 'none', color: colors.textMuted,
+                    fontSize: '0.8rem', cursor: 'pointer', padding: 0, textDecoration: 'underline',
+                  }}
+                >
+                  ← Change codes
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.7rem', color: colors.textMuted, lineHeight: 1.5 }}>
+                No spam. We'll send you a one-time CBAM summary for these HS codes. Your data is stored securely under DPDP Act 2023.
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Step 3 — Results */}
+        {step === 'results' && results && (
           <div style={{ marginBottom: spacing.xl }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, marginBottom: spacing.md }}>
               Results
