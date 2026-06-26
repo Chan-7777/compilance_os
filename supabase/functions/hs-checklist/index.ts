@@ -10,6 +10,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Anthropic from 'npm:@anthropic-ai/sdk@latest'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,39 +103,23 @@ Target Markets: ${countriesList}
 Return checklist items specific to this product and HS code for each market.
 Cover testing, certifications, labeling, import permits, and known regulatory requirements.`
 
-    // ── OpenAI call ───────────────────────────────────────────────────────
-    const openAiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openAiKey) {
-      return new Response(JSON.stringify({ error: 'OPENAI_API_KEY not configured', items: [] }), {
+    // ── Claude call ───────────────────────────────────────────────────────
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+    if (!anthropicKey) {
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured', items: [] }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',           // Use full GPT-4o for compliance accuracy
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.1,          // Low temperature for factual accuracy
-        max_tokens: 2000,
-      }),
+    const client = new Anthropic({ apiKey: anthropicKey })
+    const aiMessage = await client.messages.create({
+      model: 'claude-opus-4-8',
+      max_tokens: 2000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userPrompt }],
     })
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text()
-      console.error('OpenAI error:', errText)
-      throw new Error(`OpenAI API failed: ${aiResponse.status}`)
-    }
-
-    const aiData = await aiResponse.json()
-    const rawContent = aiData.choices?.[0]?.message?.content?.trim() ?? '[]'
+    const rawContent = aiMessage.content.find(b => b.type === 'text')?.text?.trim() ?? '[]'
 
     // Strip markdown fences if present
     const clean = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()

@@ -1,12 +1,12 @@
 // ============================================================================
-// Dashboard View - v2 (plain language, phase-conditional widgets, ROI first)
+// Dashboard View — simplified: one priority action, savings, recent updates
 // ============================================================================
 
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'
 import { J } from '@/components/JargonTip'
-import { colors, spacing, borderRadius } from '@theme/index'
+import { colors, spacing, borderRadius, shadow, fontFamily } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import type { RiskResult, Alert, CompanyProfile, ViewType, CountryCode } from '@/types'
 
@@ -29,6 +29,30 @@ function formatINR(value: number): string {
 
 const CBAM_PRODUCTS = ['steel', 'chemicals', 'aluminium', 'cement', 'fertilizer', 'electricity']
 
+const RupeeIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="6" y1="5" x2="18" y2="5"/><line x1="6" y1="11" x2="18" y2="11"/>
+    <path d="M6 5h4.5a4.5 4.5 0 0 1 0 9H8l8 5"/>
+  </svg>
+)
+const GlobeHandshakeIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+)
+const ShieldIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+)
+const TruckIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/>
+    <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+  </svg>
+)
+
 export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [], rodtepEstimate = null }: DashboardProps) {
   const overallRisk = riskResults.length > 0 ? {
     score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
@@ -43,41 +67,77 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
   const showCBAM = selectedCountries.includes('EU') && CBAM_PRODUCTS.includes(productId)
   const activeFTACount = selectedCountries.filter(c => ['UAE', 'Japan', 'Australia'].includes(c)).length
 
+  // Derive the single most important action for this user right now
+  const priorityAction: { label: string; detail: string; cta: string; view: ViewType; color: string; bg: string } | null = (() => {
+    if (criticalAlerts.length > 0) {
+      const top = criticalAlerts[0]
+      return {
+        label: `${top.countryName}: ${top.message.length > 80 ? top.message.slice(0, 80) + '…' : top.message}`,
+        detail: 'Regulatory alert — action required before your next shipment',
+        cta: 'View alert →',
+        view: 'alerts',
+        color: colors.surfaces.dangerText,
+        bg: colors.surfaces.dangerBg,
+      }
+    }
+    if (showCBAM) {
+      return {
+        label: 'Your EU export now has a carbon levy',
+        detail: 'The EU charges a carbon tax on your product type from Jan 2026. You need emission data from suppliers.',
+        cta: 'Set up CBAM compliance →',
+        view: 'settings',
+        color: colors.surfaces.warningText,
+        bg: colors.surfaces.warningBg,
+      }
+    }
+    if (overallRisk?.level === 'high') {
+      return {
+        label: 'High compliance risk detected',
+        detail: 'Your shipment profile has gaps that could cause delays or penalties at customs.',
+        cta: 'See what needs fixing →',
+        view: 'risk',
+        color: colors.surfaces.dangerText,
+        bg: colors.surfaces.dangerBg,
+      }
+    }
+    return {
+      label: 'Your compliance checklist is ready',
+      detail: 'Review what documents and certifications you need for your next shipment.',
+      cta: 'Open checklist →',
+      view: 'checklist',
+      color: colors.surfaces.successText,
+      bg: colors.surfaces.successBg,
+    }
+  })()
+
   const bigNum: React.CSSProperties = {
-    fontSize: '2.25rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.1,
+    fontSize: '2.25rem', fontWeight: 700, fontFamily: fontFamily.mono, lineHeight: 1.1,
   }
 
-  const sectionTitle: React.CSSProperties = {
-    fontSize: '0.9rem', fontWeight: 600, color: colors.text, marginBottom: spacing.md,
+  const tileLabelStyle: React.CSSProperties = {
+    fontSize: '0.72rem', fontWeight: 600, color: colors.textMuted,
+    textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+  }
+
+  const tileEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.boxShadow = shadow.lg
+    e.currentTarget.style.transform = 'translateY(-3px)'
+  }
+  const tileLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.boxShadow = shadow.sm
+    e.currentTarget.style.transform = 'translateY(0)'
   }
 
   return (
-    <div style={{ padding: spacing.lg }}>
+    <div style={{ padding: spacing.lg, maxWidth: 800 }}>
       {/* Header */}
       <div style={{ marginBottom: spacing.xl }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0, marginBottom: spacing.xs, color: colors.text }}>
-          Your Compliance Dashboard
+          Good to see you{companyProfile.name ? `, ${companyProfile.name.split(' ')[0]}` : ''}
         </h2>
         <p style={{ color: colors.textMuted, fontSize: '0.875rem', margin: 0 }}>
-          {companyProfile.name || 'Your company'} · {selectedProduct} · {selectedCountries.length} market{selectedCountries.length !== 1 ? 's' : ''}
+          {selectedProduct} · {selectedCountries.length} market{selectedCountries.length !== 1 ? 's' : ''}
         </p>
-      </div>
-
-      {/* Data source bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' as const,
-        padding: `${spacing.xs} ${spacing.md}`, backgroundColor: colors.surface,
-        borderRadius: borderRadius.md, border: `1px solid ${colors.border}`,
-        marginBottom: spacing.lg, fontSize: '0.72rem', color: colors.textMuted,
-      }} data-testid="data-provenance-bar">
-        <span style={{ fontWeight: 600, color: colors.text }}>Regulatory sources:</span>
-        <span>World Customs Org</span><span>·</span>
-        <span>India DGFT</span><span>·</span>
-        <span>EU Commission</span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: colors.status.pending, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-          Reference data — verify critical deadlines with official sources
-        </span>
       </div>
 
       {/* Empty state */}
@@ -88,268 +148,203 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
               <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5M12 2C6.5 2 2 6.5 2 12c0 2.5.5 4.5 1.5 6l12.5-12.5C14.5 4.5 12.5 4 12 2zM22 2s-5.5 2-8 4.5L19.5 12C22 9.5 22 2 22 2zM9 15c-1 0-2-1-2-2" />
             </svg>
           }
-          title="Welcome to ComplianceOS!"
-          description="Let's get started by setting up your compliance profile. Select your target markets and products to see personalised risk analysis, checklists, and trade deal savings."
-          actionLabel="Set up my profile"
+          title="Welcome to ComplianceOS"
+          description="Set up your profile to see your personalised risk score, compliance checklist, and trade deal savings."
+          actionLabel="Get started"
           onAction={() => onNavigate('settings')}
         />
       )}
 
       {selectedCountries.length > 0 && selectedProduct && (
         <>
-          {/* ROI card — always first, most business-relevant */}
-          <div style={{
-            padding: spacing.lg, backgroundColor: colors.surfaces.successBg,
-            borderRadius: borderRadius.lg, border: `2px solid ${colors.status.success}66`,
-            marginBottom: spacing.lg,
-          }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.successText, marginBottom: spacing.md }}>
-              Your compliance saves you money
-            </div>
-            <div style={{ display: 'flex', gap: spacing.xl, flexWrap: 'wrap' as const }}>
-              {activeFTACount > 0 && (
-                <div>
-                  <div style={{ ...bigNum, color: colors.surfaces.successText }}>
-                    {activeFTACount} active
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: 2 }}>
-                    <J term="FTA">Trade deals</J> available for your markets — use the Trade Deals tab to calculate exact savings
-                  </div>
-                </div>
-              )}
-              <div>
-                <div style={{ ...bigNum, color: colors.surfaces.successText }}>
-                  {rodtepEstimate != null ? formatINR(rodtepEstimate) : '—'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: 2 }}>
-                  Estimated unclaimed RoDTEP entitlement
-                </div>
-                {rodtepEstimate != null ? (
-                  <button onClick={() => onNavigate('fta')} style={{
-                    marginTop: 6, padding: '2px 10px', fontSize: '0.75rem', fontWeight: 600,
-                    color: colors.surfaces.successText, backgroundColor: 'transparent',
-                    border: `1px solid ${colors.status.success}66`, borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    Run full recovery audit →
-                  </button>
-                ) : (
-                  <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: 4 }}>
-                    Add your HS code in Settings to see estimate
-                  </div>
-                )}
-              </div>
-              <div>
-                <div style={{ ...bigNum, color: colors.status.pending }}>
-                  {overallRisk ? overallRisk.level.toUpperCase() : '—'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: colors.status.pending, marginTop: 2 }}>
-                  Overall compliance risk level
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Problem Cockpit */}
-          <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: spacing.md, marginBottom: spacing.xl }}>
-            {/* Shipment At Risk */}
+          {/* ── Section 1: What to do right now ── */}
+          {priorityAction && (
             <div style={{
-              flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: colors.surfaces.dangerBg, borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.status.error}33`, borderLeft: `4px solid ${colors.status.error}`,
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.dangerText, marginBottom: spacing.xs }}>
-                Shipment At Risk
-              </div>
-              <div style={{
-                ...bigNum,
-                color: overallRisk?.level === 'high' ? colors.risk.high : overallRisk?.level === 'medium' ? colors.risk.medium : overallRisk?.level === 'low' ? colors.risk.low : colors.textMuted,
-              }}>
-                {overallRisk?.level.toUpperCase() || '—'}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
-                Compliance gaps detected
-              </div>
-              <button onClick={() => onNavigate('risk')} style={{
-                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: colors.surfaces.dangerText, backgroundColor: `${colors.status.error}22`,
-                border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                View risk breakdown →
-              </button>
-            </div>
-
-            {/* Buyer Docs Needed */}
-            <div style={{
-              flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: colors.surfaces.warningBg, borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.status.pending}33`, borderLeft: `4px solid ${colors.status.pending}`,
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.warningText, marginBottom: spacing.xs }}>
-                Buyer Docs Needed
-              </div>
-              <div style={{ ...bigNum, color: colors.surfaces.warningText }}>
-                Open checklist
-              </div>
-              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
-                Generate your export document pack
-              </div>
-              <button onClick={() => onNavigate('checklist')} style={{
-                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: colors.surfaces.warningText, backgroundColor: `${colors.status.pending}22`,
-                border: `1px solid ${colors.status.pending}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                Open checklist →
-              </button>
-            </div>
-
-            {/* Margin Under Pressure */}
-            <div style={{
-              flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: colors.surfaces.successBg, borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.status.success}33`, borderLeft: `4px solid ${colors.status.success}`,
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.surfaces.successText, marginBottom: spacing.xs }}>
-                Margin Under Pressure
-              </div>
-              <div style={{ ...bigNum, color: colors.surfaces.successText, fontSize: '1.5rem' }}>
-                {activeFTACount > 0
-                  ? `${activeFTACount} FTA${activeFTACount > 1 ? 's' : ''} available`
-                  : 'Calculate savings'}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
-                {activeFTACount > 0
-                  ? 'Trade deals you can use right now'
-                  : 'Check if FTA applies to your product'}
-              </div>
-              <button onClick={() => onNavigate('fta')} style={{
-                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: colors.surfaces.successText, backgroundColor: `${colors.status.success}22`,
-                border: `1px solid ${colors.status.success}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                See savings →
-              </button>
-            </div>
-
-            {/* Finance This Shipment */}
-            <div style={{
-              flex: '1 1 280px', padding: spacing.lg,
-              backgroundColor: colors.accentSurface, borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.accent}33`, borderLeft: `4px solid ${colors.accent}`,
-            }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.accentHover, marginBottom: spacing.xs }}>
-                Finance This Shipment
-              </div>
-              <div style={{ ...bigNum, color: colors.accent }}>
-                {`${shipments.length} shipment${shipments.length !== 1 ? 's' : ''}`}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.md }}>
-                Track finance &amp; execution status
-              </div>
-              <button onClick={() => onNavigate('shipments')} style={{
-                padding: `${spacing.xs} ${spacing.sm}`, fontSize: '0.8rem', fontWeight: 600,
-                color: colors.accent, backgroundColor: `${colors.accent}22`,
-                border: `1px solid ${colors.accent}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                Open shipments →
-              </button>
-            </div>
-          </div>
-
-          {/* Carbon compliance widget — only for EU + carbon-heavy products */}
-          {showCBAM && (
-            <div style={{
-              padding: spacing.lg, backgroundColor: colors.surfaces.dangerBg,
-              borderRadius: borderRadius.lg, border: `2px solid ${colors.status.error}44`,
+              padding: spacing.lg,
+              backgroundColor: priorityAction.bg,
+              borderRadius: borderRadius.lg,
+              border: `1px solid ${priorityAction.color}33`,
+              borderLeft: `4px solid ${priorityAction.color}`,
               marginBottom: spacing.lg,
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.md }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: colors.risk.high, marginBottom: spacing.xs }}>
-                    Action required — Carbon compliance for EU exports
-                  </div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.text, marginBottom: spacing.xs }}>
-                    The EU now charges a carbon tax on imports of your product type.
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textMuted, lineHeight: 1.5, marginBottom: spacing.sm }}>
-                    To export to the EU, you need carbon emission data from your raw material suppliers.
-                    Most Indian suppliers do not yet provide this — setting it up now avoids delays at EU customs.
-                    {' '}<J term="CBAM">What is this tax called?</J>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-                    <div style={{ flex: 1, height: 8, backgroundColor: colors.border, borderRadius: borderRadius.full, overflow: 'hidden' }}>
-                      <div style={{ width: '15%', height: '100%', backgroundColor: colors.risk.high, borderRadius: borderRadius.full }} />
-                    </div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.risk.high }}>15% ready</span>
-                  </div>
-                  <button onClick={() => onNavigate('settings')} style={{
-                    padding: `${spacing.xs} ${spacing.md}`, fontSize: '0.8rem', fontWeight: 600,
-                    color: colors.surfaces.dangerText, backgroundColor: `${colors.status.error}22`,
-                    border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    Set up supplier data collection →
-                  </button>
-                </div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: priorityAction.color, marginBottom: spacing.xs }}>
+                Action needed
               </div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, marginBottom: spacing.xs }}>
+                {priorityAction.label}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.md, lineHeight: 1.5 }}>
+                {priorityAction.detail}
+              </div>
+              <button
+                onClick={() => onNavigate(priorityAction.view)}
+                style={{
+                  padding: '8px 20px', backgroundColor: priorityAction.color, color: colors.white,
+                  border: 'none', borderRadius: borderRadius.md, fontSize: '0.875rem',
+                  fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'opacity 0.15s ease, transform 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)' }}
+              >
+                {priorityAction.cta}
+              </button>
             </div>
           )}
 
-          {/* Quick actions */}
-          <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.xl, flexWrap: 'wrap' as const }}>
-            <Button variant="primary" onClick={() => onNavigate('risk')}>View risk breakdown</Button>
-            <Button variant="secondary" onClick={() => onNavigate('checklist')}>My compliance checklist</Button>
-            <Button variant="secondary" onClick={() => onNavigate('alerts')}>Regulatory updates</Button>
-            <Button variant="secondary" onClick={() => onNavigate('fta')}>Trade deal savings</Button>
+          {/* ── Section 2: Your savings at a glance ── */}
+          <div style={{
+            display: 'flex', gap: spacing.md, flexWrap: 'wrap' as const,
+            marginBottom: spacing.xl,
+          }}>
+            {/* RoDTEP tile */}
+            <div
+              style={{
+                flex: '1 1 180px', padding: spacing.lg,
+                backgroundColor: colors.white, borderRadius: borderRadius.lg,
+                border: `1px solid ${colors.border}`,
+                borderTop: `2px solid ${colors.status.success}`,
+                boxShadow: shadow.sm,
+                transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+              }}
+              onMouseEnter={tileEnter} onMouseLeave={tileLeave}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                <span style={tileLabelStyle}>RoDTEP refund est.</span>
+                <span style={{ color: rodtepEstimate != null ? colors.status.success : colors.textSubtle }}><RupeeIcon /></span>
+              </div>
+              <div style={{ ...bigNum, color: rodtepEstimate != null ? colors.status.success : colors.textMuted }}>
+                {rodtepEstimate != null ? formatINR(rodtepEstimate) : '—'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs }}>
+                {rodtepEstimate != null ? 'Unclaimed per shipment' : 'Add HS code in Settings'}
+              </div>
+            </div>
+
+            {/* Trade deals tile */}
+            <div
+              style={{
+                flex: '1 1 180px', padding: spacing.lg,
+                backgroundColor: colors.white, borderRadius: borderRadius.lg,
+                border: `1px solid ${colors.border}`,
+                borderTop: `2px solid ${colors.accent}`,
+                boxShadow: shadow.sm,
+                transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+              }}
+              onMouseEnter={tileEnter} onMouseLeave={tileLeave}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                <span style={tileLabelStyle}><J term="FTA">Trade deals</J> available</span>
+                <span style={{ color: activeFTACount > 0 ? colors.accent : colors.textSubtle }}><GlobeHandshakeIcon /></span>
+              </div>
+              <div style={{ ...bigNum, color: activeFTACount > 0 ? colors.status.success : colors.textMuted }}>
+                {activeFTACount > 0 ? activeFTACount : '—'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs }}>
+                {activeFTACount > 0 ? 'for your selected markets' : 'No FTAs for current markets'}
+              </div>
+            </div>
+
+            {/* Risk tile */}
+            <div
+              style={{
+                flex: '1 1 180px', padding: spacing.lg,
+                backgroundColor: colors.white, borderRadius: borderRadius.lg,
+                border: `1px solid ${colors.border}`,
+                borderTop: `2px solid ${overallRisk?.level === 'high' ? colors.risk.high : overallRisk?.level === 'medium' ? colors.risk.medium : overallRisk?.level === 'low' ? colors.risk.low : colors.border}`,
+                boxShadow: shadow.sm,
+                transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+              }}
+              onMouseEnter={tileEnter} onMouseLeave={tileLeave}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                <span style={tileLabelStyle}>Compliance risk</span>
+                <span style={{ color: overallRisk?.level === 'high' ? colors.risk.high : overallRisk?.level === 'medium' ? colors.risk.medium : overallRisk?.level === 'low' ? colors.risk.low : colors.textSubtle }}><ShieldIcon /></span>
+              </div>
+              <div style={{
+                ...bigNum,
+                color: overallRisk?.level === 'high' ? colors.risk.high
+                  : overallRisk?.level === 'medium' ? colors.risk.medium
+                  : overallRisk?.level === 'low' ? colors.risk.low
+                  : colors.textMuted,
+              }}>
+                {overallRisk ? overallRisk.level.toUpperCase() : '—'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs }}>
+                {overallRisk ? `Score ${overallRisk.score}/100` : 'Run risk analysis'}
+              </div>
+            </div>
+
+            {/* Shipments tile */}
+            <div
+              style={{
+                flex: '1 1 180px', padding: spacing.lg,
+                backgroundColor: colors.white, borderRadius: borderRadius.lg,
+                border: `1px solid ${colors.border}`,
+                borderTop: `2px solid ${colors.accent}`,
+                boxShadow: shadow.sm,
+                transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+              }}
+              onMouseEnter={tileEnter} onMouseLeave={tileLeave}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                <span style={tileLabelStyle}>Active shipments</span>
+                <span style={{ color: shipments.length > 0 ? colors.accent : colors.textSubtle }}><TruckIcon /></span>
+              </div>
+              <div style={{ ...bigNum, color: shipments.length > 0 ? colors.accent : colors.textMuted }}>
+                {shipments.length > 0 ? shipments.length : '—'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs }}>
+                {shipments.length > 0 ? 'in progress' : 'No shipments yet'}
+              </div>
+            </div>
           </div>
 
-          {/* Priority actions */}
-          {criticalAlerts.length > 0 && (
-            <div style={{ marginBottom: spacing.xl }}>
-              <h3 style={sectionTitle}>Act now — these affect your next shipment</h3>
+          {/* ── Section 3: Recent regulatory updates ── */}
+          {alerts.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.text, margin: 0 }}>
+                  Recent regulatory updates
+                </h3>
+                <Button variant="ghost" size="sm" onClick={() => onNavigate('alerts')}>View all →</Button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: spacing.sm }}>
-                {criticalAlerts.slice(0, 3).map(alert => (
-                  <div key={alert.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.md, backgroundColor: colors.surfaces.dangerBg, border: `1px solid ${colors.status.error}44`, borderRadius: borderRadius.md, cursor: 'pointer' }}
-                    onClick={() => onNavigate('alerts')} role="button" tabIndex={0}
+                {alerts.slice(0, 4).map(alert => (
+                  <div
+                    key={alert.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: spacing.sm,
+                      padding: `${spacing.sm} ${spacing.md}`,
+                      backgroundColor: colors.white,
+                      border: `1px solid ${colors.border}`,
+                      borderLeft: `3px solid ${alert.severity === 'critical' ? colors.severity.critical : alert.severity === 'warning' ? colors.severity.warning : colors.severity.info}`,
+                      borderRadius: borderRadius.md,
+                      boxShadow: shadow.sm,
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'box-shadow 0.15s ease, background-color 0.15s ease',
+                    }}
+                    onClick={() => onNavigate('alerts')}
+                    role="button" tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onNavigate('alerts') }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = shadow.md; e.currentTarget.style.backgroundColor = colors.surfaceHover }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = shadow.sm; e.currentTarget.style.backgroundColor = colors.white }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.risk.high} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: colors.text }}>{alert.countryName}: {alert.message}</div>
-                      <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{alert.date} · Action required immediately</div>
-                    </div>
-                    <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>→</span>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{alert.flag}</span>
+                    <Badge
+                      variant={alert.severity === 'critical' ? 'danger-soft' : alert.severity === 'warning' ? 'warning-soft' : 'info-soft'}
+                      size="sm"
+                    >
+                      {alert.severity === 'critical' ? 'Urgent' : alert.severity === 'warning' ? 'Review' : 'Info'}
+                    </Badge>
+                    <span style={{ flex: 1, color: colors.text, fontSize: '0.8rem' }}>{alert.message}</span>
+                    <span style={{ color: colors.textMuted, fontSize: '0.72rem', flexShrink: 0 }}>{alert.date}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Recent updates */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-              <h3 style={{ ...sectionTitle, marginBottom: 0 }}>Recent regulatory updates</h3>
-              {alerts.length > 0 && <Button variant="ghost" size="sm" onClick={() => onNavigate('alerts')}>View all →</Button>}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: spacing.sm }}>
-              {alerts.slice(0, 5).map(alert => (
-                <div key={alert.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.md, fontSize: '0.875rem', cursor: 'pointer' }}
-                  onClick={() => onNavigate('alerts')} role="button" tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onNavigate('alerts') }}
-                >
-                  <span>{alert.flag}</span>
-                  <Badge variant={alert.severity === 'critical' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'info'} size="sm">
-                    {alert.severity === 'critical' ? 'Urgent' : alert.severity === 'warning' ? 'Review soon' : 'Info'}
-                  </Badge>
-                  <span style={{ flex: 1 }}>{alert.message}</span>
-                  <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>{alert.date}</span>
-                </div>
-              ))}
-              {alerts.length === 0 && <div style={{ color: colors.textMuted, padding: spacing.md, fontSize: '0.875rem' }}>No updates at this time</div>}
-            </div>
-          </div>
         </>
       )}
     </div>

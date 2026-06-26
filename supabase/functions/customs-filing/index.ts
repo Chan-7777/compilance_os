@@ -133,7 +133,11 @@ serve(async (req) => {
     const compName = profile?.companies?.name ?? 'Exporter Name'
 
     // ── Determine ICEGATE endpoint ────────────────────────────────────────────
-    const indicator  = Deno.env.get('ICEGATE_ENV') === 'production' ? 'P' : 'T'
+    const icegateClientId     = Deno.env.get('ICEGATE_CLIENT_ID')
+    const icegateClientSecret = Deno.env.get('ICEGATE_CLIENT_SECRET')
+    const isUAT               = Deno.env.get('ICEGATE_ENV') !== 'production'
+    const isLive              = !!(icegateClientId && icegateClientSecret)
+    const indicator           = Deno.env.get('ICEGATE_ENV') === 'production' ? 'P' : 'T'
 
     const jobNumber = Math.floor(1000000 + Math.random() * 8999999)
     const today     = toICEGATEDate()
@@ -255,11 +259,6 @@ serve(async (req) => {
     }
 
     // ── Submit to ICEGATE (if credentials set) ────────────────────────────────
-    const icegateClientId     = Deno.env.get('ICEGATE_CLIENT_ID')
-    const icegateClientSecret = Deno.env.get('ICEGATE_CLIENT_SECRET')
-    const isUAT               = Deno.env.get('ICEGATE_ENV') !== 'production'
-    const isLive              = !!(icegateClientId && icegateClientSecret)
-
     let icegateResponse = null
     let submissionStatus = 'payload_ready'
 

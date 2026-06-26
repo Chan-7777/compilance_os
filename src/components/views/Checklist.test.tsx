@@ -96,7 +96,7 @@ describe('Checklist', () => {
       }
       render(<Checklist {...defaultProps} checkedItems={checkedItems} />)
       expect(screen.getByText(/100%/)).toBeInTheDocument()
-      expect(screen.getByText(/✓ Complete/)).toBeInTheDocument()
+      expect(screen.getByText(/Complete/)).toBeInTheDocument()
     })
   })
 

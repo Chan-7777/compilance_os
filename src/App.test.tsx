@@ -268,7 +268,7 @@ describe('App Component', () => {
     it('calculates and displays risk scores', async () => {
       render(<App />)
       await waitFor(() => {
-        expect(screen.getByTestId('critical-count')).toBeInTheDocument()
+        expect(screen.getByText(/medium/i)).toBeInTheDocument()
       })
     })
 

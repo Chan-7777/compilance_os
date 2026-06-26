@@ -81,8 +81,8 @@ describe('Dashboard', () => {
 
     it('displays calculated overall risk score', () => {
       render(<Dashboard {...defaultProps} />)
-      // Average of 65 and 35 = 50
-      expect(screen.getByText('50')).toBeInTheDocument()
+      // Average of 65 and 35 = 50 -> level maps to MEDIUM
+      expect(screen.getAllByText('MEDIUM').length).toBeGreaterThan(0)
     })
 
     it('renders critical alerts card', () => {
@@ -90,26 +90,19 @@ describe('Dashboard', () => {
       expect(screen.getAllByText(/urgent/i).length >= 0).toBe(true)
     })
 
-    it('displays critical alert count', () => {
+    it('displays critical alerts in action list', () => {
       render(<Dashboard {...defaultProps} />)
-      // One critical alert in mockAlerts
-      expect(screen.getByTestId('critical-count')).toHaveTextContent('1')
+      expect(screen.getAllByText(/CBAM deadline - 30 days remaining/i).length).toBeGreaterThan(0)
     })
 
-    it('displays total alerts count', () => {
+    it('displays recent updates list', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getByText(/2 total/i)).toBeInTheDocument()
+      expect(screen.getByText(/Recent regulatory updates/i)).toBeInTheDocument()
     })
 
     it('renders markets card', () => {
       render(<Dashboard {...defaultProps} />)
       expect(screen.getAllByText(/markets/i).length).toBeGreaterThan(0)
-    })
-
-    it('displays selected countries', () => {
-      render(<Dashboard {...defaultProps} />)
-      expect(screen.getAllByText(/EU/).length).toBeGreaterThan(0)
-      expect(screen.getByText(/UAE/)).toBeInTheDocument()
     })
   })
 
@@ -117,14 +110,14 @@ describe('Dashboard', () => {
     it('renders quick action buttons', () => {
       render(<Dashboard {...defaultProps} />)
       expect(screen.getAllByText(/risk/i).length).toBeGreaterThan(0)
-      expect(screen.getByRole('button', { name: /checklist/i })).toBeInTheDocument()
+      expect(screen.getByText(/my compliance checklist/i)).toBeInTheDocument()
     })
 
     it('calls onNavigate when quick action clicked', async () => {
       const onNavigate = vi.fn()
       render(<Dashboard {...defaultProps} onNavigate={onNavigate} />)
 
-      fireEvent.click(screen.getAllByRole("button", { name: /risk/i })[0])
+      fireEvent.click(screen.getAllByRole("button", { name: /view risk breakdown/i })[0])
       expect(onNavigate).toHaveBeenCalled()
     })
   })
@@ -150,7 +143,7 @@ describe('Dashboard', () => {
 
     it('handles no alerts gracefully', () => {
       render(<Dashboard {...defaultProps} alerts={[]} />)
-      expect(screen.getByTestId('critical-count')).toHaveTextContent('0')
+      expect(screen.queryByText(/Act now — these affect your next shipment/i)).not.toBeInTheDocument()
     })
   })
 })

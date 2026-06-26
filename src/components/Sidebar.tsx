@@ -70,11 +70,8 @@ const RoDTEPIcon = () => (
   </svg>
 )
 
-type NavGroup = {
-  label: string
-  dot: string
-  items: Array<{ id: ViewType; label: string; Icon: () => React.ReactElement; tier?: 'pro' }>
-}
+type NavItem = { id: ViewType; label: string; Icon: () => React.ReactElement }
+
 
 export interface SidebarProps {
   currentView: ViewType | 'settings'
@@ -102,33 +99,27 @@ export function Sidebar({
     display: 'flex', alignItems: 'center', gap: '9px',
     padding: '7px 10px', borderRadius: borderRadius.md, border: 'none',
     background: active ? colors.sidebarActive : 'transparent',
+    boxShadow: active ? `inset 3px 0 0 ${colors.accent}` : 'none',
     color: active ? colors.sidebarActiveText : colors.sidebarText,
     fontWeight: active ? fontWeight.semibold : fontWeight.normal,
     fontSize: fontSize.sm, cursor: 'pointer',
-    transition: `background ${transition.fast}, color ${transition.fast}`,
+    transition: `background ${transition.fast}, color ${transition.fast}, box-shadow ${transition.fast}`,
     textAlign: 'left' as const, width: '100%', fontFamily: 'inherit',
   })
 
-  const shipmentItems: NavGroup['items'] = [
-    { id: 'risk',            label: 'Compliance Risk',  Icon: RiskIcon },
-    { id: 'label-validator', label: 'Label Checker',    Icon: LabelIcon, tier: 'pro' },
-    ...(euEnabled ? [{ id: 'eu-compliance' as ViewType, label: 'EU Compliance', Icon: EUIcon }] : []),
-  ]
+  // Items that start a new logical group get a thin divider above them
+  const spacerBefore = new Set<ViewType>(['risk', 'shipments'])
 
-  const navGroups: NavGroup[] = [
-    { label: 'SHIPMENT RISK',     dot: colors.risk.high,       items: shipmentItems },
-    { label: 'DOCUMENTATION',     dot: colors.status.pending,  items: [
-      { id: 'checklist', label: 'My Checklist',       Icon: ChecklistIcon },
-      { id: 'alerts',    label: 'Regulatory Updates', Icon: AlertsIcon },
-    ]},
-    { label: 'MARGINS & SAVINGS', dot: colors.status.success,  items: [
-      { id: 'fta',    label: 'Trade Deals',    Icon: FTAIcon,    tier: 'pro' },
-      { id: 'rodtep', label: 'RoDTEP Recovery', Icon: RoDTEPIcon, tier: 'pro' },
-    ]},
-    { label: 'FINANCE',           dot: colors.accent,          items: [
-      { id: 'shipments', label: 'Shipments',  Icon: ShipmentsIcon, tier: 'pro' },
-      { id: 'dashboard', label: 'Dashboard',  Icon: DashboardIcon },
-    ]},
+  const flatItems: NavItem[] = [
+    { id: 'dashboard',       label: 'Dashboard',         Icon: DashboardIcon },
+    { id: 'checklist',       label: 'My Checklist',       Icon: ChecklistIcon },
+    { id: 'alerts',          label: 'Regulatory Updates', Icon: AlertsIcon },
+    { id: 'risk',            label: 'Risk Score',         Icon: RiskIcon },
+    { id: 'fta',             label: 'Trade Deals',        Icon: FTAIcon },
+    { id: 'rodtep',          label: 'RoDTEP Recovery',    Icon: RoDTEPIcon },
+    { id: 'shipments',       label: 'Shipments',          Icon: ShipmentsIcon },
+    ...(euEnabled ? [{ id: 'eu-compliance' as ViewType, label: 'EU Compliance', Icon: EUIcon }] : []),
+    { id: 'label-validator', label: 'Label Checker',      Icon: LabelIcon },
   ]
 
   return (
@@ -157,77 +148,46 @@ export function Sidebar({
         />
       </div>
 
-      {/* Nav groups */}
+      {/* Nav items */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {navGroups.map(group => (
-          <div key={group.label} style={{ marginBottom: spacing.xs }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: `${spacing.sm} ${spacing.xs}`, marginBottom: 2,
-            }}>
-              <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: group.dot, flexShrink: 0 }} />
-              <span style={{
-                fontSize: '0.625rem', fontWeight: fontWeight.bold,
-                color: colors.sidebarLabel, letterSpacing: '0.1em', textTransform: 'uppercase' as const,
-              }}>
-                {group.label}
+        {flatItems.map(item => {
+          const active = isActive(item.id)
+          return (
+            <div key={item.id} style={{ marginTop: spacerBefore.has(item.id) ? spacing.sm : 0 }}>
+              {spacerBefore.has(item.id) && (
+                <div style={{ height: 1, backgroundColor: colors.sidebarBorder, marginBottom: spacing.sm, marginLeft: spacing.xs, marginRight: spacing.xs }} />
+              )}
+            <button
+              onClick={() => handleNavigate(item.id)}
+              style={navBtn(active)}
+              aria-current={active ? 'page' : undefined}
+              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.08)' }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+            >
+              <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: active ? 1 : 0.65 }}>
+                <item.Icon />
               </span>
-            </div>
-
-            {group.items.map(item => {
-              const active = isActive(item.id)
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigate(item.id)}
-                  style={navBtn(active)}
-                  aria-current={active ? 'page' : undefined}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.06)' }}
-                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.id === 'alerts' && alertCount > 0 && (
+                <span
+                  data-testid="alert-badge"
+                  style={{
+                    backgroundColor: colors.risk.high, color: colors.white,
+                    fontSize: '0.625rem', fontWeight: fontWeight.bold,
+                    padding: '1px 5px', borderRadius: borderRadius.full,
+                    minWidth: '1rem', textAlign: 'center' as const,
+                  }}
                 >
-                  <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', opacity: active ? 1 : 0.65 }}>
-                    <item.Icon />
-                  </span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.tier === 'pro' && (
-                    <span style={{
-                      fontSize: '0.55rem', fontWeight: fontWeight.bold,
-                      color: colors.cta,
-                      backgroundColor: 'rgba(249,115,22,0.15)',
-                      padding: '1px 5px', borderRadius: borderRadius.sm,
-                      letterSpacing: '0.05em',
-                    }}>PRO</span>
-                  )}
-                  {item.id === 'alerts' && alertCount > 0 && (
-                    <span
-                      data-testid="alert-badge"
-                      style={{
-                        backgroundColor: colors.risk.high, color: colors.white,
-                        fontSize: '0.625rem', fontWeight: fontWeight.bold,
-                        padding: '1px 5px', borderRadius: borderRadius.full,
-                        minWidth: '1rem', textAlign: 'center' as const,
-                      }}
-                    >
-                      {alertCount}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        ))}
+                  {alertCount}
+                </span>
+              )}
+            </button>
+            </div>
+          )
+        })}
 
-        {/* Settings */}
-        <div style={{ marginTop: 'auto', paddingTop: spacing.sm }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: `${spacing.sm} ${spacing.xs}`, marginBottom: 2,
-          }}>
-            <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: colors.sidebarLabel, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.625rem', fontWeight: fontWeight.bold, color: colors.sidebarLabel, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>
-              ACCOUNT
-            </span>
-          </div>
+        {/* Settings — pinned to bottom */}
+        <div style={{ marginTop: 'auto', paddingTop: spacing.md, borderTop: `1px solid ${colors.sidebarBorder}` }}>
           <button
             onClick={() => handleNavigate('settings')}
             style={navBtn(isActive('settings'))}

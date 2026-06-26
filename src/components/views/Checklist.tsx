@@ -11,7 +11,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { Toast } from '@/components/Toast'
 import { Spinner } from '@/components/Spinner'
 import { useToast } from '@/hooks/useToast'
-import { colors, spacing, borderRadius } from '@/theme/index'
+import { useComplianceAI } from '@/hooks/useComplianceAI'
+import { colors, spacing, borderRadius, shadow } from '@/theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { searchHSProducts } from '@/data/hs-product-db'
 import { fetchHSLookup, generateChecklistPDF } from '@/lib/api'
@@ -21,6 +22,7 @@ import type { ChecklistItem, CountryCode } from '@/types'
 export interface ChecklistProps {
   selectedProduct: string
   selectedCountries: CountryCode[]
+  selectedHsCode?: string | null
   checklist: ChecklistItem[]
   checkedItems: Record<string, boolean>
   onToggleItem: (id: string | number) => void
@@ -30,6 +32,7 @@ export interface ChecklistProps {
 export function Checklist({
   selectedProduct,
   selectedCountries,
+  selectedHsCode,
   checklist,
   checkedItems,
   onToggleItem,
@@ -40,6 +43,7 @@ export function Checklist({
   const [showAllPhases, setShowAllPhases] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const { toasts, removeToast, success } = useToast()
+  const { states: aiStates, explainItem } = useComplianceAI()
 
   // Inline product switcher
   const [searchOpen, setSearchOpen] = useState(false)
@@ -121,8 +125,10 @@ export function Checklist({
   const progressContainerStyle: React.CSSProperties = {
     marginBottom: spacing.lg,
     padding: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
+    border: `1px solid ${colors.border}`,
+    boxShadow: shadow.sm,
   }
 
   const progressLabelStyle: React.CSSProperties = {
@@ -142,8 +148,8 @@ export function Checklist({
   const progressBarStyle: React.CSSProperties = {
     height: '100%',
     width: `${progress}%`,
-    backgroundColor: progress === 100 ? colors.risk.low : colors.primary,
-    transition: 'width 0.3s ease',
+    backgroundColor: progress === 100 ? colors.risk.low : colors.accent,
+    transition: 'width 0.4s ease',
   }
 
   const categoryStyle: React.CSSProperties = {
@@ -176,6 +182,7 @@ export function Checklist({
     borderRadius: borderRadius.md,
     cursor: 'pointer',
     transition: 'all 0.2s',
+    boxShadow: shadow.sm,
   })
 
   const checkboxStyle: React.CSSProperties = {
@@ -345,27 +352,90 @@ export function Checklist({
               <div style={itemListStyle}>
                 {categoryItems.map(item => {
                   const isChecked = !!checkedItems[String(item.id)]
+                  const aiState = aiStates[String(item.id)]
                   return (
-                    <label
+                    <div
                       key={item.id}
-                      style={itemStyle(isChecked)}
-                      onClick={e => e.stopPropagation()}
+                      style={{ transition: 'transform 0.2s ease, box-shadow 0.2s ease', borderRadius: borderRadius.md }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = shadow.md }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleToggle(item.id)}
-                        style={checkboxStyle}
-                        aria-label={item.item}
-                      />
-                      <span style={itemTextStyle(isChecked)}>{item.item}</span>
-                      <Badge variant={getPriorityVariant(item.priority)} size="sm">
-                        {item.priority}
-                      </Badge>
-                      <Badge variant="default" size="sm">
-                        {item.phase}
-                      </Badge>
-                    </label>
+                      <label
+                        style={{
+                          ...itemStyle(isChecked),
+                          borderRadius: aiState
+                            ? `${borderRadius.md} ${borderRadius.md} 0 0`
+                            : borderRadius.md,
+                          ...(item.priority === 'critical' && { borderLeft: `3px solid ${colors.risk.high}` }),
+                          ...(item.priority === 'high' && { borderLeft: `3px solid ${colors.risk.medium}` }),
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggle(item.id)}
+                          style={checkboxStyle}
+                          aria-label={item.item}
+                        />
+                        <span style={itemTextStyle(isChecked)}>{item.item}</span>
+                        <Badge variant={getPriorityVariant(item.priority)} size="sm">
+                          {item.priority}
+                        </Badge>
+                        <Badge variant="default" size="sm">
+                          {item.phase}
+                        </Badge>
+                        <button
+                          onClick={e => {
+                            e.preventDefault()
+                            explainItem(item.id, item.item, {
+                              hsCode: selectedHsCode,
+                              product: selectedProduct,
+                              countries: selectedCountries,
+                            })
+                          }}
+                          style={{
+                            background: 'none',
+                            border: `1px solid ${aiState ? colors.accent : colors.accent + '44'}`,
+                            borderRadius: '50%',
+                            width: 20, height: 20,
+                            cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                            fontSize: '0.65rem', fontWeight: 700,
+                            color: aiState ? colors.white : colors.accent,
+                            backgroundColor: aiState ? colors.accent : 'transparent',
+                            transition: 'all 0.15s',
+                          }}
+                          title="Explain this requirement"
+                        >
+                          ?
+                        </button>
+                      </label>
+                      {aiState && (
+                        <div style={{
+                          padding: `${spacing.sm} ${spacing.md}`,
+                          backgroundColor: colors.accentSurface,
+                          borderRadius: `0 0 ${borderRadius.md} ${borderRadius.md}`,
+                          border: `1px solid ${colors.accent}22`,
+                          borderTop: 'none',
+                          fontSize: '0.8rem',
+                          color: colors.text,
+                          lineHeight: 1.6,
+                        }}>
+                          {aiState.loading ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, color: colors.textMuted }}>
+                              <Spinner size="sm" />
+                              <span>Asking Claude…</span>
+                            </div>
+                          ) : aiState.error ? (
+                            <span style={{ color: colors.surfaces.dangerText }}>{aiState.error}</span>
+                          ) : (
+                            <span style={{ whiteSpace: 'pre-wrap' as const }}>{aiState.answer}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </div>

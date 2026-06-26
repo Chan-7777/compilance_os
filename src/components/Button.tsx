@@ -23,11 +23,13 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
     backgroundColor: colors.primary,
     color: colors.white,
     border: 'none',
+    boxShadow: '0 1px 3px rgba(26,36,64,0.18), 0 1px 2px rgba(26,36,64,0.12)',
   },
   cta: {
     backgroundColor: colors.cta,
     color: colors.white,
     border: 'none',
+    boxShadow: '0 1px 3px rgba(249,115,22,0.22), 0 1px 2px rgba(249,115,22,0.14)',
   },
   secondary: {
     backgroundColor: colors.surface,
@@ -48,6 +50,7 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
     backgroundColor: colors.status.error,
     color: colors.white,
     border: 'none',
+    boxShadow: '0 1px 3px rgba(220,38,38,0.2)',
   },
 }
 
@@ -113,7 +116,7 @@ export function Button({
     fontWeight: fontWeight.medium,
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     opacity: isDisabled ? 0.6 : 1,
-    transition: `opacity ${transition.fast}, background-color ${transition.fast}`,
+    transition: `opacity ${transition.fast}, background-color ${transition.fast}, transform 150ms ease, box-shadow ${transition.fast}`,
     width: fullWidth ? '100%' : 'auto',
     ...variantStyles[variant],
     ...sizeStyles[size],
@@ -146,7 +149,15 @@ if (typeof document !== 'undefined') {
   if (!document.getElementById(styleId)) {
     const s = document.createElement('style')
     s.id = styleId
-    s.textContent = `@keyframes btn-spin { to { transform: rotate(360deg); } }`
+    s.textContent = `
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+button[data-variant="primary"]:not([disabled]):hover { background-color: #141D33 !important; box-shadow: 0 4px 12px rgba(26,36,64,0.28) !important; transform: translateY(-1px); }
+button[data-variant="cta"]:not([disabled]):hover { background-color: #EA6C0A !important; box-shadow: 0 4px 12px rgba(249,115,22,0.3) !important; transform: translateY(-1px); }
+button[data-variant="secondary"]:not([disabled]):hover { background-color: #F5F5F3 !important; }
+button[data-variant="outline"]:not([disabled]):hover { background-color: rgba(26,36,64,0.05) !important; }
+button[data-variant="danger"]:not([disabled]):hover { background-color: #B91C1C !important; box-shadow: 0 4px 12px rgba(220,38,38,0.28) !important; transform: translateY(-1px); }
+button[data-variant="ghost"]:not([disabled]):hover { background-color: rgba(0,0,0,0.05) !important; }
+`
     document.head.appendChild(s)
   }
 }

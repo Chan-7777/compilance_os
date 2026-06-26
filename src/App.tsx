@@ -728,6 +728,7 @@ function App() {
           <Checklist
             selectedProduct={selectedHsProductName ? `${selectedHsProductName} (${selectedHsCode})` : productInfo.label}
             selectedCountries={selectedCountries}
+            selectedHsCode={selectedHsCode}
             checklist={checklist}
             checkedItems={checkedItems}
             onToggleItem={handleToggleChecklistItem}

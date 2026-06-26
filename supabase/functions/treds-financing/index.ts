@@ -42,9 +42,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        fu_id: `FU-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        message: 'Factoring Unit (FU) successfully created and submitted for bidding. Funds typically available in 48 hours.',
-        simulated_payload: simulatedPayload
+        reference_id: `REF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+        message: 'Financing request recorded. A ComplianceOS advisor will contact you within 1 business day to guide you through TReDS submission on RXIL or Invoicemart.',
+        payload_preview: simulatedPayload
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
