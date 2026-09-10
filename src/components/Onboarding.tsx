@@ -16,7 +16,10 @@ import { searchHSProducts } from '@/data/hs-product-db'
 import { fetchHSLookup } from '@/lib/api'
 import type { HSLookupResult } from '@/lib/api'
 
+export type TradeRole = 'exporter' | 'importer' | 'both'
+
 interface OnboardingDetails {
+  tradeRole?: TradeRole
   iec?: string
   gstin?: string
   name?: string
@@ -102,7 +105,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(1)
 
   // Step 1
-  const [role, setRole] = useState<string | null>(null)
+  const [role, setRole] = useState<TradeRole | null>(null)
 
   // Step 2
   const [companyName, setCompanyName] = useState('')
@@ -158,10 +161,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     setHsResults(local)
     setHsLoading(true)
     debounceRef.current = setTimeout(async () => {
-      const apiResults = await fetchHSLookup(q, product ?? undefined)
-      const apiCodes = new Set(apiResults.map(r => r.hsCode))
-      setHsResults([...apiResults, ...local.filter(l => !apiCodes.has(l.hsCode))].slice(0, 8))
-      setHsLoading(false)
+      try {
+        const apiResults = await fetchHSLookup(q, product ?? undefined)
+        const apiCodes = new Set(apiResults.map(r => r.hsCode))
+        setHsResults([...apiResults, ...local.filter(l => !apiCodes.has(l.hsCode))].slice(0, 8))
+      } catch {
+        // Lookup failed. Keep the local matches already on screen rather than
+        // leaving the spinner running forever.
+      } finally {
+        setHsLoading(false)
+      }
     }, 600)
   }
 
@@ -175,6 +184,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const handleFinish = () => {
     if (product && countries.length > 0) {
       onComplete(product, countries, {
+        tradeRole: role ?? undefined,
         iec: iec || undefined,
         gstin: gstin || undefined,
         name: companyName,
@@ -297,7 +307,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
               {ROLES.map(r => (
-                <button key={r.id} onClick={() => setRole(r.id)} style={card(role === r.id)}>
+                <button key={r.id} onClick={() => setRole(r.id as TradeRole)} style={card(role === r.id)}>
                   <span style={{ fontSize: '1.4rem', minWidth: 28, textAlign: 'center' }}>{r.icon}</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: colors.text }}>{r.label}</div>
