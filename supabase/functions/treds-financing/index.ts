@@ -18,37 +18,44 @@ serve(async (req) => {
       throw new Error('Missing required invoice or trading party details')
     }
 
-    // --- REAL IMPLEMENTATION NOTES ---
-    // 1. const TREDS_API_KEY = Deno.env.get('RXIL_API_KEY') || Deno.env.get('INVOICEMART_API_KEY')
-    // 2. Fetch the verified ICEGATE shipping bill data from our DB using the referenceNumber.
-    // 3. Map our JSON schema to the TReDS Factoring Unit (FU) creation XML/JSON schema.
-    // 4. POST the payload to the TReDS platform and parse the returned FU ID.
+    const tredsApiKey =
+      Deno.env.get('RXIL_API_KEY') ?? Deno.env.get('INVOICEMART_API_KEY')
 
-    const simulatedPayload = {
-      factoring_unit: {
-        seller_iec: seller.iec,
-        buyer_name: buyer.name,
-        currency: currency || 'INR',
-        base_amount: invoiceValue,
-        customs_reference: referenceNumber,
-        terms: "30_DAYS_NET",
-        insurance_backed: true // Backed by ECGC in actual production
-      }
+    if (!tredsApiKey) {
+      // No TReDS platform is connected. Refuse rather than returning a
+      // fabricated reference id and promising an advisor callback that
+      // nothing in this system would ever produce.
+      return new Response(
+        JSON.stringify({
+          error:
+            'TReDS financing is not connected. Set RXIL_API_KEY or INVOICEMART_API_KEY in Supabase secrets to enable it.',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 503,
+        }
+      )
     }
 
-    // Simulate Network API Latency (TReDS platforms take a moment)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
+    // TODO: with a key present, map to the TReDS Factoring Unit schema and POST
+    // it to RXIL or Invoicemart, then return the FU id the platform issues.
+    // Until that exists, do not pretend a submission happened.
     return new Response(
       JSON.stringify({
-        success: true,
-        reference_id: `REF-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        message: 'Financing request recorded. A ComplianceOS advisor will contact you within 1 business day to guide you through TReDS submission on RXIL or Invoicemart.',
-        payload_preview: simulatedPayload
+        error:
+          'TReDS submission is not implemented yet. A key is configured but no factoring unit was created.',
+        factoring_unit_draft: {
+          seller_iec: seller.iec,
+          buyer_name: buyer.name,
+          currency: currency || 'INR',
+          base_amount: invoiceValue,
+          customs_reference: referenceNumber,
+          terms: '30_DAYS_NET',
+        },
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 501,
       }
     )
   } catch (error) {

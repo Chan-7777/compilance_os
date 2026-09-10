@@ -139,6 +139,8 @@ serve(async (req) => {
     const isLive              = !!(icegateClientId && icegateClientSecret)
     const indicator           = Deno.env.get('ICEGATE_ENV') === 'production' ? 'P' : 'T'
 
+    // Placeholder control number so the draft payload satisfies the CACHE01
+    // schema. ICEGATE issues the real one on submission.
     const jobNumber = Math.floor(1000000 + Math.random() * 8999999)
     const today     = toICEGATEDate()
     const destPort  = shipment.destinationPort ?? PORT_MAP[shipment.country] ?? 'USNYC'
@@ -273,20 +275,29 @@ serve(async (req) => {
       }
     }
 
-    const referenceNumber = `SB-${new Date().getFullYear()}-${jobNumber}`
+    // Only surface a shipping bill reference when ICEGATE actually accepted the
+    // submission. Anything else would be a locally invented number.
+    const referenceNumber =
+      submissionStatus === 'submitted'
+        ? `SB-${new Date().getFullYear()}-${jobNumber}`
+        : null
 
     return new Response(
       JSON.stringify({
         status:             submissionStatus,
         reference_number:   referenceNumber,
-        icegate_job_number: jobNumber,
+        icegate_job_number: submissionStatus === 'submitted' ? jobNumber : null,
+        draft_job_number:   jobNumber,
         live_submission:    isLive,
         icegate_response:   icegateResponse,
         payload:            cache01Payload,
         schema_version:     'CACHE01 v1.1 (Jan 2026)',
-        note: !!(Deno.env.get('ICEGATE_CLIENT_ID'))
-          ? 'Submitted to ICEGATE. Await acknowledgement.'
-          : 'ICEGATE credentials not set — payload generated but not submitted. Set ICEGATE_CLIENT_ID and ICEGATE_CLIENT_SECRET in Supabase secrets to enable live submission.',
+        note:
+          submissionStatus === 'submitted'
+            ? 'Submitted to ICEGATE. Await acknowledgement.'
+            : submissionStatus === 'submission_failed'
+            ? 'ICEGATE rejected the submission. No shipping bill reference was issued.'
+            : 'ICEGATE credentials not set — draft payload generated but not submitted, and no shipping bill reference was issued. Set ICEGATE_CLIENT_ID and ICEGATE_CLIENT_SECRET in Supabase secrets to enable live submission.',
         timestamp: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

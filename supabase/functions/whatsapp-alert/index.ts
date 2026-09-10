@@ -103,8 +103,9 @@ serve(async (req) => {
       messageId = `sim_${Date.now()}`
     }
 
-    // Write dedup log
-    if (companyId && alertKey) {
+    // Write dedup log. Never log a simulated send: the dedup check above would
+    // then suppress the real message once META_WHATSAPP_TOKEN is configured.
+    if (companyId && alertKey && !simulated) {
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
