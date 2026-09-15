@@ -52,10 +52,12 @@ serve(async (req) => {
         const CBAM_COVERED_PRODUCTS = ['steel', 'aluminium', 'cement', 'chemicals', 'machinery']
 
         // ── Map product/HS code to Climatiq activity ID ──────────────
-        // Climatiq uses specific activity_ids for different commodity types.
-        // This mapping covers the main ComplianceOS product categories.
+        // steel uses the activity ID from Climatiq's own estimate example.
+        // The other IDs predate that and have not been checked against the
+        // Climatiq data explorer; an unknown ID comes back as a 400 whose
+        // message is now passed through to the user.
         const activityMap: Record<string, string> = {
-            steel: 'steel-type_steel_product_hot_rolled_coil',
+            steel: 'metals-type_steel_section',
             chemicals: 'chemicals-type_basic_chemicals',
             textiles: 'textiles-type_textile_fibre',
             food: 'food_drink_tobacco-type_food_products',
@@ -72,7 +74,12 @@ serve(async (req) => {
         const climatiqKey = Deno.env.get('CLIMATIQ_API_KEY')
         if (!climatiqKey) throw new Error('Missing CLIMATIQ_API_KEY')
 
-        const climatiqResponse = await fetch('https://api.climatiq.io/estimate', {
+        // /data/v1/estimate replaced the unversioned /estimate endpoint, and the
+        // Selector now requires data_version. The old request also pinned a UK
+        // government source (BEIS) to region IN for 2023, a combination with
+        // no matching factor. Ask for the origin region, and accept a broader
+        // region or year rather than failing.
+        const climatiqResponse = await fetch('https://api.climatiq.io/data/v1/estimate', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -81,9 +88,10 @@ serve(async (req) => {
             body: JSON.stringify({
                 emission_factor: {
                     activity_id: activityId,
-                    source: 'BEIS',
+                    data_version: '^33',
                     region: origin_country || 'IN',
-                    year: 2023,
+                    region_fallback: true,
+                    year_fallback: true,
                 },
                 parameters: {
                     weight: weight_kg,
@@ -95,7 +103,9 @@ serve(async (req) => {
         if (!climatiqResponse.ok) {
             const errText = await climatiqResponse.text()
             console.error('Climatiq API error:', errText)
-            throw new Error(`Climatiq API failed: ${climatiqResponse.status}`)
+            let reason = errText.slice(0, 200)
+            try { reason = JSON.parse(errText).message ?? reason } catch { /* not JSON */ }
+            throw new Error(`Climatiq returned ${climatiqResponse.status}: ${reason}`)
         }
 
         const climatiqData = await climatiqResponse.json()
