@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 22 Sept 2026, 2:21 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 22 Sept 2026, 6:06 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -23,7 +23,7 @@ never run reads NOT LIVE, because to a user it does not work.
 | **LIVE** | Dashboard shows real unclaimed RoDTEP | Dashboard prefers the figure computed from actual shipping bills over the turnover-band estimate, and captions which one it used. |
 | **PARTLY UNKNOWN** | Trade agreement status comes from the database | fta_agreements overlays the built-in table at runtime, and the screen shows how old the data is. |
 | **PARTLY UNKNOWN** | CBAM emissions use EU default values | climatiq-emissions looks up the CBAM default for the HS code's CN prefix instead of failing, and the panel appears once rather than per market. |
-| **NOT LIVE** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
+| **PARTLY UNKNOWN** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
 | **UNCERTAIN** | RISK: self-made Certificate of Origin PDF | downloadCOOPdf draws a document headed CERTIFICATE OF ORIGIN with a locally generated reference number. No agency issued it. This should be withdrawn or relabelled before any customer uses it. |
 | **LIVE** | Demo seed for Meridian Tubes & Alloys | Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter. |
 
@@ -34,35 +34,35 @@ never run reads NOT LIVE, because to a user it does not work.
 
 **Alerts are relevant and readable - UNCERTAIN**
 
-- `src/lib/api.ts` - uncertain: edited 6h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
 
 **Trade agreement status comes from the database - PARTLY UNKNOWN**
 
-- `src/lib/api.ts` - uncertain: edited 6h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
 - `migration 20260916000001_fta_agreements_read.sql` - unknown: not recorded as applied
 
 **CBAM emissions use EU default values - PARTLY UNKNOWN**
 
 - `function climatiq-emissions` - unknown: no deploy ever recorded
 
-**DGFT Certificate of Origin - Phase 1 - NOT LIVE**
+**DGFT Certificate of Origin - Phase 1 - PARTLY UNKNOWN**
 
-- `src/lib/dgft-coo-mapper.ts` - not-live: new file, created after the live build
-- `src/lib/coo-validator.ts` - not-live: new file, created after the live build
-- `src/lib/dgft-reference-maps.ts` - not-live: new file, created after the live build
+- `src/lib/dgft-coo-mapper.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/coo-validator.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/dgft-reference-maps.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
 - `migration 20260922000001_coo_integration.sql` - unknown: not recorded as applied
 - note: Blocked on three unanswered questions: credential tenancy, fixed egress IP for DGFT's whitelist, RSA key custody.
 
 **RISK: self-made Certificate of Origin PDF - UNCERTAIN**
 
-- `src/lib/api.ts` - uncertain: edited 6h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
 - note: Here so it stays visible. Present = the risk is still shipped.
 
 ## Frontend
 
 | | |
 |---|---|
-| Live bundle built | 16 Sept 2026, 2:59 pm (5d ago) |
+| Live bundle built | 16 Sept 2026, 2:59 pm (6d ago) |
 | Deployment | https://compilance-r8q2dojuv-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
 | Source files changed since | **7** |
@@ -71,13 +71,13 @@ never run reads NOT LIVE, because to a user it does not work.
 
 Run `vercel --prod` to ship these.
 
-- `src/lib/eu-documents.ts` - edited 1h ago
-- `src/lib/coo-validator.ts` - edited 6h ago
-- `src/lib/coo-validator.test.ts` - edited 6h ago
-- `src/lib/dgft-coo-mapper.ts` - edited 6h ago
-- `src/lib/dgft-reference-maps.ts` - edited 6h ago
-- `src/types/index.ts` - edited 6h ago
-- `src/lib/api.ts` - edited 6h ago
+- `src/lib/eu-documents.ts` - edited 4h ago
+- `src/lib/coo-validator.ts` - edited 9h ago
+- `src/lib/coo-validator.test.ts` - edited 9h ago
+- `src/lib/dgft-coo-mapper.ts` - edited 9h ago
+- `src/lib/dgft-reference-maps.ts` - edited 9h ago
+- `src/types/index.ts` - edited 9h ago
+- `src/lib/api.ts` - edited 9h ago
 
 ## Edge functions
 
@@ -98,15 +98,15 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 | `hs-lookup` | 188d ago | never recorded | UNKNOWN - never recorded |
 | `hs-mismatch-check` | 84d ago | never recorded | UNKNOWN - never recorded |
 | `label-vision` | 182d ago | never recorded | UNKNOWN - never recorded |
-| `razorpay-create-link` | 103d ago | never recorded | UNKNOWN - never recorded |
-| `razorpay-webhook` | 103d ago | never recorded | UNKNOWN - never recorded |
+| `razorpay-create-link` | 104d ago | never recorded | UNKNOWN - never recorded |
+| `razorpay-webhook` | 104d ago | never recorded | UNKNOWN - never recorded |
 | `recovery-digest` | 16d ago | never recorded | UNKNOWN - never recorded |
 | `regulatory-alerts` | 189d ago | never recorded | UNKNOWN - never recorded |
-| `sanctions-check` | 103d ago | never recorded | UNKNOWN - never recorded |
+| `sanctions-check` | 104d ago | never recorded | UNKNOWN - never recorded |
 | `treds-financing` | 11d ago | never recorded | UNKNOWN - never recorded |
 | `underwriting-signal` | 189d ago | never recorded | UNKNOWN - never recorded |
 | `whatsapp-alert` | 11d ago | never recorded | UNKNOWN - never recorded |
-| `whatsapp-vendor-outreach` | 206d ago | never recorded | UNKNOWN - never recorded |
+| `whatsapp-vendor-outreach` | 207d ago | never recorded | UNKNOWN - never recorded |
 | `zonos-classify` | 207d ago | never recorded | UNKNOWN - never recorded |
 | `zonos-landed-cost` | 207d ago | never recorded | UNKNOWN - never recorded |
 
@@ -122,7 +122,7 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 | `20260910000001_onboarding_completion.sql` | yes | UNKNOWN |
 | `20260915000001_companies_update_policy.sql` | yes | UNKNOWN |
 | `20260916000001_fta_agreements_read.sql` | yes | UNKNOWN |
-| `20260922000001_coo_integration.sql` | UNTRACKED | UNKNOWN |
+| `20260922000001_coo_integration.sql` | yes | UNKNOWN |
 
 To check what the database really has, run this in the Supabase SQL editor:
 
@@ -134,48 +134,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `b1eb574` - feat: let the app read trade agreement status from the database (5d ago).
+Branch `recover-untracked-edge-functions` at `849c844` - docs: add audit pack, partnership material and regulatory references (3h ago).
 
-**52 source file(s) exist only on this machine.** If this disk dies, production cannot be rebuilt.
-
-- `M scripts/seed_tariff_rates.mjs`
-- `M src/App.test.tsx`
-- `M src/App.tsx`
-- `M src/components/Sidebar.test.tsx`
-- `M src/components/Sidebar.tsx`
-- `M src/components/TopBar.tsx`
-- `M src/components/views/Alerts.tsx`
-- `M src/components/views/CBAMReadiness.tsx`
-- `M src/components/views/Dashboard.test.tsx`
-- `M src/components/views/Dashboard.tsx`
-- `M src/components/views/FTASchemes.tsx`
-- `M src/components/views/RiskAnalysis.tsx`
-- `M src/components/views/RoDTEPCalculator.tsx`
-- `M src/components/views/Settings.tsx`
-- `M src/components/views/Shipments.tsx`
-- `M src/components/views/index.ts`
-- `M src/data/fta.ts`
-- `M src/lib/api.ts`
-- `M src/lib/eu-documents.ts`
-- `M src/lib/rodtep-report.ts`
-- `M src/types/index.ts`
-- `M supabase/config.toml`
-- `D supabase/create_hs_codes_table.sql`
-- `M supabase/functions/_shared/rate-limit.ts`
-- `M supabase/functions/document-ocr/index.ts`
-- `M supabase/migration_cbam_leads.sql`
-- `?? scripts/check-tokens.cjs`
-- `?? scripts/check-tokens.js`
-- `?? scripts/data/`
-- `?? scripts/generate_tariff_migration.mjs`
-- `?? scripts/live-state.features.json`
-- `?? scripts/live-state.mjs`
-- `?? scripts/seed_rodtep.mjs`
-- `?? scripts/seed_sanctions.mjs`
-- `?? src/components/LandingPage.tsx`
-- `?? src/components/views/BRCFIRCTracker.tsx`
-- `?? src/components/views/CADashboard.tsx`
-- `?? src/components/views/ContractReview.tsx`
-- `?? src/components/views/DocumentReview.tsx`
-- `?? src/components/views/IGSTTracker.tsx`
-- ...and 12 more
+No uncommitted source changes.

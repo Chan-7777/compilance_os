@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Skill(jev)",
+      "Skill(jev:*)",
       "Skill(artifact-design)",
       "Skill(artifact-design:*)",
       "WebFetch(domain:law.asia)",

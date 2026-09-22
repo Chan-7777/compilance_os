@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "confidence_threshold": 0.6,
+  "counts": {
+    "tiny": 2,
+    "everyday": 2,
+    "large": 2,
+    "hardest": 2,
+    "handled_by_primary": 2
+  },
+  "total_jev_cost_usd": 0.0001465,
+  "total_calls": 8,
+  "models": {
+    "tiny": "google/gemini-2.0-flash-lite",
+    "everyday": "google/gemini-2.0-flash",
+    "large": "anthropic/claude-3.5-sonnet",
+    "hardest": "openai/gpt-4o"
+  }
+}
