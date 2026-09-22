@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplianceOS — Response to BEN Finserv Counter-Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FA8112;
+    --orange-light: #FFF3E0;
+    --orange-dark: #D35400;
+    --charcoal: #1a1a2e;
+    --slate: #334155;
+    --muted: #64748b;
+    --green: #10B981;
+    --green-bg: #f0fdf4;
+    --green-border: #86efac;
+    --red: #EF4444;
+    --red-bg: #fef2f2;
+    --blue: #3B82F6;
+    --blue-bg: #eff6ff;
+    --cream: #FAF3E1;
+    --surface: #f8fafc;
+    --border: #e2e8f0;
+    --white: #ffffff;
+    --amber: #F59E0B;
+    --amber-bg: #FFFBEB;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--slate);
+    line-height: 1.6;
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media print {
+    @page { margin: 18mm 16mm; size: A4; }
+    body { font-size: 9.5pt; background: white; }
+    .page-break { page-break-before: always; break-before: page; }
+    .no-break { page-break-inside: avoid; break-inside: avoid; }
+    .cover { min-height: auto; padding: 40px 0; }
+    .cover h1 { font-size: 28pt; }
+    section { padding: 0; margin-bottom: 20px; }
+    .container { max-width: 100%; padding: 0; }
+    table { font-size: 8.5pt; }
+  }
+
+  .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+  /* ─── Cover ─── */
+  .cover {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+    color: white;
+    padding: 80px 0 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 4px;
+    background: var(--orange);
+  }
+  .cover .label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--orange); margin-bottom: 16px;
+  }
+  .cover h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px; font-weight: 400; line-height: 1.15;
+    margin-bottom: 8px; color: white;
+  }
+  .cover h1 span { color: var(--orange); }
+  .cover .subtitle {
+    font-size: 16px; color: #94a3b8; font-weight: 300;
+    margin-bottom: 24px;
+  }
+  .cover .meta {
+    font-size: 12px; color: #64748b;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 16px; margin-top: 16px;
+  }
+
+  /* ─── Summary Cards ─── */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-top: 32px;
+  }
+  .summary-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 16px;
+    text-align: center;
+  }
+  .summary-card .emoji { font-size: 24px; margin-bottom: 6px; }
+  .summary-card .count {
+    font-size: 28px; font-weight: 800; margin-bottom: 2px;
+  }
+  .summary-card .count.green { color: var(--green); }
+  .summary-card .count.amber { color: var(--amber); }
+  .summary-card .count.red { color: var(--red); }
+  .summary-card .desc { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .contact-bar {
+    margin-top: 32px; font-size: 12px; color: #94a3b8;
+  }
+  .contact-bar strong { color: #cbd5e1; }
+
+  /* ─── Section ─── */
+  section { padding: 40px 0; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--orange);
+  }
+  .section-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--orange); color: white;
+    font-size: 16px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px; color: var(--charcoal); font-weight: 400;
+  }
+
+  h3 {
+    font-size: 15px; color: var(--orange-dark); font-weight: 700;
+    margin: 20px 0 8px;
+  }
+
+  p { margin-bottom: 10px; font-size: 14px; }
+  p.small { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* ─── Callout boxes ─── */
+  .callout {
+    border-left: 4px solid var(--orange);
+    background: var(--orange-light);
+    padding: 14px 18px; border-radius: 0 8px 8px 0;
+    margin: 16px 0; font-size: 13px;
+  }
+  .callout.green {
+    border-left-color: var(--green);
+    background: var(--green-bg);
+  }
+  .callout.blue {
+    border-left-color: var(--blue);
+    background: var(--blue-bg);
+  }
+  .callout.amber {
+    border-left-color: var(--amber);
+    background: var(--amber-bg);
+  }
+  .callout strong { color: var(--charcoal); }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 13px;
+  }
+  th {
+    background: var(--orange); color: white;
+    text-align: left; padding: 8px 10px;
+    font-weight: 600; font-size: 12px;
+  }
+  th.slate-header { background: var(--slate); }
+  th.green-header { background: var(--green); }
+  th.red-header { background: var(--red); }
+  th.amber-header { background: var(--amber); color: var(--charcoal); }
+  td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--surface); }
+  td strong { color: var(--charcoal); }
+  td em { color: var(--muted); font-size: 12px; }
+
+  /* ─── Clause Card ─── */
+  .clause-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .clause-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    font-weight: 700; font-size: 14px;
+  }
+  .clause-header.accepted {
+    background: var(--green-bg);
+    border-bottom: 2px solid var(--green);
+    color: #065f46;
+  }
+  .clause-header.counter {
+    background: var(--amber-bg);
+    border-bottom: 2px solid var(--amber);
+    color: #92400e;
+  }
+  .clause-header.rejected {
+    background: var(--red-bg);
+    border-bottom: 2px solid var(--red);
+    color: #991b1b;
+  }
+  .clause-header .badge {
+    font-size: 10px; font-weight: 800;
+    padding: 2px 8px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .clause-header .badge.accepted { background: var(--green); color: white; }
+  .clause-header .badge.counter { background: var(--amber); color: var(--charcoal); }
+  .clause-header .badge.rejected { background: var(--red); color: white; }
+  .clause-body { padding: 16px 18px; }
+  .clause-body .your-text {
+    background: var(--surface);
+    border-left: 3px solid var(--muted);
+    padding: 10px 14px; margin: 8px 0;
+    font-size: 12px; color: var(--muted);
+    font-style: italic;
+    border-radius: 0 6px 6px 0;
+  }
+  .clause-body .our-counter {
+    background: var(--orange-light);
+    border-left: 3px solid var(--orange);
+    padding: 10px 14px; margin: 8px 0;
+    font-size: 13px;
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* ─── Comparison ─── */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; margin: 20px 0;
+    border: 2px solid var(--border); border-radius: 12px;
+    overflow: hidden;
+  }
+  .compare-header {
+    grid-column: 1 / -1;
+    background: var(--charcoal); color: white;
+    padding: 12px 16px; font-weight: 700;
+    font-size: 14px; text-align: center;
+  }
+  .compare-col-header {
+    padding: 10px 16px; font-weight: 700;
+    font-size: 13px; text-align: center;
+  }
+  .compare-col-header.left {
+    background: var(--red-bg); color: var(--red);
+    border-right: 1px solid var(--border);
+  }
+  .compare-col-header.right {
+    background: var(--green-bg); color: var(--green);
+  }
+  .compare-cell {
+    padding: 10px 16px; font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .compare-cell.left { border-right: 1px solid var(--border); }
+
+  /* ─── Bullet list ─── */
+  ul.items { padding-left: 0; list-style: none; }
+  ul.items li {
+    padding: 6px 0 6px 20px; position: relative;
+    font-size: 13px;
+  }
+  ul.items li::before {
+    content: ''; position: absolute; left: 0; top: 12px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--orange);
+  }
+
+  /* ─── Footer ─── */
+  .doc-footer {
+    text-align: center; padding: 30px 0;
+    font-size: 11px; color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  .sep { height: 1px; background: var(--border); margin: 24px 0; }
+
+  .highlight-box {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-radius: 16px; padding: 28px;
+    margin: 24px 0; color: white;
+    text-align: center;
+  }
+  .highlight-box h3 { color: var(--orange); margin-bottom: 12px; font-size: 18px; }
+  .highlight-box p { color: #94a3b8; font-size: 14px; }
+  .highlight-box .emphasis {
+    color: white; font-weight: 700; font-size: 16px;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ COVER ═══════ -->
+<div class="cover">
+  <div class="container">
+    <div class="label">Response to Counter-Proposal · April 2026</div>
+    <h1><span>ComplianceOS</span> × BEN Finserv</h1>
+    <div class="subtitle">Clause-by-Clause Response & Revised Terms</div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="emoji">✅</div>
+        <div class="count green">3</div>
+        <div class="desc">Clauses Accepted</div>
+      </div>
+      <div class="summary-card">
+        <div class="emoji">🔄</div>
+        <div class="count amber">3</div>
+        <div class="desc">Counter-Proposed</div>
+      </div>
+      <div class="summary-card">
+        <div class="emoji">⚠️</div>
+        <div class="count red">2</div>
+        <div class="desc">Need Discussion</div>
+      </div>
+    </div>
+
+    <div class="contact-bar">
+      <strong>Chandan Reddy</strong> · Founder, ComplianceOS ·
+      chandan.reddy2797@gmail.com · +91 7842102488
+    </div>
+    <div class="meta">April 2026 · Response to BEN Finserv Counter-Proposal · Confidential</div>
+  </div>
+</div>
+
+<!-- ═══════ OPENING ═══════ -->
+<div class="container">
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">⚡</div>
+      <h2>Before We Begin</h2>
+    </div>
+
+    <p>Benedict, thank you for the detailed counter-proposal. The fact that you invested time restructuring the terms tells me you're serious about this — and so am I.</p>
+
+    <p>I agree with your framing: <strong>"We're both solving the same problem — friction in export transactions."</strong> And I agree this <em>can</em> become a category-defining model. That's exactly why these terms need to be right — not just for today, but for a partnership that compounds over years.</p>
+
+    <p>I've gone through each of your 8 clauses. Here's my honest response:</p>
+
+    <div class="callout green">
+      <strong>My guiding principle:</strong> Every clause should pass a simple test — does it create a partnership where both sides are <em>more valuable</em> together than apart? If one side can walk away with the other's value, it's not a partnership — it's a vendor contract.
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ CLAUSE-BY-CLAUSE ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">1</div>
+      <h2>Clause-by-Clause Response</h2>
+    </div>
+
+    <!-- CLAUSE 1: POSITIONING — ACCEPTED -->
+    <div class="clause-card no-break">
+      <div class="clause-header accepted">
+        <span class="badge accepted">Accepted</span>
+        Clause 1 — Positioning
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "Ben Finserv = primary client acquisition, advisory, and transaction orchestration.
+          ComplianceOS = compliance intelligence and documentation infrastructure provider."
+        </div>
+        <p><strong>Our position:</strong> Agreed. This is consistent with our original framework. You own the client relationship and advisory practice. We provide the intelligence infrastructure. Clean separation.</p>
+      </div>
+    </div>
+
+    <!-- CLAUSE 2: CLIENT OWNERSHIP — COUNTER -->
+    <div class="clause-card no-break">
+      <div class="clause-header counter">
+        <span class="badge counter">Counter</span>
+        Clause 2 — Client Ownership & Non-Solicitation
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "All exporter relationships sourced through Ben Finserv remain exclusive to Ben Finserv.
+          ComplianceOS shall not solicit these clients for 24 months post engagement."
+        </div>
+
+        <p><strong>What we accept:</strong></p>
+        <ul class="items">
+          <li>Client <em>advisory relationships</em> sourced by you stay with you. Full stop.</li>
+          <li>We will not offer trade finance advisory or structuring to your clients — that's your domain.</li>
+        </ul>
+
+        <p><strong>What we counter:</strong></p>
+        <div class="our-counter">
+          <strong>24-month non-solicitation scope needs clarification.</strong><br><br>
+          When an exporter creates a ComplianceOS account (even via your funnel), they become a <em>ComplianceOS platform user</em>. We need the right to:
+          <ul style="margin: 8px 0 0 16px; font-size: 12px;">
+            <li>Send product updates and feature announcements</li>
+            <li>Provide ongoing compliance support for their existing shipments</li>
+            <li>Offer compliance services for new markets/products they expand into</li>
+          </ul>
+          <br>
+          <strong>Proposed language:</strong> "ComplianceOS will not offer trade finance structuring, lending, or financial advisory services to Ben Finserv-sourced clients during the partnership and for <strong>12 months</strong> (not 24) post-termination. ComplianceOS retains the right to provide compliance services and platform access to all registered users."
+        </div>
+
+        <p class="small">Rationale: Your clients use our platform daily for compliance. Blocking us from communicating with our own users for 24 months creates operational problems and hurts the exporter experience — which ultimately hurts your deals too.</p>
+      </div>
+    </div>
+
+    <!-- CLAUSE 3: DATA OWNERSHIP — COUNTER -->
+    <div class="clause-card no-break">
+      <div class="clause-header counter">
+        <span class="badge counter">Counter</span>
+        Clause 3 — Data Ownership
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "All transaction-level data, buyer risk insights, deal performance data, and funding outcomes
+          — jointly accessible, with unrestricted usage rights for Ben Finserv." [NON-NEGOTIABLE]
+        </div>
+
+        <p><strong>What we accept:</strong></p>
+        <ul class="items">
+          <li>Full joint access to all data generated through the partnership</li>
+          <li>You get complete visibility into compliance scoring, risk data, and deal outcomes</li>
+          <li>You can use this data for your advisory practice, client reporting, and deal structuring</li>
+        </ul>
+
+        <p><strong>What we counter:</strong></p>
+        <div class="our-counter">
+          <strong>"Unrestricted usage rights" is too broad.</strong><br><br>
+          That language would allow either party to feed partnership data into a competing service, license it to third parties, or use it to train competing AI models.<br><br>
+          <strong>Proposed language:</strong> "Both parties shall have full access to all partnership-generated data for the purpose of:
+          <ul style="margin: 8px 0 8px 16px; font-size: 13px;">
+            <li>Servicing joint clients</li>
+            <li>Internal analytics and reporting</li>
+            <li>Improving their respective platforms</li>
+          </ul>
+          Neither party shall license, sell, or provide partnership data to direct competitors."
+        </div>
+
+        <p class="small">This gives you everything you need operationally — full access, full analytics, full usage for your business — while preventing either of us from accidentally arming a competitor.</p>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- CLAUSE 4: REVENUE — COUNTER -->
+    <div class="clause-card no-break">
+      <div class="clause-header counter">
+        <span class="badge counter">Counter</span>
+        Clause 4 — Revenue Model
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          Tiered flat fees: &lt; ₹2 Cr → ₹10,000 | ₹2–5 Cr → ₹20,000 | ₹5 Cr+ → ₹30,000.
+          "Fee payable only upon successful closure and disbursement."
+          "Fee applicable only if ComplianceOS inputs materially contributed to deal closure."
+        </div>
+
+        <p><strong>What we accept:</strong></p>
+        <ul class="items">
+          <li>Moving from percentage to tiered flat fees — simpler, more predictable for both sides</li>
+          <li>Fee payable only upon successful deal closure — we're aligned on performance-based earning</li>
+        </ul>
+
+        <p><strong>What we counter:</strong></p>
+
+        <table>
+          <tr><th>Deal Size</th><th>Your Proposal</th><th>Our Counter</th></tr>
+          <tr><td><strong>< ₹2 Cr</strong></td><td>₹10,000</td><td><strong>₹15,000</strong></td></tr>
+          <tr><td><strong>₹2–5 Cr</strong></td><td>₹20,000</td><td><strong>₹30,000</strong></td></tr>
+          <tr><td><strong>₹5–10 Cr</strong></td><td>₹30,000</td><td><strong>₹50,000</strong></td></tr>
+          <tr><td><strong>₹10 Cr+</strong></td><td>₹30,000</td><td><strong>₹75,000</strong></td></tr>
+          <tr><td><strong>CBAM / Complex</strong></td><td><em>not addressed</em></td><td><strong>1.5× above rates</strong></td></tr>
+        </table>
+
+        <div class="our-counter">
+          <strong>Regarding "material contribution" clause — we need to remove this.</strong><br><br>
+          If a ComplianceOS Deal Pack was generated and presented to a lender, that's material contribution. Creating a subjective "did it help?" evaluation opens the door to disputes on every deal. The trigger should be simple: <strong>Was a ComplianceOS Deal Pack used in the deal? → Fee applies.</strong>
+        </div>
+
+        <p class="small">Context: On a ₹5Cr deal, your finance fee is ₹2.5–5L. Our ₹50K counter is 10–20% of your fee — still very reasonable for the compliance intelligence and bank-ready documentation that accelerated that closure.</p>
+      </div>
+    </div>
+
+    <!-- CLAUSE 5: PLATFORM DEPENDENCY — NEEDS DISCUSSION -->
+    <div class="clause-card no-break">
+      <div class="clause-header rejected">
+        <span class="badge rejected">Discuss</span>
+        Clause 5 — Platform Dependency / Lock-in
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "ComplianceOS shall be the preferred compliance partner, but Ben Finserv retains the
+          right to use alternative compliance workflows where required."
+        </div>
+
+        <p><strong>The concern:</strong> This clause, combined with Clause 8 (36-month non-compete on ComplianceOS), creates an <strong>asymmetric lock</strong>:</p>
+
+        <div class="compare-grid">
+          <div class="compare-header">Symmetry Check</div>
+          <div class="compare-col-header left">ComplianceOS Under These Terms</div>
+          <div class="compare-col-header right">Ben Finserv Under These Terms</div>
+          <div class="compare-cell left">❌ Cannot enter trade finance advisory for 36 months</div>
+          <div class="compare-cell">✅ Can use any compliance provider at any time</div>
+          <div class="compare-cell left">❌ Cannot solicit partnership clients for 24 months</div>
+          <div class="compare-cell">✅ Can replace ComplianceOS whenever convenient</div>
+          <div class="compare-cell left">❌ Locked into infrastructure-only role</div>
+          <div class="compare-cell">✅ Free to explore any direction</div>
+        </div>
+
+        <div class="our-counter">
+          <strong>Proposed middle ground:</strong><br><br>
+          "ComplianceOS shall be the <strong>exclusive</strong> compliance platform for all exporters onboarded through the joint funnel. Ben Finserv may use alternative compliance workflows for clients sourced entirely outside this partnership."<br><br>
+          <em>This is fair because:</em> If we're investing in API integration, co-branding, and pipeline support for your funnel, those clients should flow through ComplianceOS. You remain free to use other tools for clients outside our partnership.
+        </div>
+      </div>
+    </div>
+
+    <!-- CLAUSE 6: DEAL PACK — ACCEPTED -->
+    <div class="clause-card no-break">
+      <div class="clause-header accepted">
+        <span class="badge accepted">Accepted</span>
+        Clause 6 — Deal Pack Co-Branding
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "Co-branded, with Ben Finserv as structuring authority and ComplianceOS
+          as compliance intelligence provider."
+        </div>
+        <p><strong>Our position:</strong> Agreed. You structure the deal, we provide the compliance intelligence. Both brands visible. Both clearly credited for their domain.</p>
+      </div>
+    </div>
+
+    <!-- CLAUSE 7: LENDER RELATIONSHIPS — ACCEPTED -->
+    <div class="clause-card no-break">
+      <div class="clause-header accepted">
+        <span class="badge accepted">Accepted</span>
+        Clause 7 — Lender Relationship Clause
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "All lender relationships, deal structuring methodologies, and financial advisory
+          processes remain exclusive domain of Ben Finserv."
+        </div>
+        <p><strong>Our position:</strong> Agreed in full. Lending relationships and deal structuring methodology are your IP and your domain. We have no interest in entering this space.</p>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- CLAUSE 8: NON-COMPETE — NEEDS DISCUSSION -->
+    <div class="clause-card no-break">
+      <div class="clause-header rejected">
+        <span class="badge rejected">Discuss</span>
+        Clause 8 — Non-Compete (36 Months)
+      </div>
+      <div class="clause-body">
+        <div class="your-text">
+          "ComplianceOS shall not directly or indirectly enter trade finance structuring, lender
+          aggregation, or advisory services for exporters introduced via Ben Finserv for 36 months."
+        </div>
+
+        <p><strong>What we accept:</strong></p>
+        <ul class="items">
+          <li>ComplianceOS will not enter trade finance structuring or lender aggregation — this is your expertise, not ours</li>
+          <li>A reasonable non-compete duration is appropriate</li>
+        </ul>
+
+        <p><strong>What we counter:</strong></p>
+        <div class="our-counter">
+          <strong>36 months is disproportionate. Our counter: 12 months, mutual.</strong><br><br>
+          <ul style="margin: 8px 0 0 16px; font-size: 12px;">
+            <li>Our original proposal was 12 months — that's already substantial in a fast-moving market</li>
+            <li>"Mutual" means we add: Ben Finserv shall not build, acquire, or commission a competing compliance intelligence platform for the same 12-month period</li>
+            <li>The non-compete should apply equally — if ComplianceOS can't enter your space, you shouldn't enter ours</li>
+          </ul>
+        </div>
+
+        <div class="callout amber">
+          <strong>Flexibility note:</strong> We're open to extending the mutual non-compete to <strong>24 months</strong> if the partnership includes either (a) a guaranteed minimum of 5 deals per quarter flowing through the joint funnel, or (b) acceptance of the higher-tier deal enablement fees proposed in Clause 4. Longer commitment from both sides should come with stronger commitment from both sides.
+        </div>
+
+        <p class="small">For context: Most Indian partnership agreements use 12–18 month non-competes. 36 months is closer to what you'd see in an acquisition, not a partnership. We're happy to commit to staying out of trade finance — but we need the same assurance on compliance tech.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ REVISED TERMS SUMMARY ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">2</div>
+      <h2>Revised Terms — At a Glance</h2>
+    </div>
+
+    <table>
+      <tr><th>Clause</th><th>Your Proposal</th><th>Our Response</th><th>Status</th></tr>
+      <tr>
+        <td><strong>1. Positioning</strong></td>
+        <td>BF = primary, COS = infrastructure</td>
+        <td>Agreed</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><strong>2. Client Ownership</strong></td>
+        <td>Exclusive + 24mo non-solicitation</td>
+        <td>Advisory clients yours; 12mo non-solicitation; COS retains platform user relationship</td>
+        <td>🔄</td>
+      </tr>
+      <tr>
+        <td><strong>3. Data Ownership</strong></td>
+        <td>Unrestricted usage rights</td>
+        <td>Full access, full internal usage, no arming competitors</td>
+        <td>🔄</td>
+      </tr>
+      <tr>
+        <td><strong>4. Revenue</strong></td>
+        <td>₹10K–30K flat, conditional</td>
+        <td>₹15K–75K tiered, no subjectivity clause</td>
+        <td>🔄</td>
+      </tr>
+      <tr>
+        <td><strong>5. Platform Lock-in</strong></td>
+        <td>No lock-in for BF</td>
+        <td>Exclusive for joint-funnel clients; free choice outside</td>
+        <td>⚠️</td>
+      </tr>
+      <tr>
+        <td><strong>6. Deal Pack</strong></td>
+        <td>BF = structurer, COS = intelligence</td>
+        <td>Agreed</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><strong>7. Lender Relations</strong></td>
+        <td>Exclusive to BF</td>
+        <td>Agreed</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><strong>8. Non-Compete</strong></td>
+        <td>36 months, one-way</td>
+        <td>12 months, mutual (24 months if min deal volume or higher fees agreed)</td>
+        <td>⚠️</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ═══════ THE BIGGER PICTURE ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">3</div>
+      <h2>The Bigger Picture</h2>
+    </div>
+
+    <p>You said something in your counter-proposal that I completely agree with:</p>
+
+    <div class="highlight-box">
+      <h3>"Together, we can control the entire trade execution stack — not just participate in it."</h3>
+      <p>That's exactly right. But controlling a stack requires both layers to be strong, invested, and protected.</p>
+      <p class="emphasis">If the compliance layer is treated as a replaceable vendor, the stack collapses.</p>
+    </div>
+
+    <p>Here's what I want you to consider:</p>
+
+    <div class="callout">
+      <strong>ComplianceOS is not a commodity.</strong> There is no other live, deployed compliance intelligence platform in India that does what we do — not at any price. We built risk scoring across 190 countries, 33-point compliance checklists, FTA calculators with real tariff data, CBAM readiness modules, document generators, and a pre-shipment gate check. This took 12+ months and thousands of hours. It's not replaceable by a Google Sheet and a CA.
+    </div>
+
+    <p>When your compliance layer is strong, your finance deals close faster, with better documentation, and with higher bank confidence. That's not infrastructure support — that's <strong>deal velocity</strong>.</p>
+
+    <p>The terms should reflect that both layers are essential. I'm not asking for more than my share. I'm asking for terms that make ComplianceOS as committed to your success as you are — because when we both benefit from every deal, we both push harder.</p>
+  </section>
+
+  <!-- ═══════ NEXT STEPS ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">4</div>
+      <h2>Proposed Next Steps</h2>
+    </div>
+
+    <p>We're 80% aligned. The remaining 20% is about finding the right balance on 2-3 clauses. I suggest we resolve this quickly so we can start building instead of negotiating.</p>
+
+    <table>
+      <tr><th>Step</th><th>Action</th><th>Timeline</th></tr>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>You review this response and share your thoughts on the counter-proposals</td>
+        <td>This week</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>30-minute call to align on Clauses 2, 3, 5, and 8</td>
+        <td>This week</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Final terms document (both parties sign off)</td>
+        <td>Within 7 days</td>
+      </tr>
+      <tr>
+        <td><strong>4</strong></td>
+        <td>NDA + API integration begins</td>
+        <td>Week 2</td>
+      </tr>
+      <tr>
+        <td><strong>5</strong></td>
+        <td>Pilot launch — first exporters through the flow</td>
+        <td>Week 3</td>
+      </tr>
+    </table>
+
+    <div class="callout blue">
+      <strong>The pilot offer still stands:</strong> All compliance features FREE for exporters in your funnel. API access FREE. Deal Enablement Fee WAIVED for the first 90 days. Let's prove the model works before we argue over percentages.
+    </div>
+
+    <h3>Pilot Safeguards</h3>
+    <p>ComplianceOS absorbs all platform infrastructure costs during the pilot (hosting, database, API compute, AI processing). To ensure this investment is productive for both sides, the following terms apply:</p>
+
+    <table>
+      <tr><th>Term</th><th>Detail</th><th>Rationale</th></tr>
+      <tr>
+        <td><strong>Pilot cap</strong></td>
+        <td>Up to <strong>25 exporters</strong> and <strong>50 compliance reports</strong> during the 90-day pilot</td>
+        <td>Prevents unlimited free usage while giving more than enough volume to validate the model</td>
+      </tr>
+      <tr>
+        <td><strong>Benedict's minimum commitment</strong></td>
+        <td>At least <strong>10 exporters introduced</strong> within the first 60 days</td>
+        <td>The pilot is only useful if real exporters go through the flow. If no exporters are introduced, we're burning infrastructure costs for nothing.</td>
+      </tr>
+      <tr>
+        <td><strong>Hard conversion deadline</strong></td>
+        <td>Commercial terms activate automatically on <strong>Day 91</strong>. No extensions without mutual written agreement.</td>
+        <td>Prevents an indefinite "free tier" situation. On Day 91, exporters in the funnel begin paying standard ComplianceOS rates.</td>
+      </tr>
+      <tr>
+        <td><strong>API usage limits (pilot)</strong></td>
+        <td><strong>500 API calls/month</strong> during pilot. Overages billed at standard rates.</td>
+        <td>Protects against unexpected compute costs if the integration is tested heavily or misused</td>
+      </tr>
+      <tr>
+        <td><strong>Early success trigger</strong></td>
+        <td>If <strong>3+ finance deals</strong> close using ComplianceOS Deal Packs before Day 90, commercial terms activate immediately</td>
+        <td>If the model is clearly working, there's no reason to keep operating for free</td>
+      </tr>
+      <tr>
+        <td><strong>Inactivity clause</strong></td>
+        <td>If zero exporters are introduced within the <strong>first 30 days</strong>, either party may terminate the pilot with 7 days notice</td>
+        <td>Protects both sides from a stalled partnership. If it's not moving, we should both be free to redirect our efforts.</td>
+      </tr>
+    </table>
+
+    <div class="callout amber">
+      <strong>Why these safeguards matter:</strong> ComplianceOS runs on Railway (backend), Supabase (database), and Vercel (frontend) — with real monthly infrastructure costs. During the pilot, we absorb 100% of these costs plus development time for API integration and co-branded outputs. These terms ensure the pilot is a genuine validation exercise, not an open-ended free service.
+    </div>
+  </section>
+
+  <div class="sep"></div>
+
+  <p style="text-align: center; font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--orange-dark); margin: 24px 0; font-style: italic;">
+    "If we align on this, we're not just building a partnership — we're building a market standard."
+  </p>
+  <p style="text-align: center; font-size: 12px; color: var(--muted);">— Benedict Francis. I agree. Let's make the terms worthy of that ambition.</p>
+
+  <div class="sep"></div>
+
+  <div class="callout" style="text-align: center;">
+    <strong>Chandan Reddy</strong> · Founder, ComplianceOS<br>
+    chandan.reddy2797@gmail.com · +91 7842102488<br>
+    www.complianceos.co.in
+  </div>
+
+  <div class="doc-footer">
+    <p>This document is confidential and intended for Benedict Francis / BEN Finserv only.<br>
+    The terms described are a proposed framework for discussion and do not constitute a binding agreement.</p>
+    <p style="margin-top: 8px;">ComplianceOS × BEN Finserv — Response to Counter-Proposal · April 2026 · v2.0</p>
+  </div>
+</div>
+
+</body>
+</html>

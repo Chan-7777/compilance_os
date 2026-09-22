@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComplianceOS - Growth Marketing Playbook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            /* Brand Colors from Theme */
+            --bg-cream: #FAF3E1;
+            --bg-tan: #F5E7C6;
+            --brand-orange: #FA8112;
+            --text-charcoal: #222222;
+            --text-muted: #666666;
+            --border-color: #E5D9C3;
+
+            /* Status */
+            --status-success: #16A34A;
+            --status-warning: #F59E0B;
+            --status-error: #DC2626;
+            --status-info: #3B82F6;
+
+            /* Shadows & Radii */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-pill: 9999px;
+
+            /* Layout */
+            --max-w-prose: 800px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-cream);
+            color: var(--text-charcoal);
+            line-height: 1.7;
+        }
+
+        .hero {
+            background: linear-gradient(180deg, var(--bg-tan) 0%, var(--bg-cream) 100%);
+            padding: 5rem 2rem 4rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: rgba(250, 129, 18, 0.1);
+            color: var(--brand-orange);
+            border: 1px solid rgba(250, 129, 18, 0.3);
+            border-radius: var(--radius-pill);
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 1.5rem 0;
+            color: var(--text-charcoal);
+            line-height: 1.1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: var(--max-w-prose);
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .playbook-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .playbook-section:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-number {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--brand-orange);
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 1.5rem 0;
+            letter-spacing: -0.02em;
+            color: var(--text-charcoal);
+        }
+
+        .applied-skills-badge {
+            display: inline-flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .skill-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563EB;
+            border-radius: 4px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .content-block {
+            margin-bottom: 2rem;
+        }
+
+        .content-block h3 {
+            font-size: 1.25rem;
+            color: var(--text-charcoal);
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Lists */
+        ul {
+            padding-left: 1.5rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+            color: var(--text-charcoal);
+        }
+
+        li>strong {
+            color: var(--brand-orange);
+        }
+
+        /* Quotes / Notes */
+        .note-block {
+            background: var(--bg-cream);
+            border-left: 4px solid var(--brand-orange);
+            padding: 1.5rem;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            margin: 2rem 0;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="hero">
+        <div class="hero-badge">marketingskills applied</div>
+        <h1 class="hero-title">Growth Marketing Playbook</h1>
+        <p class="hero-subtitle">A comprehensive Go-to-Market (GTM) strategy leveraging 29 mental models and frameworks
+            from the coreyhaines31/marketingskills repository.</p>
+    </header>
+
+    <main class="container">
+
+        <!-- SECTION 1 -->
+        <article class="playbook-section">
+            <span class="section-number">01</span>
+            <h2 class="section-title">Strategy & Monetization</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">pricing-strategy</span>
+                <span class="skill-tag">marketing-psychology</span>
+                <span class="skill-tag">launch-strategy</span>
+                <span class="skill-tag">marketing-ideas</span>
+            </div>
+
+            <div class="content-block">
+                <p>ComplianceOS solves a highly complex B2B problem (global trade compliance and liability transfer).
+                    Our strategy leans on high-trust psychological models.</p>
+                <ul>
+                    <li><strong>Pricing Strategy (Decoy Effect)</strong>: We will use the Decoy Effect in our pricing
+                        tiers.
+                        <ul>
+                            <li><em>Starter</em>: $299/mo (Self-serve)</li>
+                            <li><em>Professional</em>: $499/mo (Includes CBAM & Zonos integrations) — <strong>Target
+                                    Tier</strong></li>
+                            <li><em>Enterprise</em>: Custom pricing (Decoy to make $499 look affordable)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Marketing Psychology (Authority & Loss Aversion)</strong>: Exporters care more about
+                        <em>not losing</em> a shipment to customs impound than gaining a slight efficiency. All
+                        messaging must frame ComplianceOS as "loss prevention" (Liability Transfer via Zonos) rather
+                        than "workflow enhancement."</li>
+                    <li><strong>Launch Strategy</strong>: Launch exclusively targeting one vertical first (e.g.,
+                        Apparels & Textiles to the EU). Depth before breadth (Critical Mass Tipping Point).</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 2 -->
+        <article class="playbook-section">
+            <span class="section-number">02</span>
+            <h2 class="section-title">Growth Engineering</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">free-tool-strategy</span>
+                <span class="skill-tag">referral-program</span>
+            </div>
+
+            <div class="content-block">
+                <p>Code can be our best marketer. We will build free tools to generate inbound MQLs (Marketing Qualified
+                    Leads).</p>
+                <ul>
+                    <li><strong>Free Tool Strategy (Reciprocity Principle)</strong>:
+                        <ul>
+                            <li><em>HS Code Classifier Toolkit</em>: Extract the <code>zonos-classify</code> Edge
+                                Function into an un-gated mini-site (e.g., <code>hscodelookup.complianceos.com</code>).
+                                Users get 5 free natural-language lookups before hitting a paywall.</li>
+                            <li><em>EU CBAM Calculator</em>: Extract the <code>climatiq-emissions</code> Edge Function
+                                to let manufacturers calculate their Scope 3 emissions for free.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Referral Program</strong>: Double-sided rewards with B2B value. When a manufacturer
+                        refers their supplier, the supplier gets 1 month free, and the manufacturer gets an elevated API
+                        rate limit for document OCR processing.</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 3 -->
+        <article class="playbook-section">
+            <span class="section-number">03</span>
+            <h2 class="section-title">SEO & Discovery</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">programmatic-seo</span>
+                <span class="skill-tag">ai-seo</span>
+                <span class="skill-tag">competitor-alternatives</span>
+                <span class="skill-tag">schema-markup</span>
+                <span class="skill-tag">seo-audit</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>Programmatic SEO</strong>: ComplianceOS operates in a data-rich environment. We will
+                        generate thousands of programmatic landing pages based on trade corridors and product
+                        categories.
+                        <ul>
+                            <li><em>URL Template</em>:
+                                <code>complianceos.com/export-[PRODUCT-CATEGORY]-from-india-to-[COUNTRY-CODE]</code>
+                            </li>
+                            <li><em>Example</em>:
+                                <code>complianceos.com/export-steel-from-india-to-eu-cbam-requirements</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>Competitor Alternatives</strong>: Create high-converting Comparison Pages vs. Legacy
+                        Forwarders (e.g., "ComplianceOS vs. Flexport Customs", "ComplianceOS vs. Avalara").</li>
+                    <li><strong>AI SEO (AEO/GEO)</strong>: Optimize content specifically for LLM extraction (ChatGPT,
+                        Perplexity). Structure our regulatory database in clean tables and bullet points so AI engines
+                        cite ComplianceOS as the source of truth for "How to export X."</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 4 -->
+        <article class="playbook-section">
+            <span class="section-number">04</span>
+            <h2 class="section-title">Content & Copywriting</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">cold-email</span>
+                <span class="skill-tag">email-sequence</span>
+                <span class="skill-tag">social-content</span>
+                <span class="skill-tag">copywriting</span>
+                <span class="skill-tag">copy-editing</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>B2B Cold Email (Foot-in-the-Door)</strong>: Target Supply Chain Directors and Export
+                        Managers.
+                        <div class="note-block">
+                            <strong>Hook:</strong> "Saw you're exporting [Category] to the EU. Are you fully prepared
+                            for the new CBAM reporting requirements hitting this quarter?"<br><br>
+                            <strong>Offer:</strong> Don't pitch the software. Pitch a free "CBAM Readiness Audit" (using
+                            our Free Tool).
+                        </div>
+                    </li>
+                    <li><strong>Email Sequence (Zeigarnik Effect)</strong>: Abandoned cart/onboarding sequences. "You're
+                        80% done with your cross-border compliance setup. Complete your company profile to unlock Zonos
+                        Landed Cost Guarantees."</li>
+                    <li><strong>Social Content</strong>: LinkedIn is the primary distribution channel for trade
+                        compliance. Post teardowns of recent trade fines, customs horror stories, and regulatory changes
+                        (Regulatory Alerts feature).</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 5 -->
+        <article class="playbook-section">
+            <span class="section-number">05</span>
+            <h2 class="section-title">Conversion Rate Optimization (CRO)</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">page-cro</span>
+                <span class="skill-tag">signup-flow-cro</span>
+                <span class="skill-tag">onboarding-cro</span>
+                <span class="skill-tag">form-cro</span>
+                <span class="skill-tag">popup-cro</span>
+                <span class="skill-tag">paywall-upgrade-cro</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>Page CRO (Hick’s Law)</strong>: The homepage must have a single compelling CTA. Remove
+                        complex navigation.
+                        <ul>
+                            <li><em>Hero Headline</em>: "Guaranteed Landed Costs & Zero-Touch Customs. For Modern
+                                Exporters."</li>
+                            <li><em>CTA</em>: "Scan Your First Shipment — Free"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Signup Flow CRO (Endowment Effect)</strong>: Do not ask for arbitrary data upfront. Use
+                        the <code>document-ocr</code> feature as the top-of-funnel! Allow users to drag-and-drop a Bill
+                        of Lading on the homepage. The system extracts it, formats a beautiful dashboard, and
+                        <em>then</em> asks them to create an account to save their completed assessment.</li>
+                    <li><strong>Paywall Upgrade CRO</strong>: Gate premium trust features. The Zonos "100% Guaranteed
+                        Landed Cost" badge acts as an innate upgrade driver. MSMEs can calculate duties on the free
+                        plan, but to get the <em>Guarantee Shield</em>, they must upgrade.</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 6 -->
+        <article class="playbook-section">
+            <span class="section-number">06</span>
+            <h2 class="section-title">Paid & Distribution</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">paid-ads</span>
+                <span class="skill-tag">ad-creative</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>Paid Ads (LinkedIn & Search)</strong>: Focus on high-intent Bottom-of-Funnel (BOFU)
+                        search queries.
+                        <ul>
+                            <li><em>Keywords</em>: "automate ICEGATE filing," "CBAM emissions reporting software,"
+                                "determine HS code API."</li>
+                        </ul>
+                    </li>
+                    <li><strong>Ad Creative (Pratfall Effect & Contrast Effect)</strong>: Use the "Before & After"
+                        Contrast framework for ad creatives.
+                        <ul>
+                            <li><em>Before</em>: A massive stack of disorganized PDFs and government spreadsheets.</li>
+                            <li><em>After</em>: The clean, single-click "Generate Filing Payload" JSON screen from
+                                ComplianceOS.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 7 -->
+        <article class="playbook-section">
+            <span class="section-number">07</span>
+            <h2 class="section-title">Measurement & Testing</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">analytics-tracking</span>
+                <span class="skill-tag">ab-test-setup</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>Analytics Tracking (North Star Metric)</strong>: Our North Star metric is <strong>Total
+                            Shipment Value Processed DDP</strong>. This proves clients actually trust the system with
+                        financial liability.
+                        <ul>
+                            <li><em>Event Tracking</em>: We need precise PostHog/Mixpanel funnels tracking the drop-off
+                                rate between: <code>Document Uploaded</code> -> <code>HS Code Validated</code> ->
+                                <code>Landed Cost Calculated</code> -> <code>Customs Payload Generated</code>.</li>
+                        </ul>
+                    </li>
+                    <li><strong>A/B Test Setup</strong>: Continuously refine the friction points.
+                        <ul>
+                            <li><em>Test Hypothesis</em>: Does showing the exact dollar value of "FTA Savings" (Rule of
+                                100) before checkout increase the conversion rate to the paid tier vs. showing a generic
+                                "Unlock Savings" banner?</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- SECTION 8 -->
+        <article class="playbook-section">
+            <span class="section-number">08</span>
+            <h2 class="section-title">Retention</h2>
+            <div class="applied-skills-badge">
+                <span class="skill-tag">churn-prevention</span>
+            </div>
+
+            <div class="content-block">
+                <ul>
+                    <li><strong>Churn Prevention (Sunk Cost Fallacy & Switching Costs)</strong>: Increase the switching
+                        costs ethically. The more a company uses ComplianceOS to store their vendor network (via the
+                        WhatsApp outreach integration for Scope 3 data) and their product catalogs (with cached HS
+                        codes), the harder it becomes to leave the platform.</li>
+                    <li><strong>Offboarding Flow</strong>: If a user clicks cancel, trigger a dynamic save offer
+                        offering a temporary downgrade to a "data-storage only" tier so they don't lose their historical
+                        shipment compliance records.</li>
+                </ul>
+            </div>
+        </article>
+
+    </main>
+</body>
+
+</html>

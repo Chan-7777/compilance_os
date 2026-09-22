@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplianceOS — For CA Partners</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #15803D;
+    --green-light: #F0FDF4;
+    --green-border: #86EFAC;
+    --blue: #2563EB;
+    --blue-light: #EFF6FF;
+    --blue-border: #BFDBFE;
+    --red: #DC2626;
+    --red-light: #FFF5F5;
+    --red-border: #FCA5A5;
+    --amber: #D97706;
+    --amber-light: #FFFBEB;
+    --amber-border: #FDE68A;
+    --text: #0f172a;
+    --muted: #475569;
+    --border: #e2e8f0;
+    --surface: #f8fafc;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f1f5f9;
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: #0f172a;
+    color: #fff;
+    padding: 72px 40px 64px;
+    text-align: center;
+  }
+  .hero-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    color: #fff;
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  .hero h1 span { color: #4ade80; }
+  .hero p {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    max-width: 560px;
+    margin: 0 auto 32px;
+    font-weight: 400;
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid #1e293b;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #4ade80;
+  }
+  .hero-stat .label { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+  /* ── Container ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Section ── */
+  .section { margin: 40px 0; }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Screen mockup ── */
+  .screen {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+  .screen-bar {
+    background: #0f172a;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .screen-bar .dots { display: flex; gap: 6px; }
+  .screen-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ef4444; }
+  .dot-y { background: #f59e0b; }
+  .dot-g { background: #22c55e; }
+  .screen-bar .url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #475569;
+    background: #1e293b;
+    padding: 4px 12px;
+    border-radius: 4px;
+  }
+  .screen-body { padding: 24px; }
+
+  /* ── ROI card ── */
+  .roi-card {
+    background: var(--green-light);
+    border: 2px solid var(--green-border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .roi-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+  .roi-grid { display: flex; gap: 32px; flex-wrap: wrap; }
+  .roi-item {}
+  .roi-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+  .roi-desc { font-size: 0.72rem; color: #16A34A; margin-top: 3px; }
+  .roi-cta {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    border-radius: 4px;
+    background: transparent;
+  }
+
+  /* ── Cockpit grid ── */
+  .cockpit { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 600px) { .cockpit { grid-template-columns: 1fr; } }
+  .cockpit-card {
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid;
+    border-left-width: 4px;
+  }
+  .cockpit-card .cc-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .cockpit-card .cc-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .cockpit-card .cc-desc { font-size: 0.72rem; color: var(--muted); }
+
+  .cc-red { background: #FFF5F5; border-color: #FCA5A5; border-left-color: #E53E3E; }
+  .cc-red .cc-label { color: #C53030; }
+  .cc-red .cc-val { color: #C53030; }
+
+  .cc-amber { background: #FFFBEB; border-color: #FDE68A; border-left-color: #D97706; }
+  .cc-amber .cc-label { color: #92400E; }
+  .cc-amber .cc-val { color: #92400E; font-size: 1rem; }
+
+  .cc-green { background: #F0FDF4; border-color: #BBF7D0; border-left-color: #16A34A; }
+  .cc-green .cc-label { color: #166534; }
+  .cc-green .cc-val { color: #166534; font-size: 1rem; }
+
+  .cc-blue { background: #EFF6FF; border-color: #BFDBFE; border-left-color: #2563EB; }
+  .cc-blue .cc-label { color: #1E40AF; }
+  .cc-blue .cc-val { color: #1E40AF; }
+
+  /* ── CBAM banner ── */
+  .cbam-banner {
+    background: #FEF2F2;
+    border: 2px solid #FCA5A5;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .cbam-banner .cb-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--red);
+    margin-bottom: 4px;
+  }
+  .cbam-banner .cb-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .cbam-banner .cb-body { font-size: 0.8rem; color: var(--muted); }
+  .progress-bar {
+    background: var(--border);
+    border-radius: 99px;
+    height: 8px;
+    margin: 10px 0 4px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: var(--red); border-radius: 99px; }
+
+  /* ── Result card ── */
+  .result-card {
+    background: var(--green-light);
+    border: 2px solid var(--green-border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .result-big {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+  .result-desc { font-size: 0.75rem; color: #16A34A; margin-top: 3px; }
+  .notif-badge {
+    display: inline-block;
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    color: #92400E;
+    font-size: 0.72rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin: 12px 0;
+  }
+  .dl-btn {
+    display: inline-block;
+    background: var(--green);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 8px 20px;
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  /* ── CBAM result row ── */
+  .cbam-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .cbam-row .hs { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem; }
+  .cbam-row .sector { font-size: 0.72rem; color: var(--red); margin-top: 2px; }
+  .badge-covered { background: var(--red); color: #fff; font-size: 0.68rem; font-weight: 700; padding: 4px 12px; border-radius: 99px; }
+  .badge-clear { background: var(--green); color: #fff; font-size: 0.68rem; font-weight: 700; padding: 4px 12px; border-radius: 99px; }
+  .cbam-in { background: #FFF5F5; border: 1px solid #FCA5A5; }
+  .cbam-out { background: #F0FDF4; border: 1px solid #BBF7D0; }
+
+  /* ── Timeline ── */
+  .timeline { display: flex; flex-direction: column; gap: 10px; }
+  .tl-row { display: flex; gap: 16px; align-items: flex-start; }
+  .tl-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--blue);
+    min-width: 130px;
+    flex-shrink: 0;
+  }
+  .tl-label { font-size: 0.82rem; font-weight: 600; }
+  .tl-detail { font-size: 0.72rem; color: var(--muted); }
+
+  /* ── FTA savings ── */
+  .savings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--green-light);
+    border: 1px solid var(--green-border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .savings-country { font-weight: 600; font-size: 0.9rem; }
+  .savings-agreement { font-size: 0.72rem; color: var(--muted); }
+  .savings-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  /* ── Checklist ── */
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-done { background: var(--green); }
+  .check-todo { background: var(--border); }
+  .check-label { font-weight: 500; color: var(--text); }
+  .check-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── Alert row ── */
+  .alert-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .alert-urgent { background: #FEF2F2; border: 1px solid #FCA5A5; }
+  .alert-warn { background: #FFFBEB; border: 1px solid #FDE68A; }
+  .alert-info { background: var(--blue-light); border: 1px solid var(--blue-border); }
+  .alert-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .ab-urgent { background: var(--red); color: #fff; }
+  .ab-warn { background: var(--amber); color: #fff; }
+  .ab-info { background: var(--blue); color: #fff; }
+  .alert-text { flex: 1; color: var(--text); font-weight: 500; }
+  .alert-date { font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Input mock ── */
+  .input-mock {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text);
+    background: var(--white);
+    margin-bottom: 8px;
+  }
+  .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .preset-btn {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+  }
+  .preset-active { background: #D1FAE5; color: #065F46; border: 1px solid var(--green); }
+  .preset-idle { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .calc-btn {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ── Shipment gate ── */
+  .gate-card {
+    background: var(--green-light);
+    border: 1px solid var(--green-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .gate-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--green); margin-bottom: 6px; }
+  .gate-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+  .gate-pass { color: var(--green); font-weight: 600; }
+  .gate-fail { color: var(--red); font-weight: 600; }
+
+  /* ── What to say box ── */
+  .say-box {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 16px 0;
+  }
+  .say-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #4ade80;
+    margin-bottom: 8px;
+  }
+  .say-text {
+    font-size: 0.9rem;
+    color: #e2e8f0;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* ── Partnership block ── */
+  .partner-block {
+    background: var(--blue-light);
+    border: 2px solid var(--blue-border);
+    border-radius: 14px;
+    padding: 28px;
+    margin: 24px 0;
+  }
+  .partner-block h3 { font-size: 1.1rem; color: #1E40AF; margin-bottom: 8px; }
+  .partner-block p { font-size: 0.875rem; color: #3B82F6; margin-bottom: 12px; }
+
+  /* ── Divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Summary table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { background: #0f172a; color: #fff; padding: 10px 14px; text-align: left; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--surface); }
+
+  /* ── Footer ── */
+  .footer { background: #0f172a; color: #475569; text-align: center; padding: 32px; font-size: 0.78rem; margin-top: 60px; }
+  .footer strong { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+  <div class="hero-label">ComplianceOS · CA Partner Walkthrough · April 2026</div>
+  <h1>Your export clients are leaving<br><span>₹ lakhs unclaimed.</span></h1>
+  <p>ComplianceOS identifies unclaimed RoDTEP entitlements, CBAM exposure, and FTA savings — in seconds, per client.</p>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="num">10,501</div>
+      <div class="label">HS codes with live RoDTEP rates</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">50</div>
+      <div class="label">CBAM HS headings tracked</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">Notif. 60</div>
+      <div class="label">Feb 2026 revised rates loaded</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">Jan 2026</div>
+      <div class="label">CBAM levy already active</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 1 -->
+<div class="section">
+  <div class="section-num">Screen 01 of 06</div>
+  <div class="section-title">Dashboard — The Money View</div>
+  <div class="section-sub">The first thing a client sees after signup. Not a risk score. Not a compliance grade. Their money.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / dashboard</div>
+    </div>
+    <div class="screen-body">
+
+      <!-- ROI card -->
+      <div class="roi-card">
+        <div class="roi-label">Your compliance saves you money</div>
+        <div class="roi-grid">
+          <div class="roi-item">
+            <div class="roi-num">₹1.85 L</div>
+            <div class="roi-desc">Estimated unclaimed RoDTEP entitlement</div>
+            <div class="roi-cta">→ Run full recovery audit</div>
+          </div>
+          <div class="roi-item">
+            <div class="roi-num">2 active</div>
+            <div class="roi-desc">Trade deals available for your markets</div>
+          </div>
+          <div class="roi-item">
+            <div class="roi-num" style="color:#D97706">MEDIUM</div>
+            <div class="roi-desc" style="color:#D97706">Overall compliance risk level</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CBAM banner — fires for EU + carbon products -->
+      <div class="cbam-banner">
+        <div class="cb-label">Action required — Carbon compliance for EU exports</div>
+        <div class="cb-title">The EU now charges a carbon tax on imports of your product type.</div>
+        <div class="cb-body">To export to the EU, you need carbon emission data from your raw material suppliers. Most Indian suppliers do not yet provide this — setting it up now avoids delays at EU customs.</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:15%"></div></div>
+        <div style="font-size:0.72rem;color:#DC2626;font-weight:700;">15% ready</div>
+      </div>
+
+      <!-- Cockpit -->
+      <div class="cockpit">
+        <div class="cockpit-card cc-red">
+          <div class="cc-label">🚨 Shipment At Risk</div>
+          <div class="cc-val">MEDIUM</div>
+          <div class="cc-desc">Compliance gaps detected</div>
+        </div>
+        <div class="cockpit-card cc-amber">
+          <div class="cc-label">📋 Buyer Docs Needed</div>
+          <div class="cc-val">Open checklist</div>
+          <div class="cc-desc">Generate your export document pack</div>
+        </div>
+        <div class="cockpit-card cc-green">
+          <div class="cc-label">📉 Margin Under Pressure</div>
+          <div class="cc-val">2 FTAs available</div>
+          <div class="cc-desc">Trade deals you can use right now</div>
+        </div>
+        <div class="cockpit-card cc-blue">
+          <div class="cc-label">💰 Finance This Shipment</div>
+          <div class="cc-val">3</div>
+          <div class="cc-desc">Shipments — track finance & execution status</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"The green number at the top is their unclaimed RoDTEP money — calculated from their own HS code and turnover using the post-Notification 60 rate. Below that are the four problems every export MSME deals with. One screen. No jargon. If they ship to EU with a carbon-heavy product, the red CBAM banner fires automatically — that's a penalty conversation only you can have with them."</div>
+  </div>
+</div>
+
+<div class="divider">Screen 02</div>
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 2 -->
+<div class="section">
+  <div class="section-num">Screen 02 of 06</div>
+  <div class="section-title">RoDTEP Recovery Calculator</div>
+  <div class="section-sub">HS code + export value → ₹ entitlement + downloadable PDF. 10,501 codes. Post-revision rates. 30 seconds.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / rodtep-calculator</div>
+    </div>
+    <div class="screen-body">
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px;">RoDTEP Recovery Calculator</div>
+        <div style="font-size:0.85rem;color:var(--muted)">Enter your HS code and FOB export value to estimate unclaimed RoDTEP entitlement.</div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">HS Code (4–8 digits)</div>
+        <div class="input-mock">72081000</div>
+        <div style="font-size:0.7rem;color:var(--amber);margin-bottom:14px;">⚠ Chapter 72 — Notification 60/2025-26 revised rates apply</div>
+
+        <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Export Value — FOB (₹)</div>
+        <div class="input-mock" style="max-width:200px;">10000000</div>
+        <div class="preset-row">
+          <div class="preset-btn preset-idle">₹5L</div>
+          <div class="preset-btn preset-idle">₹10L</div>
+          <div class="preset-btn preset-idle">₹50L</div>
+          <div class="preset-btn preset-active">₹1Cr</div>
+        </div>
+        <div class="calc-btn">Calculate Entitlement</div>
+      </div>
+
+      <!-- Result -->
+      <div class="result-card">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:12px;">Estimated Entitlement</div>
+        <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <div class="result-big">₹1.85 L</div>
+            <div class="result-desc">Unclaimed RoDTEP on ₹1.00 Cr export value</div>
+          </div>
+          <div>
+            <div class="result-big" style="color:var(--text)">1.85%</div>
+            <div class="result-desc" style="color:var(--muted)">RoDTEP rate · Appendix 4R</div>
+          </div>
+        </div>
+        <div class="notif-badge">Notification 60/2025-26: rates for HS Ch72 were revised in Feb 2026. Rate shown is post-revision.</div>
+        <div><div class="dl-btn">Download Report</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"Type in a client's HS code. Hit calculate. That ₹ number is what they're entitled to claim back — and haven't. The orange flag tells you when Notification 60 changed the rate for that chapter. The PDF has their HS code, their export value, the rate, the entitlement, and the source notification — you can hand it to them in a review meeting. Let me try it with one of your clients right now."</div>
+  </div>
+</div>
+
+<div class="divider">Screen 03</div>
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 3 -->
+<div class="section">
+  <div class="section-num">Screen 03 of 06</div>
+  <div class="section-title">CBAM Exposure Checker</div>
+  <div class="section-sub">No login required. Enter up to 3 HS codes — instantly know if the EU carbon levy applies. Shareable link.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / cbam-check</div>
+    </div>
+    <div class="screen-body">
+
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:6px;">Free CBAM Exposure Check</div>
+      <div style="font-size:1.4rem;font-weight:900;margin-bottom:6px;">Is your EU export subject to CBAM?</div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">The EU CBAM levy started January 2026. Enter up to 3 HS codes to check exposure instantly — no login required.</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="input-mock">72081000</div>
+        <div class="input-mock">76011000</div>
+        <div class="input-mock" style="color:var(--muted)">HS Code 3 — e.g. 29021000</div>
+        <button style="background:var(--blue);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:0.875rem;font-weight:700;font-family:Inter,sans-serif;cursor:pointer;margin-top:8px;">Check CBAM Exposure</button>
+      </div>
+
+      <!-- Results -->
+      <div class="cbam-row cbam-in">
+        <div>
+          <div class="hs">72081000</div>
+          <div class="sector">Sector: Iron and Steel</div>
+        </div>
+        <div class="badge-covered">COVERED</div>
+      </div>
+      <div class="cbam-row cbam-in">
+        <div>
+          <div class="hs">76011000</div>
+          <div class="sector">Sector: Aluminium</div>
+        </div>
+        <div class="badge-covered">COVERED</div>
+      </div>
+
+      <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px 16px;font-size:0.8rem;color:#92400E;margin:12px 0;">
+        <strong>Reporting obligation active:</strong> You must report embedded emissions for CBAM-covered goods exported to the EU. CBAM levy applies from Jan 2026 — under-reporting carries financial penalties.
+      </div>
+
+      <!-- Timeline -->
+      <div class="card" style="margin-top:12px;">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">CBAM 2026 Timeline</div>
+        <div class="timeline">
+          <div class="tl-row">
+            <div class="tl-date">Oct 2023 – Dec 2025</div>
+            <div><div class="tl-label">Transitional phase</div><div class="tl-detail">Report embedded emissions — no levy yet</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date" style="color:var(--red)">Jan 2026 ← NOW</div>
+            <div><div class="tl-label" style="color:var(--red)">CBAM levy begins</div><div class="tl-detail">Pay for carbon certificates on covered imports</div></div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-date">Jan 2034</div>
+            <div><div class="tl-label">Full phase-in</div><div class="tl-detail">Free EU ETS allowances fully phased out</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"This page has no login. I can send this link to anyone — your client types in their HS codes, they know in 10 seconds if they're in scope. The CBAM levy started January 2026. We're already in it. Any client of yours shipping steel, aluminium, chemicals, cement or fertilizers to the EU who hasn't been filing embedded emissions reports — that's a penalty conversation. This surfaces it. You have the advisory conversation."</div>
+  </div>
+</div>
+
+<div class="divider">Screen 04</div>
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 4 -->
+<div class="section">
+  <div class="section-num">Screen 04 of 06</div>
+  <div class="section-title">FTA & Trade Deal Savings</div>
+  <div class="section-sub">Live MFN vs preferential duty rates. Calculates exact ₹ saving per shipment value for UAE, Japan, Australia FTAs.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / trade-deals</div>
+    </div>
+    <div class="screen-body">
+
+      <div style="font-size:1.3rem;font-weight:800;margin-bottom:16px;">FTA & Scheme Savings</div>
+
+      <div class="savings-row">
+        <div>
+          <div class="savings-country">🇦🇪 UAE</div>
+          <div class="savings-agreement">India-UAE CEPA · Preferential rate: 0%</div>
+        </div>
+        <div style="text-align:right">
+          <div class="savings-amount">₹2.50 L saved</div>
+          <div style="font-size:0.72rem;color:var(--muted)">vs MFN 5% on ₹50L shipment</div>
+        </div>
+      </div>
+
+      <div class="savings-row">
+        <div>
+          <div class="savings-country">🇯🇵 Japan</div>
+          <div class="savings-agreement">India-Japan CEPA · Preferential rate: 2.1%</div>
+        </div>
+        <div style="text-align:right">
+          <div class="savings-amount">₹1.45 L saved</div>
+          <div style="font-size:0.72rem;color:var(--muted)">vs MFN 5% on ₹50L shipment</div>
+        </div>
+      </div>
+
+      <div style="background:var(--green-light);border:1px solid var(--green-border);border-radius:10px;padding:16px;margin-top:12px;">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:8px;">RoDTEP Scheme</div>
+        <div style="font-size:0.85rem;color:var(--text);margin-bottom:4px;">Rate: <strong>1.85%</strong> of FOB export value · Appendix 4R (post-Notification 60)</div>
+        <div style="font-size:0.72rem;color:var(--muted)">On ₹50L exports → <strong style="color:var(--green)">₹92,500 entitlement</strong></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"If a client ships to UAE or Japan, India has active FTAs giving preferential duty rates. This calculates the exact ₹ saving on their actual shipment value — not a percentage, a number. A client shipping ₹50L to UAE on a 5% MFN product saves ₹2.5L in duty they don't have to pay. The RoDTEP rate sits right below it for the same calculation."</div>
+  </div>
+</div>
+
+<div class="divider">Screen 05</div>
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 5 -->
+<div class="section">
+  <div class="section-num">Screen 05 of 06</div>
+  <div class="section-title">Compliance Checklist</div>
+  <div class="section-sub">Auto-generated document list based on their specific product and destination country. Downloadable as PDF.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / checklist</div>
+    </div>
+    <div class="screen-body">
+
+      <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px;">Export Compliance Checklist</div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">Hot-rolled steel · EU market · Generated from regulatory database</div>
+
+      <div class="checklist-item">
+        <div class="check-box check-done"></div>
+        <div><div class="check-label">Commercial Invoice</div><div class="check-sub">With HS code, FOB value, and buyer details</div></div>
+      </div>
+      <div class="checklist-item">
+        <div class="check-box check-done"></div>
+        <div><div class="check-label">Certificate of Origin (GSP)</div><div class="check-sub">Issued by Export Inspection Council or Chamber of Commerce</div></div>
+      </div>
+      <div class="checklist-item">
+        <div class="check-box check-todo"></div>
+        <div><div class="check-label">CBAM Embedded Emissions Report</div><div class="check-sub" style="color:var(--red)">Required for EU import — not yet filed</div></div>
+      </div>
+      <div class="checklist-item">
+        <div class="check-box check-todo"></div>
+        <div><div class="check-label">RoDTEP Claim Filing (Appendix 4R)</div><div class="check-sub" style="color:var(--amber)">Post-Notification 60 rate — verify before filing</div></div>
+      </div>
+      <div class="checklist-item">
+        <div class="check-box check-done"></div>
+        <div><div class="check-label">Shipping Bill (ICEGATE)</div><div class="check-sub">Gate status: cleared</div></div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button style="background:var(--green);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:0.8rem;font-weight:700;font-family:Inter,sans-serif;">Download PDF Checklist</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"This checklist is generated from their product and destination country. It's not generic — a steel exporter to EU gets CBAM reporting as a checklist item. A pharma exporter to the US gets FDA requirements. They can check items off as they complete them and download the full list as a PDF for their records."</div>
+  </div>
+</div>
+
+<div class="divider">Screen 06</div>
+
+<!-- ═══════════════════════════════════════════════════════ SCREEN 6 -->
+<div class="section">
+  <div class="section-num">Screen 06 of 06</div>
+  <div class="section-title">Regulatory Alerts</div>
+  <div class="section-sub">Live updates from DGFT, EU Commission, and World Customs Org — filtered by severity and relevant to their specific product and markets.</div>
+
+  <div class="screen">
+    <div class="screen-bar">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      <div class="url">complianceos.app / alerts</div>
+    </div>
+    <div class="screen-body">
+
+      <div style="font-size:1.3rem;font-weight:800;margin-bottom:16px;">Regulatory Updates</div>
+
+      <div class="alert-row alert-urgent">
+        <div class="alert-badge ab-urgent">Urgent</div>
+        <div class="alert-text">🇪🇺 EU: CBAM embedded emissions report overdue — Q4 2025 deadline passed</div>
+        <div class="alert-date">Feb 2026</div>
+      </div>
+      <div class="alert-row alert-warn">
+        <div class="alert-badge ab-warn">Review soon</div>
+        <div class="alert-text">🇮🇳 DGFT: Notification 60 revised RoDTEP rates — verify your Chapter 72 claims</div>
+        <div class="alert-date">Feb 2026</div>
+      </div>
+      <div class="alert-row alert-info">
+        <div class="alert-badge ab-info">FYI</div>
+        <div class="alert-text">🇦🇪 UAE: CEPA Round 2 tariff reductions effective April 2026</div>
+        <div class="alert-date">Mar 2026</div>
+      </div>
+      <div class="alert-row alert-info">
+        <div class="alert-badge ab-info">FYI</div>
+        <div class="alert-text">🇯🇵 Japan: New labelling requirements for steel imports — effective June 2026</div>
+        <div class="alert-date">Mar 2026</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="say-box">
+    <div class="say-label">What to say</div>
+    <div class="say-text">"Alerts are filtered to their specific product and markets — a textile exporter doesn't see CBAM steel alerts. Urgent means act before next shipment. The DGFT Notification 60 alert is exactly what most exporters missed in February — their CHA didn't tell them the rate changed, so their last three claims were filed at the old rate."</div>
+  </div>
+</div>
+
+<div class="divider">The Partnership Model</div>
+
+<!-- ═══════════════════════════════════════════════════════ PARTNERSHIP -->
+<div class="section">
+  <div class="section-title">How the CA Partnership Works</div>
+  <div class="section-sub">This is not a tool for you to learn. It is intelligence that makes your practice sharper.</div>
+
+  <div class="partner-block">
+    <h3>The model in one sentence</h3>
+    <p>You bring the client relationship. I bring the data engine. Your client never has to know this exists — or they can log in themselves. Either way, the advisory conversation is yours.</p>
+
+    <table>
+      <tr>
+        <th>What you bring</th>
+        <th>What ComplianceOS brings</th>
+      </tr>
+      <tr>
+        <td>Trusted client relationships</td>
+        <td>10,501 live RoDTEP rates (post-Notification 60)</td>
+      </tr>
+      <tr>
+        <td>Advisory credibility</td>
+        <td>50 CBAM HS headings with scope determination</td>
+      </tr>
+      <tr>
+        <td>Domain expertise to interpret the numbers</td>
+        <td>PDF reports ready to hand to clients in 30 seconds</td>
+      </tr>
+      <tr>
+        <td>Authority to charge for the advisory engagement</td>
+        <td>Regulatory alerts filtered by product and market</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">Pricing · CA Partner Model</div>
+    <div style="font-size:1.5rem;font-weight:800;color:var(--text);margin-bottom:4px;">₹1,500 <span style="font-size:1rem;font-weight:400;color:var(--muted)">per active export client / month</span></div>
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;">On a client doing ₹1 Cr exports where we identify ₹1.85 L in unclaimed RoDTEP — the tool cost is covered in the first claim conversation.</div>
+    <div style="background:var(--green-light);border:1px solid var(--green-border);border-radius:8px;padding:14px 16px;font-size:0.85rem;color:#15803D;">
+      <strong>Pilot offer:</strong> Pick 2–3 of your current export clients. I run a full RoDTEP audit on their HS codes. You validate whether the numbers make sense against what they've actually filed. If the gap is real, we have a case study. If it's not, you've lost nothing.
+    </div>
+  </div>
+</div>
+
+<div class="divider">One Question to Close</div>
+
+<div class="section">
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:2rem;margin-bottom:16px;">🎯</div>
+    <div style="font-size:1.25rem;font-weight:800;margin-bottom:8px;color:var(--text);">"Which 2–3 of your current export clients do you think are most likely leaving RoDTEP money on the table right now?"</div>
+    <div style="font-size:0.9rem;color:var(--muted);">If they name a client — run the calculator on that HS code in the meeting. That number closes the conversation.</div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  <strong>ComplianceOS</strong> · Built for Indian MSME exporters and their CA advisors<br>
+  Chandan · chandan00.re11@gmail.com · April 2026
+</div>
+
+</body>
+</html>

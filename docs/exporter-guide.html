@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplianceOS — Complete Exporter Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --orange: #F97316;
+    --orange-light: #FFF7ED;
+    --orange-dark: #EA580C;
+    --blue: #3B82F6;
+    --blue-light: #EFF6FF;
+    --green: #10B981;
+    --green-light: #ECFDF5;
+    --red: #EF4444;
+    --red-light: #FEF2F2;
+    --purple: #8B5CF6;
+    --purple-light: #F5F3FF;
+    --yellow: #F59E0B;
+    --yellow-light: #FFFBEB;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-500: #6B7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --sidebar: #0F172A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #F8FAFC;
+    color: var(--gray-900);
+    line-height: 1.6;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+    color: white;
+    padding: 80px 40px 100px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(249,115,22,0.15) 0%, transparent 70%);
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(249,115,22,0.15);
+    border: 1px solid rgba(249,115,22,0.3);
+    color: #FB923C;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .hero h1 span { color: var(--orange); }
+  .hero p {
+    font-size: 1.2rem;
+    color: #94A3B8;
+    max-width: 640px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat-num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    display: block;
+  }
+  .hero-stat-label {
+    font-size: 0.8rem;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .hero-divider {
+    width: 1px;
+    height: 48px;
+    background: rgba(255,255,255,0.1);
+    align-self: center;
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+  /* ── SECTION ── */
+  .section { padding: 72px 0; }
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    color: var(--gray-900);
+  }
+  .section-subtitle {
+    font-size: 1.05rem;
+    color: var(--gray-500);
+    max-width: 560px;
+    margin-bottom: 48px;
+  }
+
+  /* ── NAV OVERVIEW ── */
+  .nav-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 48px 0;
+  }
+  .nav-item {
+    background: white;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .nav-item:hover { border-color: var(--orange); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .nav-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin: 0 auto 12px;
+  }
+  .nav-item-label { font-size: 0.82rem; font-weight: 600; color: var(--gray-700); }
+  .nav-item-sub { font-size: 0.7rem; color: var(--gray-500); margin-top: 4px; }
+  .pro-tag {
+    display: inline-block;
+    font-size: 0.55rem; font-weight: 700;
+    color: var(--orange); background: rgba(249,115,22,0.1);
+    padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.05em; margin-top: 6px;
+  }
+  .new-tag {
+    display: inline-block;
+    font-size: 0.55rem; font-weight: 700;
+    color: var(--blue); background: rgba(59,130,246,0.1);
+    padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.05em; margin-top: 6px;
+  }
+
+  /* ── FEATURE CARD ── */
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+  .feature-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 768px) {
+    .feature-grid, .feature-grid.feature-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .feature-card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    border: 1.5px solid var(--gray-200);
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 20px 20px 0 0;
+  }
+  .feature-card.orange::before { background: linear-gradient(90deg, var(--orange), #FBBF24); }
+  .feature-card.blue::before { background: linear-gradient(90deg, var(--blue), #06B6D4); }
+  .feature-card.green::before { background: linear-gradient(90deg, var(--green), #34D399); }
+  .feature-card.purple::before { background: linear-gradient(90deg, var(--purple), #EC4899); }
+  .feature-card.red::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+  .feature-card.yellow::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+
+  .feature-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .feature-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .feature-icon.orange { background: var(--orange-light); }
+  .feature-icon.blue { background: var(--blue-light); }
+  .feature-icon.green { background: var(--green-light); }
+  .feature-icon.purple { background: var(--purple-light); }
+  .feature-icon.red { background: var(--red-light); }
+  .feature-icon.yellow { background: var(--yellow-light); }
+
+  .feature-card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+  }
+  .feature-card .feature-desc {
+    font-size: 0.82rem;
+    color: var(--gray-500);
+    line-height: 1.5;
+  }
+  .feature-list {
+    list-style: none;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.82rem;
+    color: var(--gray-700);
+    line-height: 1.4;
+  }
+  .feature-list li::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .feature-list li.blue::before { background: var(--blue); }
+  .feature-list li.green::before { background: var(--green); }
+  .feature-list li.purple::before { background: var(--purple); }
+
+  /* ── WORKFLOW ── */
+  .workflow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin: 48px 0;
+    flex-wrap: wrap;
+  }
+  .workflow-step {
+    flex: 1;
+    min-width: 160px;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .workflow-step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -10px;
+    top: 22px;
+    color: var(--gray-300);
+    font-size: 1.2rem;
+    font-weight: 300;
+  }
+  .step-num {
+    width: 48px; height: 48px;
+    background: var(--orange);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    margin: 0 auto 12px;
+  }
+  .step-title { font-size: 0.85rem; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+  .step-desc { font-size: 0.75rem; color: var(--gray-500); }
+
+  /* ── HIGHLIGHT BOX ── */
+  .highlight-box {
+    border-radius: 20px;
+    padding: 32px 40px;
+    margin: 32px 0;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .highlight-box.orange { background: var(--orange-light); border: 1.5px solid rgba(249,115,22,0.2); }
+  .highlight-box.blue { background: var(--blue-light); border: 1.5px solid rgba(59,130,246,0.2); }
+  .highlight-box.green { background: var(--green-light); border: 1.5px solid rgba(16,185,129,0.2); }
+  .highlight-icon { font-size: 3rem; flex-shrink: 0; }
+  .highlight-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .highlight-box p { font-size: 0.88rem; color: var(--gray-700); line-height: 1.6; }
+
+  /* ── PILL BADGES ── */
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 0.7rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .badge.critical { background: #FEF2F2; color: #DC2626; }
+  .badge.warning { background: #FFFBEB; color: #D97706; }
+  .badge.info { background: var(--blue-light); color: var(--blue); }
+  .badge.success { background: var(--green-light); color: #059669; }
+
+  /* ── METRICS ROW ── */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin: 48px 0;
+  }
+  @media (max-width: 768px) { .metrics-row { grid-template-columns: repeat(2, 1fr); } }
+  .metric-card {
+    background: white;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .metric-num {
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--orange);
+    display: block;
+  }
+  .metric-label { font-size: 0.78rem; color: var(--gray-500); margin-top: 4px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 0;
+  }
+
+  /* ── TABLE ── */
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid var(--gray-200);
+    background: white;
+    margin: 32px 0;
+  }
+  .comparison-table th {
+    background: var(--sidebar);
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 14px 20px;
+    text-align: left;
+  }
+  .comparison-table td {
+    padding: 12px 20px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-700);
+  }
+  .comparison-table tr:last-child td { border-bottom: none; }
+  .comparison-table tr:nth-child(even) td { background: var(--gray-50); }
+  .check { color: var(--green); font-weight: 700; }
+  .cross { color: var(--red); }
+
+  /* ── EU SECTION SPECIAL ── */
+  .eu-banner {
+    background: linear-gradient(135deg, #1E3A5F 0%, #1E40AF 100%);
+    border-radius: 24px;
+    padding: 48px;
+    color: white;
+    margin: 32px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .eu-banner::before {
+    content: '🇪🇺';
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 8rem;
+    opacity: 0.15;
+  }
+  .eu-banner h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+  .eu-banner p { color: rgba(255,255,255,0.7); max-width: 600px; margin-bottom: 28px; }
+  .eu-docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .eu-doc-item {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+  }
+  .eu-doc-item .doc-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .eu-doc-item .doc-name { font-size: 0.85rem; font-weight: 600; }
+  .eu-doc-item .doc-desc { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+
+  /* ── KEYBOARD SHORTCUTS ── */
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 32px 0;
+  }
+  .shortcut-item {
+    background: white;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .key {
+    background: var(--gray-900);
+    color: white;
+    font-family: monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .shortcut-label { font-size: 0.82rem; color: var(--gray-700); font-weight: 500; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--sidebar);
+    color: #64748B;
+    padding: 48px 40px;
+    text-align: center;
+  }
+  .footer-logo { font-size: 1.4rem; font-weight: 800; color: white; margin-bottom: 8px; }
+  .footer p { font-size: 0.85rem; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; }
+    .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .feature-card::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+    .section { padding: 40px 0; }
+  }
+
+  /* ── FLOATING PRINT BUTTON ── */
+  .print-btn {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 24px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(249,115,22,0.4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  .print-btn:hover { background: var(--orange-dark); transform: translateY(-2px); }
+
+  /* ── NUMBERED FEATURE SECTION ── */
+  .big-feature {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 48px 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .big-feature:last-child { border-bottom: none; }
+  .big-feature.reverse { direction: rtl; }
+  .big-feature.reverse > * { direction: ltr; }
+  .big-feature-num {
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--gray-100);
+    line-height: 1;
+    margin-bottom: -8px;
+    letter-spacing: -0.04em;
+  }
+  .big-feature h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+  .big-feature p { font-size: 0.9rem; color: var(--gray-500); margin-bottom: 20px; line-height: 1.7; }
+  .big-feature-visual {
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 20px;
+    padding: 28px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mock-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mock-indicator {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .mock-text { font-size: 0.8rem; color: var(--gray-700); flex: 1; }
+  .mock-badge {
+    font-size: 0.65rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .mock-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--gray-200);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .mock-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--orange), #FBBF24);
+  }
+  .mock-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 900px) {
+    .big-feature, .big-feature.reverse { grid-template-columns: 1fr; direction: ltr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PRINT BUTTON -->
+<button class="print-btn no-print" onclick="window.print()">
+  🖨️ Download / Print
+</button>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">📦 Complete Exporter Guide</div>
+  <h1>Everything you need to<br><span>export compliantly</span></h1>
+  <p>ComplianceOS is your all-in-one platform to manage regulatory risk, generate trade documents, and stay ahead of every market's requirements.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="hero-stat-num">6+</span>
+      <span class="hero-stat-label">Export Markets</span>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">8</span>
+      <span class="hero-stat-label">Core Modules</span>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">20+</span>
+      <span class="hero-stat-label">Document Types</span>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stat">
+      <span class="hero-stat-num">AI</span>
+      <span class="hero-stat-label">Powered OCR & Risk</span>
+    </div>
+  </div>
+</section>
+
+<!-- GETTING STARTED WORKFLOW -->
+<section class="section" style="background: white; border-bottom: 1px solid var(--gray-200);">
+  <div class="container">
+    <div class="section-label">🚀 Quick Start</div>
+    <h2 class="section-title">Up and running in 4 steps</h2>
+    <p class="section-subtitle">From sign-up to your first compliance report in under 5 minutes.</p>
+
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="step-num">1</div>
+        <div class="step-title">Create Account</div>
+        <div class="step-desc">Sign up with your email. Your data is encrypted and stored securely.</div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">2</div>
+        <div class="step-title">Set Your Profile</div>
+        <div class="step-desc">Enter company name, size, IEC, GSTIN and select your product category. Optionally add your customs filing details (address, port of loading) for ICEGATE submissions.</div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">3</div>
+        <div class="step-title">Pick Target Markets</div>
+        <div class="step-desc">Choose EU, UAE, US, UK, Japan or Australia as export destinations.</div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">4</div>
+        <div class="step-title">Get Your Dashboard</div>
+        <div class="step-desc">Instant risk scores, checklists, and regulatory alerts — all personalised.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODULE OVERVIEW -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">🗂️ Platform Overview</div>
+    <h2 class="section-title">8 modules, one platform</h2>
+    <p class="section-subtitle">Every tool an Indian exporter needs — from risk assessment to document generation.</p>
+
+    <div class="nav-overview">
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#FFF7ED;">📊</div>
+        <div class="nav-item-label">Dashboard</div>
+        <div class="nav-item-sub">Central hub</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#FEF2F2;">⚠️</div>
+        <div class="nav-item-label">Compliance Risk</div>
+        <div class="nav-item-sub">Per-country scores</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#ECFDF5;">✅</div>
+        <div class="nav-item-label">My Checklist</div>
+        <div class="nav-item-sub">Task tracking</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#EFF6FF;">🔔</div>
+        <div class="nav-item-label">Regulatory Updates</div>
+        <div class="nav-item-sub">Live alerts</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#F5F3FF;">🌐</div>
+        <div class="nav-item-label">Trade Deals</div>
+        <div class="nav-item-sub">FTA savings</div>
+        <div class="pro-tag">PRO</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#FFFBEB;">🚚</div>
+        <div class="nav-item-label">Shipments</div>
+        <div class="nav-item-sub">Lifecycle tracking</div>
+        <div class="pro-tag">PRO</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#FDF2F8;">🏷️</div>
+        <div class="nav-item-label">Label Checker</div>
+        <div class="nav-item-sub">Label compliance</div>
+        <div class="pro-tag">PRO</div>
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon" style="background:#EFF6FF;">🇪🇺</div>
+        <div class="nav-item-label">EU Compliance</div>
+        <div class="nav-item-sub">EU-only tools</div>
+        <div class="new-tag">NEW</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 1: DASHBOARD -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="big-feature">
+      <div>
+        <div class="big-feature-num">01</div>
+        <div class="section-label">📊 Dashboard</div>
+        <h2 class="big-feature h2" style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Your compliance command centre</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">The first thing you see every time you log in. A live overview of your export compliance health across all selected markets — no setup needed after onboarding.</p>
+        <ul class="feature-list">
+          <li><strong>ROI Card</strong> — see estimated tax savings, penalties avoided (₹), and hours saved per shipment</li>
+          <li><strong>Overall Risk Score</strong> — colour-coded gauge averaged across your markets</li>
+          <li><strong>Urgent Actions</strong> — count of critical alerts requiring immediate attention</li>
+          <li><strong>Active Trade Deals</strong> — how many FTAs are available for your markets</li>
+          <li><strong>Carbon Compliance Widget</strong> — auto-appears for CBAM products (steel, chemicals, aluminium) when EU is selected</li>
+          <li><strong>Recent Regulatory Updates</strong> — latest 5 alerts with severity and action required</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">Your Compliance Dashboard</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px;">
+            <div style="font-size:.65rem;color:var(--gray-500);">Overall Risk</div>
+            <div style="font-size:1.8rem;font-weight:900;color:#F97316;">52</div>
+            <div style="font-size:.65rem;color:#D97706;font-weight:600;">● Medium</div>
+          </div>
+          <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px;">
+            <div style="font-size:.65rem;color:var(--gray-500);">Urgent Actions</div>
+            <div style="font-size:1.8rem;font-weight:900;color:#EF4444;">3</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">critical alerts</div>
+          </div>
+          <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px;">
+            <div style="font-size:.65rem;color:var(--gray-500);">Markets</div>
+            <div style="font-size:1.1rem;font-weight:700;">🇪🇺 🇦🇪 🇺🇸</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">3 active</div>
+          </div>
+          <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px;">
+            <div style="font-size:.65rem;color:var(--gray-500);">Savings Est.</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#10B981;">₹2.4L</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">per shipment</div>
+          </div>
+        </div>
+        <div class="mock-card" style="margin-top:4px;">
+          <div class="mock-indicator" style="background:#EF4444;"></div>
+          <div class="mock-text">CBAM deadline — 30 days remaining</div>
+          <span class="mock-badge" style="background:#FEF2F2;color:#DC2626;">Urgent</span>
+        </div>
+        <div class="mock-card">
+          <div class="mock-indicator" style="background:#F59E0B;"></div>
+          <div class="mock-text">India-EU FTA Round 8 announced</div>
+          <span class="mock-badge" style="background:#FFFBEB;color:#D97706;">Review</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 2: RISK -->
+<section class="section">
+  <div class="container">
+    <div class="big-feature reverse">
+      <div>
+        <div class="big-feature-num">02</div>
+        <div class="section-label">⚠️ Compliance Risk</div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Know exactly where you stand in each market</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">Risk scores are calculated per country based on your product category, company size, and current regulations. Each score comes with a clear breakdown of contributing factors and actionable recommendations.</p>
+        <ul class="feature-list">
+          <li><strong>Per-country risk cards</strong> — individual score (0–100) with gauge visualisation</li>
+          <li><strong>Risk Factors</strong> — each factor explained in plain English (e.g. "CBAM applies to steel exports")</li>
+          <li><strong>Recommendations</strong> — specific steps to reduce your risk score</li>
+          <li><strong>CBAM Readiness</strong> — for carbon-heavy products, estimate CO₂ emissions and track readiness</li>
+          <li>Scores are <strong>live-calculated</strong> from World Customs Org + EU Commission data</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Compliance Risk — EU Market</div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:12px;padding:16px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <span style="font-size:1.5rem;">🇪🇺</span>
+            <div>
+              <div style="font-size:.82rem;font-weight:700;">European Union</div>
+              <div style="font-size:.7rem;color:var(--gray-500);">Steel Exporter</div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+              <div style="font-size:1.6rem;font-weight:900;color:#EF4444;">72</div>
+              <div style="font-size:.65rem;color:#EF4444;font-weight:600;">HIGH RISK</div>
+            </div>
+          </div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--gray-500);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Risk Factors</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:.75rem;">
+              <span style="color:#EF4444;font-size:.7rem;">▲</span>CBAM applies to this product category
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:.75rem;">
+              <span style="color:#F59E0B;font-size:.7rem;">▲</span>CE Marking required for market entry
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:.75rem;">
+              <span style="color:#10B981;font-size:.7rem;">▼</span>India-EU FTA in negotiation (positive)
+            </div>
+          </div>
+        </div>
+        <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;font-size:.75rem;color:#7F1D1D;">
+          <strong>Recommendation:</strong> Register for CBAM, collect supplier emission data before Q1 2026 deadline.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 3: CHECKLIST -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="big-feature">
+      <div>
+        <div class="big-feature-num">03</div>
+        <div class="section-label">✅ My Checklist</div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Never miss a compliance step</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">A personalised compliance checklist generated for your product and target markets. Items are grouped by category, tagged by priority and phase, and track your progress in real time.</p>
+        <ul class="feature-list">
+          <li><strong>Phase filtering</strong> — shows Immediate actions by default; toggle to see all phases</li>
+          <li><strong>Category grouping</strong> — Documentation, Certifications, CBAM, Labelling etc.</li>
+          <li><strong>Priority badges</strong> — Critical / High / Medium colour-coded</li>
+          <li><strong>Mark All / Reset All</strong> per category for bulk actions</li>
+          <li><strong>Progress bar</strong> — animated % completion with "✓ Complete" at 100%</li>
+          <li><strong>Multi-market tabs</strong> — separate checklist per country when multiple markets selected</li>
+          <li><strong>Export to clipboard</strong> — copy full structured checklist for email/docs</li>
+          <li>Toast notifications on every item you complete</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);letter-spacing:.08em;text-transform:uppercase;">Compliance Checklist — EU</div>
+        <div>
+          <div class="mock-row"><span>Progress</span><span style="font-weight:700;color:var(--orange);">62%</span></div>
+          <div class="mock-progress"><div class="mock-progress-fill" style="width:62%;"></div></div>
+          <div class="mock-row" style="margin-top:4px;"><span>8 of 13 items complete</span></div>
+        </div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;">Documentation <span style="background:var(--orange-light);color:var(--orange);padding:1px 6px;border-radius:4px;font-size:.65rem;">3/4</span></div>
+        <div class="mock-card">
+          <input type="checkbox" checked style="accent-color:var(--orange);"> <div class="mock-text" style="text-decoration:line-through;color:var(--gray-400);">Commercial Invoice</div> <span class="mock-badge" style="background:#ECFDF5;color:#059669;">High</span>
+        </div>
+        <div class="mock-card">
+          <input type="checkbox"> <div class="mock-text">EU REACH Registration</div> <span class="mock-badge" style="background:#FEF2F2;color:#DC2626;">Critical</span>
+        </div>
+        <div class="mock-card">
+          <input type="checkbox"> <div class="mock-text">CBAM Emissions Report</div> <span class="mock-badge" style="background:#FEF2F2;color:#DC2626;">Critical</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--blue);font-weight:600;cursor:pointer;padding:4px 0;">Show all 13 tasks →</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 4: ALERTS -->
+<section class="section">
+  <div class="container">
+    <div class="big-feature reverse">
+      <div>
+        <div class="big-feature-num">04</div>
+        <div class="section-label">🔔 Regulatory Updates</div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Stay ahead of every regulatory change</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">Live regulatory alerts filtered to your exact product and target markets. No generic news — only changes that directly affect your exports, explained in plain language.</p>
+        <ul class="feature-list">
+          <li><strong>Three severity levels</strong> — Urgent (act now), Review Soon (within 30 days), FYI (awareness)</li>
+          <li><strong>Search</strong> — full-text search across all alert messages and countries</li>
+          <li><strong>Filter</strong> by severity with one click</li>
+          <li><strong>Plain-language impact</strong> — each alert explains what it means specifically for you</li>
+          <li><strong>Alert types</strong> — Deadlines, Regulation Changes, FTA Updates, Tariff Changes</li>
+          <li><strong>Deadline countdown</strong> — deadline alerts show a live badge (e.g. "14 days left", "2d overdue") coloured red when urgent</li>
+          <li><strong>Dismiss &amp; restore</strong> — dismiss individual alerts with ✕, or use "Mark all read". Dismissed alerts are saved and can be shown/restored at any time</li>
+          <li>Expandable detail per alert showing type, market, and exact date</li>
+          <li>Sources: EU Commission, India DGFT, World Customs Organization</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <span style="background:#FEF2F2;color:#DC2626;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;">1 Urgent</span>
+          <span style="background:#FFFBEB;color:#D97706;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;">2 Review</span>
+          <span style="background:var(--blue-light);color:var(--blue);font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px;">1 FYI</span>
+        </div>
+        <div style="background:white;border:1.5px solid #FECACA;border-radius:12px;padding:16px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span>🇪🇺</span>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:700;color:var(--gray-900);">CBAM financial adjustments begin</div>
+              <div style="font-size:.72rem;color:var(--gray-500);">Deadline: 31 Dec 2025</div>
+            </div>
+            <span style="background:#FEF2F2;color:#DC2626;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:999px;">URGENT</span>
+          </div>
+          <div style="font-size:.75rem;color:#7F1D1D;background:#FEF2F2;padding:8px 10px;border-radius:8px;margin-top:10px;">
+            This affects your next shipment — act immediately to avoid financial penalties.
+          </div>
+        </div>
+        <div style="background:white;border:1.5px solid #FDE68A;border-radius:12px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span>🇬🇧</span>
+            <div style="flex:1;font-size:.82rem;font-weight:600;">UK REACH registration deadline extended</div>
+            <span style="background:#FFFBEB;color:#D97706;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:999px;">REVIEW</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 5: TRADE DEALS -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="big-feature">
+      <div>
+        <div class="big-feature-num">05</div>
+        <div class="section-label">🌐 Trade Deals & Savings <span style="font-size:.65rem;font-weight:700;color:var(--orange);background:var(--orange-light);padding:2px 7px;border-radius:4px;margin-left:4px;">PRO</span></div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Maximise savings through FTAs and export schemes</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">India has active trade deals — are you using them? This module shows every applicable Free Trade Agreement and export scheme, and calculates exactly how much you save per shipment.</p>
+        <ul class="feature-list">
+          <li><strong>FTA Agreement Browser</strong> — all applicable agreements with status (Active / Under Negotiation)</li>
+          <li><strong>Export Schemes</strong> — RoDTEP, MEIS, AEO, and other incentive schemes</li>
+          <li><strong>Tariff Savings Calculator</strong> — enter shipment value, see MFN vs preferential duty and exact savings in ₹</li>
+          <li>Compare MFN rate vs preferential rate side by side</li>
+          <li>Covers: UAE (CEPA active), Japan, Australia, EU (in negotiation)</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Tariff Savings Calculator</div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:10px;">
+          <div style="font-size:.75rem;color:var(--gray-500);margin-bottom:4px;">Shipment Value</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--gray-900);">₹10,00,000</div>
+          <div style="background:var(--gray-200);height:4px;border-radius:2px;margin:8px 0;"><div style="background:var(--orange);height:4px;width:60%;border-radius:2px;"></div></div>
+        </div>
+        <table style="width:100%;font-size:.75rem;border-collapse:collapse;">
+          <tr style="background:var(--gray-50);">
+            <th style="padding:6px 8px;text-align:left;color:var(--gray-500);font-weight:600;">Market</th>
+            <th style="padding:6px 8px;text-align:right;color:var(--gray-500);font-weight:600;">MFN Duty</th>
+            <th style="padding:6px 8px;text-align:right;color:var(--gray-500);font-weight:600;">Pref. Duty</th>
+            <th style="padding:6px 8px;text-align:right;color:var(--green);font-weight:700;">Savings</th>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;">🇦🇪 UAE (CEPA)</td>
+            <td style="padding:6px 8px;text-align:right;">₹50,000</td>
+            <td style="padding:6px 8px;text-align:right;">₹5,000</td>
+            <td style="padding:6px 8px;text-align:right;color:var(--green);font-weight:700;">₹45,000</td>
+          </tr>
+          <tr style="background:var(--gray-50);">
+            <td style="padding:6px 8px;">🇯🇵 Japan</td>
+            <td style="padding:6px 8px;text-align:right;">₹40,000</td>
+            <td style="padding:6px 8px;text-align:right;">₹8,000</td>
+            <td style="padding:6px 8px;text-align:right;color:var(--green);font-weight:700;">₹32,000</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;">🇦🇺 Australia</td>
+            <td style="padding:6px 8px;text-align:right;">₹35,000</td>
+            <td style="padding:6px 8px;text-align:right;">₹7,000</td>
+            <td style="padding:6px 8px;text-align:right;color:var(--green);font-weight:700;">₹28,000</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 6: SHIPMENTS -->
+<section class="section">
+  <div class="container">
+    <div class="big-feature reverse">
+      <div>
+        <div class="big-feature-num">06</div>
+        <div class="section-label">🚚 Shipments <span style="font-size:.65rem;font-weight:700;color:var(--orange);background:var(--orange-light);padding:2px 7px;border-radius:4px;margin-left:4px;">PRO</span></div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Track every shipment from preparation to delivery</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">Full shipment lifecycle management with AI-powered compliance gating. Every shipment is checked against current regulations before it leaves your facility.</p>
+        <ul class="feature-list">
+          <li><strong>Add shipments</strong> — name, product, destination, date, HS code, value</li>
+          <li><strong>Auto-save draft</strong> — form is saved automatically as you type. If you close or refresh, your in-progress shipment is restored with a "Draft saved" notice. Discard any time.</li>
+          <li><strong>Document OCR</strong> — drag-and-drop invoice upload, AI auto-extracts all fields (OpenAI gpt-4o)</li>
+          <li><strong>Pre-Shipment Compliance Gate</strong> — run automated check: Approved / Blocked / Needs Review</li>
+          <li><strong>HS Code Classifier</strong> — AI classifies your product by commodity code</li>
+          <li><strong>Landed Cost Calculator</strong> — total import cost including duties and freight</li>
+          <li><strong>Certificate of Origin (COO)</strong> — auto-generate PDF for FTA eligibility</li>
+          <li><strong>Deal Pack</strong> — multi-country export document bundle in one click</li>
+          <li><strong>TReDS Financing</strong> — submit for trade receivables discounting</li>
+          <li><strong>Customs Payload</strong> — auto-generate customs declaration data</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="font-size:.7rem;font-weight:700;color:var(--gray-500);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Shipments</div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:12px;padding:14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div>
+              <div style="font-size:.85rem;font-weight:700;">SHP-2025-0142</div>
+              <div style="font-size:.72rem;color:var(--gray-500);">Steel Coils → 🇪🇺 EU · Jan 15</div>
+            </div>
+            <span style="background:#ECFDF5;color:#059669;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:999px;">APPROVED ✓</span>
+          </div>
+          <div style="display:flex;gap:8px;font-size:.7rem;">
+            <span style="background:var(--gray-100);padding:3px 8px;border-radius:4px;">HS: 7208.51</span>
+            <span style="background:var(--gray-100);padding:3px 8px;border-radius:4px;">₹45L</span>
+            <span style="background:var(--gray-100);padding:3px 8px;border-radius:4px;">Risk: 62</span>
+          </div>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:12px;padding:14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:.85rem;font-weight:700;">SHP-2025-0139</div>
+              <div style="font-size:.72rem;color:var(--gray-500);">Textiles → 🇦🇪 UAE · Jan 10</div>
+            </div>
+            <span style="background:#FFFBEB;color:#D97706;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:999px;">IN TRANSIT</span>
+          </div>
+        </div>
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px;font-size:.75rem;color:#1E40AF;">
+          <strong>🤖 Document OCR:</strong> Drop invoice PDF → auto-fill shipment details
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 7: LABEL CHECKER -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="big-feature">
+      <div>
+        <div class="big-feature-num">07</div>
+        <div class="section-label">🏷️ Label Checker <span style="font-size:.65rem;font-weight:700;color:var(--orange);background:var(--orange-light);padding:2px 7px;border-radius:4px;margin-left:4px;">PRO</span></div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;">Validate product labels before they leave India</h2>
+        <p style="font-size:.9rem;color:var(--gray-500);margin-bottom:20px;line-height:1.7;">Label non-compliance is one of the top reasons for shipment rejection. The Label Checker validates your product labels against the exact rules of each destination country.</p>
+        <ul class="feature-list">
+          <li><strong>Country + Product selection</strong> — rules loaded for EU, US, UAE, UK per product type (food, chemicals, textiles...)</li>
+          <li><strong>Interactive Q&A checklist</strong> — tick off each requirement with expandable guidance</li>
+          <li><strong>Real-time compliance score</strong> (0–100%) — green / orange / red with status badge</li>
+          <li><strong>AI Label Vision Scanner</strong> — upload a photo of your actual label, AI auto-checks all rules</li>
+          <li><strong>Bulk actions</strong> — Mark All Compliant or Reset All</li>
+          <li>Auto-expands failed rules so you focus on what needs fixing</li>
+        </ul>
+      </div>
+      <div class="big-feature-visual">
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-size:2.5rem;font-weight:900;color:#10B981;line-height:1;">87%</div>
+          <div style="font-size:.75rem;font-weight:700;color:#059669;">✅ Mostly Compliant</div>
+          <div style="font-size:.7rem;color:var(--gray-500);">EU · Food Product</div>
+        </div>
+        <div class="mock-card">
+          <input type="checkbox" checked style="accent-color:var(--green);"> <div class="mock-text">Ingredients list in destination language</div>
+        </div>
+        <div class="mock-card">
+          <input type="checkbox" checked style="accent-color:var(--green);"> <div class="mock-text">Net weight in metric units (g/kg)</div>
+        </div>
+        <div class="mock-card" style="border-color:#FECACA;">
+          <input type="checkbox"> <div class="mock-text" style="color:#EF4444;">Country of origin marked on packaging</div>
+        </div>
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px;margin-top:4px;font-size:.75rem;color:#1E40AF;">
+          <strong>🤖 AI Vision:</strong> Take a photo of your label → auto-fill all checkboxes
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MODULE 8: EU COMPLIANCE -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">🇪🇺 EU Compliance</div>
+    <h2 class="section-title">Exclusive tools for EU exporters</h2>
+    <p class="section-subtitle">Automatically unlocked in your sidebar when EU is set as a target market.</p>
+
+    <div class="eu-banner">
+      <h2>EU Compliance Hub</h2>
+      <p>The EU has the most complex export requirements in the world — CBAM, EUDR, CSDDD, GSP, REX, and more. This module handles all of it in one place, exclusively for exporters targeting the European Union.</p>
+      <div class="eu-docs-grid">
+        <div class="eu-doc-item">
+          <div class="doc-icon">📄</div>
+          <div class="doc-name">GSP Statement</div>
+          <div class="doc-desc">Generalised System of Preferences origin declaration</div>
+        </div>
+        <div class="eu-doc-item">
+          <div class="doc-icon">🧾</div>
+          <div class="doc-name">EU Commercial Invoice</div>
+          <div class="doc-desc">EU-format invoice with all required fields</div>
+        </div>
+        <div class="eu-doc-item">
+          <div class="doc-icon">🌱</div>
+          <div class="doc-name">REX Declaration</div>
+          <div class="doc-desc">Registered Exporter rules of origin certificate</div>
+        </div>
+        <div class="eu-doc-item">
+          <div class="doc-icon">🌳</div>
+          <div class="doc-name">EUDR Due Diligence</div>
+          <div class="doc-desc">EU Deforestation Regulation compliance statement</div>
+        </div>
+        <div class="eu-doc-item">
+          <div class="doc-icon">⚖️</div>
+          <div class="doc-name">CSDDD Checklist</div>
+          <div class="doc-desc">Corporate Sustainability Due Diligence — 8-item progress tracker</div>
+        </div>
+        <div class="eu-doc-item">
+          <div class="doc-icon">🤝</div>
+          <div class="doc-name">Forced Labour Assessment</div>
+          <div class="doc-desc">5-question risk questionnaire with auto risk score</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-grid feature-grid-3">
+      <div class="feature-card blue">
+        <div class="feature-card-header">
+          <div class="feature-icon blue">📋</div>
+          <div>
+            <h3>Document Drafting</h3>
+            <p class="feature-desc">Generate any EU trade document in seconds — filled with your company details and product information automatically.</p>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li class="blue">Fill form → click Generate → print-ready document opens</li>
+          <li class="blue">All documents in correct EU legal format</li>
+          <li class="blue">Includes your IEC, company address, REX number</li>
+        </ul>
+      </div>
+      <div class="feature-card green">
+        <div class="feature-card-header">
+          <div class="feature-icon green">🌍</div>
+          <div>
+            <h3>EUDR Commodity Check</h3>
+            <p class="feature-desc">Check if your product falls under the EU Deforestation Regulation and what due diligence is required.</p>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li class="green">Covers: cattle, cocoa, coffee, palm oil, soy, wood, rubber</li>
+          <li class="green">Auto-generates EUDR due diligence statement</li>
+          <li class="green">Enforcement began: Jan 2025</li>
+        </ul>
+      </div>
+      <div class="feature-card purple">
+        <div class="feature-card-header">
+          <div class="feature-icon purple">🔍</div>
+          <div>
+            <h3>CSDDD & Labour Check</h3>
+            <p class="feature-desc">Meet the Corporate Sustainability Due Diligence Directive with guided checklists and automated risk scoring.</p>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li class="purple">8-step CSDDD checklist with progress bar</li>
+          <li class="purple">5-question forced labour risk questionnaire</li>
+          <li class="purple">Auto-calculated risk: Low / Medium / High</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SETTINGS -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="section-label">⚙️ Settings</div>
+    <h2 class="section-title">Configure your compliance profile</h2>
+    <p class="section-subtitle">Everything personalised to your company — set once, used everywhere.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card orange">
+        <div class="feature-card-header">
+          <div class="feature-icon orange">🏢</div>
+          <div>
+            <h3>Profile & Markets</h3>
+            <p class="feature-desc">Your company's core identity — drives all risk scores, checklists and alerts.</p>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li>Company name, size (Micro / Small / Medium / Large)</li>
+          <li>IEC (Import-Export Code) — India DGFT identifier</li>
+          <li>GSTIN — GST identification number for tax documentation</li>
+          <li>Product category — determines applicable regulations</li>
+          <li>Target markets — EU, US, UK, UAE, Japan, Australia</li>
+          <li>Selecting EU unlocks the EU Compliance module in sidebar</li>
+          <li><strong>Customs Filing Details</strong> — company address, city, state, PIN, state code, and port of loading (used to auto-fill ICEGATE customs declarations)</li>
+        </ul>
+      </div>
+      <div class="feature-card blue">
+        <div class="feature-card-header">
+          <div class="feature-icon blue">🔑</div>
+          <div>
+            <h3>API Key Management</h3>
+            <p class="feature-desc">For developers integrating ComplianceOS data into their own systems or ERP.</p>
+          </div>
+        </div>
+        <ul class="feature-list">
+          <li class="blue">Create named API keys for each integration</li>
+          <li class="blue">Key shown once at creation — store securely</li>
+          <li class="blue">Revoke individual keys at any time</li>
+          <li class="blue">Track creation date per key</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- KEY METRICS -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">💡 Why ComplianceOS</div>
+    <h2 class="section-title">Built for Indian exporters</h2>
+    <p class="section-subtitle">Every feature is built around the specific challenges of exporting from India to global markets.</p>
+
+    <div class="metrics-row">
+      <div class="metric-card">
+        <span class="metric-num">₹0</span>
+        <div class="metric-label">Penalty risk with full compliance</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-num">4h</span>
+        <div class="metric-label">Time saved per shipment on average</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-num">6</span>
+        <div class="metric-label">Export markets covered and monitored</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-num">24/7</span>
+        <div class="metric-label">Regulatory monitoring, always on</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+      <div class="highlight-box orange">
+        <div class="highlight-icon">⚡</div>
+        <div>
+          <h3 style="color:var(--orange-dark);">Always up to date</h3>
+          <p>Risk scores and alerts pull from live regulatory sources — World Customs Organization, EU Commission, and India DGFT.</p>
+        </div>
+      </div>
+      <div class="highlight-box blue" style="grid-column:span 1;">
+        <div class="highlight-icon">🤖</div>
+        <div>
+          <h3 style="color:#1E40AF;">AI-Powered</h3>
+          <p>OCR for invoices, HS code classification, label vision scanning — all powered by OpenAI gpt-4o.</p>
+        </div>
+      </div>
+      <div class="highlight-box green" style="grid-column:span 1;">
+        <div class="highlight-icon">🔒</div>
+        <div>
+          <h3 style="color:#065F46;">Secure & Private</h3>
+          <p>All data encrypted and stored in Supabase. Your shipment and company data never leaves your account.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- KEYBOARD SHORTCUTS -->
+<section class="section" style="background: white;">
+  <div class="container">
+    <div class="section-label">⌨️ Power User Tips</div>
+    <h2 class="section-title">Keyboard shortcuts</h2>
+    <p class="section-subtitle">Navigate the entire platform without touching your mouse.</p>
+
+    <div class="shortcuts-grid">
+      <div class="shortcut-item">
+        <span class="key">1</span>
+        <span class="shortcut-label">Dashboard</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">2</span>
+        <span class="shortcut-label">Compliance Risk</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">3</span>
+        <span class="shortcut-label">My Checklist</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">4</span>
+        <span class="shortcut-label">Regulatory Updates</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">5</span>
+        <span class="shortcut-label">Trade Deals</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">6</span>
+        <span class="shortcut-label">Shipments</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">,</span>
+        <span class="shortcut-label">Settings</span>
+      </div>
+      <div class="shortcut-item">
+        <span class="key">⌘S</span>
+        <span class="shortcut-label">Settings (Mac)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- COMPARISON TABLE -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">📊 Feature Summary</div>
+    <h2 class="section-title">What's included</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Module</th>
+          <th>Markets</th>
+          <th>AI Powered</th>
+          <th>Plan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Compliance Risk Scores</td>
+          <td>Compliance Risk</td>
+          <td>EU, US, UK, UAE, JP, AU</td>
+          <td class="check">✓</td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>Regulatory Alerts</td>
+          <td>Regulatory Updates</td>
+          <td>All selected markets</td>
+          <td></td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>Compliance Checklist</td>
+          <td>My Checklist</td>
+          <td>All selected markets</td>
+          <td></td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>FTA Savings Calculator</td>
+          <td>Trade Deals</td>
+          <td>UAE, JP, AU, EU</td>
+          <td></td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>Shipment Tracking</td>
+          <td>Shipments</td>
+          <td>All markets</td>
+          <td class="check">✓ OCR</td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>Pre-Shipment Gate Check</td>
+          <td>Shipments</td>
+          <td>All markets</td>
+          <td class="check">✓</td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>HS Code Classifier</td>
+          <td>Shipments</td>
+          <td>All markets</td>
+          <td class="check">✓</td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>Label Compliance Checker</td>
+          <td>Label Checker</td>
+          <td>EU, US, UAE, UK</td>
+          <td class="check">✓ Vision</td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>EU Document Generator</td>
+          <td>EU Compliance</td>
+          <td>EU only</td>
+          <td></td>
+          <td style="color:var(--blue);font-weight:700;">EU ADD-ON</td>
+        </tr>
+        <tr>
+          <td>CBAM & EUDR Tools</td>
+          <td>EU Compliance</td>
+          <td>EU only</td>
+          <td></td>
+          <td style="color:var(--blue);font-weight:700;">EU ADD-ON</td>
+        </tr>
+        <tr>
+          <td>Certificate of Origin (COO)</td>
+          <td>Shipments</td>
+          <td>All markets</td>
+          <td></td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+        <tr>
+          <td>API Key Access</td>
+          <td>Settings</td>
+          <td>—</td>
+          <td></td>
+          <td style="color:var(--orange);font-weight:700;">PRO</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-logo">ComplianceOS</div>
+  <p>The all-in-one compliance platform for Indian exporters.</p>
+  <p style="margin-top:8px;font-size:.75rem;">© 2025 ComplianceOS. Regulatory data sourced from World Customs Organization, India DGFT, and EU Commission.</p>
+</footer>
+
+</body>
+</html>

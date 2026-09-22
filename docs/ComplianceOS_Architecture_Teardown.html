@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ComplianceOS Architecture Teardown</title>
+<style>:root{color-scheme:light dark}body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>ComplianceOS Architecture Teardown</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --ink:        #16202E;
+    --ink-2:      #4A5A6E;
+    --ink-3:      #8497AB;
+    --navy:       #1A2440;
+    --teal:       #0D7C72;
+    --flag:       #C2410C;
+    --paper:      #FBFAF7;
+    --panel:      #FFFFFF;
+    --panel-2:    #F3F5F7;
+    --rule:       #D8DEE6;
+    --rule-soft:  #E9EDF2;
+
+    --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', 'Consolas', ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink:        #E6ECF3;
+      --ink-2:      #A3B2C4;
+      --ink-3:      #8195AA;
+      --navy:       #BCCBE2;
+      --teal:       #45C9BC;
+      --flag:       #FB923C;
+      --paper:      #0B121C;
+      --panel:      #131D2A;
+      --panel-2:    #18242F;
+      --rule:       #2A3949;
+      --rule-soft:  #1E2B39;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink:        #E6ECF3;
+    --ink-2:      #A3B2C4;
+    --ink-3:      #8195AA;
+    --navy:       #BCCBE2;
+    --teal:       #45C9BC;
+    --flag:       #FB923C;
+    --paper:      #0B121C;
+    --panel:      #131D2A;
+    --panel-2:    #18242F;
+    --rule:       #2A3949;
+    --rule-soft:  #1E2B39;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 46px 26px 110px;
+  }
+
+  /* ── Masthead ─────────────────────────────────── */
+  .masthead {
+    display: grid;
+    gap: 14px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--navy);
+    margin-bottom: 14px;
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin: 0;
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(2rem, 4.4vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.06;
+    margin: 0;
+    color: var(--navy);
+    text-wrap: balance;
+  }
+  .standfirst {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--ink-2);
+    font-size: 1.06rem;
+  }
+  .rev {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 54px;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-size: 1.42rem;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--navy);
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  .lede { margin: 0 0 26px; color: var(--ink-2); max-width: 66ch; }
+  p { max-width: 66ch; }
+
+  section { margin-bottom: 66px; }
+
+  /* ── Figures ──────────────────────────────────── */
+  figure {
+    margin: 0 0 14px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .fig-bar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 15px;
+    border-bottom: 1px solid var(--rule-soft);
+    background: var(--panel-2);
+  }
+  .fig-no {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  .fig-name {
+    font-family: var(--display);
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .fig-plate { padding: 20px 16px; overflow-x: auto; }
+  figure svg { display: block; width: 100%; max-width: 940px; height: auto; margin: 0 auto; min-width: 660px; }
+  figcaption {
+    padding: 13px 17px;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 0.9rem;
+    color: var(--ink-2);
+    background: var(--panel);
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* SVG typography */
+  .n-label { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .n-head  { font-family: var(--mono); font-size: 12px; font-weight: 700; fill: var(--ink); }
+  .n-sub   { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-3); }
+  .n-band  { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; fill: var(--ink-3); }
+  .n-edge  { font-family: var(--mono); font-size: 10.5px; fill: var(--teal); }
+  .n-flag  { font-family: var(--mono); font-size: 10.5px; fill: var(--flag); }
+
+  .box      { fill: var(--panel-2); stroke: var(--rule); stroke-width: 1; }
+  .box-hi   { fill: none; stroke: var(--flag); stroke-width: 1.6; }
+  .box-key  { fill: none; stroke: var(--teal); stroke-width: 1.6; }
+  .band     { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 3; }
+  .wire     { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
+  .wire-key { stroke: var(--teal); stroke-width: 1.6; fill: none; }
+  .wire-flag{ stroke: var(--flag); stroke-width: 1.6; fill: none; }
+  .wire-ghost { stroke: var(--ink-3); stroke-width: 1.2; fill: none; stroke-dasharray: 4 4; }
+
+  /* ── Tables ───────────────────────────────────── */
+  .scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; background: var(--panel); }
+  th {
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-align: left;
+    padding: 11px 15px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--panel-2);
+    white-space: nowrap;
+  }
+  td {
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--rule-soft);
+    font-size: 0.93rem;
+    vertical-align: top;
+    color: var(--ink-2);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.k { color: var(--ink); font-weight: 600; font-family: var(--display); font-size: 0.9rem; }
+  td.m { font-family: var(--mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; font-size: 0.95rem; color: var(--ink); font-weight: 700; white-space: nowrap; }
+  th.num { text-align: right; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.83em;
+    background: var(--panel-2);
+    border: 1px solid var(--rule-soft);
+    padding: 0.5px 4px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+
+  /* ── Moves ────────────────────────────────────── */
+  .moves { display: flex; flex-direction: column; }
+  .move {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 0 18px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .move:first-child { border-top: 1px solid var(--rule); }
+  .move-rank {
+    font-family: var(--mono);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--teal);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .move h3 {
+    font-family: var(--display);
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0 0 5px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .move p { margin: 0; font-size: 0.94rem; color: var(--ink-2); }
+  .move-tag {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-top: 8px;
+    display: block;
+  }
+
+  footer {
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 640px) {
+    .sheet { padding: 32px 16px 80px; }
+    body { font-size: 15.5px; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <p class="stamp">Architecture drawing · Read with the system map</p>
+    <h1>ComplianceOS Architecture Teardown</h1>
+    <p class="standfirst">
+      Five drawings of how the system is actually wired, each one made to expose a
+      specific cost. The optimisation list at the end comes out of the pictures,
+      not the other way round.
+    </p>
+  </header>
+  <div class="rev">
+    <span>REV 10 SEP 2026</span>
+    <span>19 SCREENS</span>
+    <span>22 EDGE FUNCTIONS</span>
+    <span>28 TABLES</span>
+  </div>
+
+  <!-- ════ FIGURE 1 ════ -->
+  <section>
+    <h2>Where the code actually runs</h2>
+    <p class="lede">
+      The shape that matters is not the layer count. It is that the browser reaches two
+      layers directly, and holds the logic that decides what to do with both.
+    </p>
+
+    <figure>
+      <div class="fig-bar"><span class="fig-no">Fig 1</span><span class="fig-name">Runtime layers and who talks to whom</span></div>
+      <div class="fig-plate">
+        <svg viewBox="0 0 900 560" role="img" aria-label="Four runtime layers. The browser holds the orchestration logic in api.ts, calls 16 of the 22 edge functions, and also reads Postgres tables directly, bypassing the function layer entirely.">
+          <defs>
+            <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- BAND A -->
+          <rect x="132" y="34" width="760" height="140" rx="3" class="band"/>
+          <text x="144" y="52" class="n-band">BROWSER</text>
+
+          <rect x="148" y="64" width="214" height="52" rx="3" class="box"/>
+          <text x="164" y="86" class="n-label">19 screens</text>
+          <text x="164" y="102" class="n-sub">one bundle, no splitting</text>
+          <text x="148" y="136" class="n-flag">946 KB on first paint</text>
+
+          <rect x="384" y="64" width="492" height="96" rx="3" class="box"/>
+          <rect x="384" y="64" width="492" height="96" rx="3" class="box-hi"/>
+          <text x="400" y="86" class="n-head">src/lib/api.ts</text>
+          <text x="400" y="106" class="n-sub">orchestration · gate decision · risk model</text>
+          <text x="400" y="122" class="n-sub">MFN table · FX table · CSV parser · PDF builders</text>
+          <text x="400" y="146" class="n-flag">1,511 lines — the real backend</text>
+
+          <!-- BAND B -->
+          <rect x="132" y="214" width="760" height="96" rx="3" class="band"/>
+          <text x="144" y="232" class="n-band">SUPABASE EDGE</text>
+
+          <rect x="148" y="244" width="136" height="48" rx="3" class="box"/>
+          <text x="162" y="266" class="n-label">LLM-backed</text>
+          <text x="162" y="282" class="n-sub">8 functions</text>
+
+          <rect x="296" y="244" width="132" height="48" rx="3" class="box"/>
+          <text x="310" y="266" class="n-label">Trade data</text>
+          <text x="310" y="282" class="n-sub">4 functions</text>
+
+          <rect x="440" y="244" width="132" height="48" rx="3" class="box"/>
+          <text x="454" y="266" class="n-label">Money</text>
+          <text x="454" y="282" class="n-sub">4 functions</text>
+
+          <rect x="584" y="244" width="150" height="48" rx="3" class="box"/>
+          <text x="598" y="266" class="n-label">Delivery, feeds</text>
+          <text x="598" y="282" class="n-sub">5 functions</text>
+
+          <rect x="746" y="244" width="130" height="48" rx="3" class="box"/>
+          <rect x="746" y="244" width="130" height="48" rx="3" class="box-key"/>
+          <text x="760" y="266" class="n-label">Partner API</text>
+          <text x="760" y="282" class="n-sub">1 function</text>
+
+          <!-- BAND C -->
+          <rect x="132" y="350" width="760" height="92" rx="3" class="band"/>
+          <text x="144" y="368" class="n-band">POSTGRES + RLS</text>
+
+          <rect x="148" y="380" width="330" height="48" rx="3" class="box"/>
+          <text x="164" y="402" class="n-label">Tenant data</text>
+          <text x="164" y="418" class="n-sub">companies · shipments · trackers</text>
+
+          <rect x="498" y="380" width="378" height="48" rx="3" class="box"/>
+          <text x="514" y="402" class="n-label">Reference data</text>
+          <text x="514" y="418" class="n-sub">rodtep_rates 10,501 · hs_tariff_rates</text>
+
+          <!-- BAND D -->
+          <rect x="132" y="482" width="760" height="54" rx="3" class="band"/>
+          <text x="144" y="500" class="n-band">THIRD PARTIES</text>
+          <text x="148" y="524" class="n-sub">Anthropic · OpenAI · Zonos · Climatiq · Razorpay · Meta WhatsApp · ICEGATE</text>
+
+          <!-- wires -->
+          <g color="#8497AB">
+            <line x1="660" y1="160" x2="660" y2="238" class="wire" marker-end="url(#a1)"/>
+            <line x1="360" y1="292" x2="360" y2="374" class="wire" marker-end="url(#a1)"/>
+            <path d="M 488 292 L 488 476" class="wire" marker-end="url(#a1)"/>
+          </g>
+          <text x="672" y="196" class="n-sub">16 of 22 called from here</text>
+          <text x="368" y="336" class="n-sub">service role</text>
+          <text x="500" y="336" class="n-sub">keys held server-side</text>
+
+          <!-- bypass, left gutter -->
+          <g color="#0D7C72">
+            <path d="M 384 112 L 52 112 L 52 404 L 142 404" class="wire-key" marker-end="url(#a1)"/>
+          </g>
+          <text x="64" y="192" class="n-edge">direct table reads</text>
+          <text x="64" y="206" class="n-edge">RLS is the only gate</text>
+        </svg>
+      </div>
+      <figcaption>
+        Two facts do the damage. <b>The orchestration lives in the browser</b>, so every
+        composite decision is assembled on the user's device from parts it fetches itself.
+        And <b>the browser reaches Postgres directly</b>, so row-level security is the only
+        thing standing between a user and the tables. The edge layer is 22 leaf calls, not
+        a backend.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ════ FIGURE 2 ════ -->
+  <section>
+    <h2>The data spine</h2>
+    <p class="lede">
+      One tenant key runs through everything, and one table is the spine. What the drawing
+      shows is how loosely the trackers are attached to it.
+    </p>
+
+    <figure>
+      <div class="fig-bar"><span class="fig-no">Fig 2</span><span class="fig-name">Entities, keys, and what floats free</span></div>
+      <div class="fig-plate">
+        <svg viewBox="0 0 900 580" role="img" aria-label="Entity relationships. companies is the tenant root and shipments is the spine. Four tracker tables attach to shipments through a nullable foreign key, so their rows can exist unlinked. Reference tables carry no tenant key at all.">
+          <defs>
+            <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <rect x="14" y="64" width="170" height="44" rx="3" class="box"/>
+          <text x="28" y="84" class="n-label">auth.users</text>
+          <text x="28" y="100" class="n-sub">Supabase Auth</text>
+
+          <rect x="14" y="140" width="170" height="44" rx="3" class="box"/>
+          <text x="28" y="160" class="n-label">user_profiles</text>
+          <text x="28" y="176" class="n-sub">role: owner | ca</text>
+
+          <text x="14" y="218" class="n-edge">tenant root:</text>
+          <text x="14" y="233" class="n-edge">every RLS policy joins</text>
+          <text x="14" y="248" class="n-edge">back to companies.id</text>
+
+          <rect x="246" y="92" width="216" height="76" rx="3" class="box"/>
+          <rect x="246" y="92" width="216" height="76" rx="3" class="box-key"/>
+          <text x="262" y="116" class="n-head">companies</text>
+          <text x="262" y="136" class="n-sub">iec · gstin · turnover</text>
+          <text x="262" y="152" class="n-sub">plan · recovery_digest</text>
+
+          <rect x="246" y="300" width="216" height="98" rx="3" class="box"/>
+          <rect x="246" y="300" width="216" height="98" rx="3" class="box-key"/>
+          <text x="262" y="324" class="n-head">shipments</text>
+          <text x="262" y="344" class="n-sub">hs_code · shipment_value</text>
+          <text x="262" y="360" class="n-sub">shipping_bill_no · buyer</text>
+          <text x="262" y="376" class="n-sub">rodtep_rate · match_type</text>
+          <text x="262" y="392" class="n-sub">claim_status</text>
+
+          <rect x="530" y="52" width="210" height="32" rx="3" class="box"/>
+          <text x="544" y="73" class="n-label">aa_licenses</text>
+          <rect x="530" y="92" width="210" height="32" rx="3" class="box"/>
+          <text x="544" y="113" class="n-label">epcg_licenses</text>
+          <rect x="530" y="132" width="210" height="32" rx="3" class="box"/>
+          <text x="544" y="153" class="n-label">api_keys</text>
+          <rect x="530" y="172" width="210" height="32" rx="3" class="box"/>
+          <text x="544" y="193" class="n-label">ca_relationships</text>
+
+          <rect x="530" y="266" width="210" height="34" rx="3" class="box"/>
+          <text x="544" y="288" class="n-label">igst_claims</text>
+          <rect x="530" y="308" width="210" height="34" rx="3" class="box"/>
+          <text x="544" y="330" class="n-label">brc_firc_records</text>
+          <rect x="530" y="350" width="210" height="34" rx="3" class="box"/>
+          <text x="544" y="372" class="n-label">checklist_progress</text>
+          <rect x="530" y="392" width="210" height="34" rx="3" class="box"/>
+          <text x="544" y="414" class="n-label">compliance_gates</text>
+
+          <text x="470" y="450" class="n-flag">dashed = shipment_id is nullable</text>
+          <text x="470" y="465" class="n-flag">these rows can exist with no shipment</text>
+
+          <rect x="246" y="486" width="642" height="76" rx="3" class="band"/>
+          <text x="262" y="510" class="n-head">Reference data — no tenant key</text>
+          <text x="262" y="530" class="n-sub">rodtep_rates · hs_tariff_rates · hs_codes</text>
+          <text x="262" y="548" class="n-sub">sanctions_entries · regulatory_changes · countries · fta_agreements</text>
+
+          <g color="#8497AB">
+            <line x1="99" y1="108" x2="99" y2="134" class="wire" marker-end="url(#a2)"/>
+            <line x1="184" y1="155" x2="240" y2="140" class="wire" marker-end="url(#a2)"/>
+            <line x1="462" y1="112" x2="524" y2="68"  class="wire" marker-end="url(#a2)"/>
+            <line x1="462" y1="120" x2="524" y2="108" class="wire" marker-end="url(#a2)"/>
+            <line x1="462" y1="132" x2="524" y2="148" class="wire" marker-end="url(#a2)"/>
+            <line x1="462" y1="146" x2="524" y2="188" class="wire" marker-end="url(#a2)"/>
+            <line x1="354" y1="168" x2="354" y2="294" class="wire" marker-end="url(#a2)"/>
+          </g>
+          <text x="362" y="238" class="n-sub">1 : N</text>
+
+          <g color="#C2410C">
+            <line x1="462" y1="320" x2="524" y2="283" class="wire-flag" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+            <line x1="462" y1="332" x2="524" y2="325" class="wire-flag" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+            <line x1="462" y1="352" x2="524" y2="367" class="wire-flag" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+            <line x1="462" y1="368" x2="524" y2="409" class="wire-flag" stroke-dasharray="4 4" marker-end="url(#a2)"/>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        The trackers attach to <code>shipments</code> through a <b>nullable</b> key, so an
+        IGST claim, a bank realisation certificate and a gate result can each exist with
+        nothing to tie them to a shipment. That is why the exporter re-types the same
+        invoice and bill numbers on four screens. There is no shared identifier forcing
+        them together.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ════ FIGURE 3 ════ -->
+  <section>
+    <h2>The gate check, before and after</h2>
+    <p class="lede">
+      The four lookups are already concurrent, so this is not a latency story. It is a
+      story about where the answer ends up.
+    </p>
+
+    <figure>
+      <div class="fig-bar"><span class="fig-no">Fig 3</span><span class="fig-name">Gate decision assembled in the browser vs. computed once server-side</span></div>
+      <div class="fig-plate">
+        <svg viewBox="0 0 900 480" role="img" aria-label="Left: the browser fans out to four endpoints, computes risk and checklist locally, and the resulting gate verdict is never persisted. Right: one edge function performs the same four lookups internally and writes a compliance_gates row that three consumers can read.">
+          <defs>
+            <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <line x1="452" y1="10" x2="452" y2="470" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 5"/>
+
+          <!-- LEFT -->
+          <text x="14" y="26" class="n-band">TODAY</text>
+          <rect x="14" y="40" width="408" height="68" rx="3" class="box"/>
+          <rect x="14" y="40" width="408" height="68" rx="3" class="box-hi"/>
+          <text x="30" y="64" class="n-head">Browser · runGateCheck()</text>
+          <text x="30" y="83" class="n-sub">computes risk score locally</text>
+          <text x="30" y="99" class="n-sub">generates checklist locally</text>
+
+          <g color="#8497AB">
+            <line x1="62"  y1="108" x2="62"  y2="176" class="wire" marker-end="url(#a3)"/>
+            <line x1="166" y1="108" x2="166" y2="176" class="wire" marker-end="url(#a3)"/>
+            <line x1="270" y1="108" x2="270" y2="176" class="wire" marker-end="url(#a3)"/>
+            <line x1="374" y1="108" x2="374" y2="176" class="wire" marker-end="url(#a3)"/>
+          </g>
+          <text x="386" y="136" class="n-sub">4 parallel</text>
+          <text x="386" y="150" class="n-sub">calls</text>
+
+          <rect x="14"  y="180" width="96" height="48" rx="3" class="box"/>
+          <text x="27"  y="201" class="n-label">Sanctions</text>
+          <text x="27"  y="217" class="n-sub">edge fn</text>
+          <rect x="118" y="180" width="96" height="48" rx="3" class="box"/>
+          <text x="131" y="201" class="n-label">Climatiq</text>
+          <text x="131" y="217" class="n-sub">edge fn</text>
+          <rect x="222" y="180" width="96" height="48" rx="3" class="box"/>
+          <text x="235" y="201" class="n-label">Tariff</text>
+          <text x="235" y="217" class="n-sub">destination</text>
+          <rect x="326" y="180" width="96" height="48" rx="3" class="box"/>
+          <text x="339" y="201" class="n-label">Tariff</text>
+          <text x="339" y="217" class="n-sub">India MFN</text>
+
+          <g color="#8497AB">
+            <line x1="218" y1="228" x2="218" y2="268" class="wire" marker-end="url(#a3)"/>
+          </g>
+
+          <rect x="78" y="272" width="280" height="46" rx="3" class="box"/>
+          <text x="94" y="294" class="n-label">Gate verdict</text>
+          <text x="94" y="310" class="n-sub">blocked · conditional · approved</text>
+
+          <g color="#C2410C">
+            <line x1="218" y1="318" x2="218" y2="352" class="wire-ghost" stroke="var(--flag)" marker-end="url(#a3)"/>
+          </g>
+
+          <rect x="62" y="356" width="312" height="44" rx="3" class="band" stroke="var(--flag)"/>
+          <text x="78" y="376" class="n-flag">Lives in React state only</text>
+          <text x="78" y="391" class="n-flag">gone on refresh · nothing reads it</text>
+
+          <text x="14" y="432" class="n-sub">The lender API and the deal pack each</text>
+          <text x="14" y="447" class="n-sub">rebuild this verdict from their own copies.</text>
+
+          <!-- RIGHT -->
+          <text x="484" y="26" class="n-band">PROPOSED</text>
+          <rect x="484" y="40" width="402" height="68" rx="3" class="box"/>
+          <text x="500" y="64" class="n-head">Browser</text>
+          <text x="500" y="83" class="n-sub">posts the shipment id</text>
+          <text x="500" y="99" class="n-sub">renders what comes back</text>
+
+          <g color="#0D7C72">
+            <line x1="685" y1="108" x2="685" y2="142" class="wire-key" marker-end="url(#a3)"/>
+          </g>
+          <text x="695" y="130" class="n-edge">1 round trip</text>
+
+          <rect x="506" y="146" width="362" height="112" rx="3" class="box"/>
+          <rect x="506" y="146" width="362" height="112" rx="3" class="box-key"/>
+          <text x="522" y="170" class="n-head">gate-check edge function</text>
+          <text x="522" y="190" class="n-sub">risk model · checklist · sanctions</text>
+          <text x="522" y="206" class="n-sub">climatiq · both tariff reads</text>
+          <text x="522" y="230" class="n-edge">one definition of the rules</text>
+          <text x="522" y="246" class="n-edge">all lookups stay inside Supabase</text>
+
+          <g color="#0D7C72">
+            <line x1="685" y1="258" x2="685" y2="292" class="wire-key" marker-end="url(#a3)"/>
+          </g>
+
+          <rect x="560" y="296" width="250" height="46" rx="3" class="box"/>
+          <text x="576" y="318" class="n-label">compliance_gates row</text>
+          <text x="576" y="334" class="n-sub">already in the schema, unused</text>
+
+          <g color="#0D7C72">
+            <line x1="622" y1="342" x2="566" y2="378" class="wire-key" marker-end="url(#a3)"/>
+            <line x1="685" y1="342" x2="685" y2="378" class="wire-key" marker-end="url(#a3)"/>
+            <line x1="748" y1="342" x2="804" y2="378" class="wire-key" marker-end="url(#a3)"/>
+          </g>
+
+          <rect x="498" y="382" width="118" height="38" rx="3" class="box"/>
+          <text x="512" y="406" class="n-label">the app</text>
+          <rect x="628" y="382" width="118" height="38" rx="3" class="box"/>
+          <text x="642" y="406" class="n-label">deal pack</text>
+          <rect x="758" y="382" width="118" height="38" rx="3" class="box"/>
+          <text x="772" y="406" class="n-label">lender API</text>
+
+          <text x="484" y="446" class="n-edge">Three consumers, one answer. The duplicate</text>
+          <text x="484" y="461" class="n-edge">rule copies in Fig 4 become deletable.</text>
+        </svg>
+      </div>
+      <figcaption>
+        The four calls already run concurrently, so moving them buys little latency. The
+        win is that <b>the verdict becomes a row instead of a variable</b>. The
+        <code>compliance_gates</code> table is already in the schema and nothing writes to
+        it. Once the decision persists, the duplicated rule copies have somewhere to be
+        deleted to.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ════ FIGURE 4 ════ -->
+  <section>
+    <h2>One number, three answers</h2>
+    <p class="lede">
+      The duty rate an exporter sees depends on which screen they are standing on. This is
+      the single highest-value thing on the list.
+    </p>
+
+    <figure>
+      <div class="fig-bar"><span class="fig-no">Fig 4</span><span class="fig-name">Four sources of truth for the same MFN duty rate</span></div>
+      <div class="fig-plate">
+        <svg viewBox="0 0 900 350" role="img" aria-label="One HS code and destination fans into four separate rate sources: the hs_tariff_rates table and three hardcoded constant tables in api.ts, deal-pack.ts and the underwriting-signal function. Each feeds a different consumer, so the same shipment can show different duty figures.">
+          <defs>
+            <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <rect x="14" y="140" width="166" height="56" rx="3" class="box"/>
+          <text x="30" y="164" class="n-label">HS code + market</text>
+          <text x="30" y="182" class="n-sub">one shipment</text>
+
+          <g color="#8497AB">
+            <path d="M 180 158 L 234 62"  class="wire" marker-end="url(#a4)"/>
+            <path d="M 180 164 L 234 140" class="wire" marker-end="url(#a4)"/>
+            <path d="M 180 172 L 234 214" class="wire" marker-end="url(#a4)"/>
+            <path d="M 180 180 L 234 288" class="wire" marker-end="url(#a4)"/>
+          </g>
+
+          <rect x="238" y="40" width="272" height="46" rx="3" class="box"/>
+          <rect x="238" y="40" width="272" height="46" rx="3" class="box-key"/>
+          <text x="254" y="62" class="n-label">hs_tariff_rates table</text>
+          <text x="254" y="78" class="n-sub">real ADB data · the correct source</text>
+
+          <rect x="238" y="118" width="272" height="46" rx="3" class="box"/>
+          <text x="254" y="140" class="n-label">MFN_RATES in api.ts</text>
+          <text x="254" y="156" class="n-sub">6 hardcoded constants</text>
+
+          <rect x="238" y="192" width="272" height="46" rx="3" class="box"/>
+          <text x="254" y="214" class="n-label">MFN_RATES in deal-pack.ts</text>
+          <text x="254" y="230" class="n-sub">second hardcoded copy</text>
+
+          <rect x="238" y="266" width="272" height="46" rx="3" class="box"/>
+          <text x="254" y="288" class="n-label">MFN_RATES in the API fn</text>
+          <text x="254" y="304" class="n-sub">third copy, plus its own risk model</text>
+
+          <g color="#C2410C">
+            <path d="M 510 141 L 608 118" class="wire-flag" marker-end="url(#a4)"/>
+            <path d="M 510 215 L 608 196" class="wire-flag" marker-end="url(#a4)"/>
+            <path d="M 510 289 L 608 274" class="wire-flag" marker-end="url(#a4)"/>
+          </g>
+          <g color="#0D7C72">
+            <path d="M 510 63 L 608 100" class="wire-key" stroke-dasharray="4 4" marker-end="url(#a4)"/>
+          </g>
+
+          <rect x="612" y="96" width="274" height="46" rx="3" class="box"/>
+          <text x="628" y="118" class="n-label">Gate check, on screen</text>
+          <text x="628" y="134" class="n-sub">table if HS ≥ 6 digits, else constant</text>
+
+          <rect x="612" y="174" width="274" height="46" rx="3" class="box"/>
+          <text x="628" y="196" class="n-label">Bank deal pack PDF</text>
+          <text x="628" y="212" class="n-sub">constants only, never the table</text>
+
+          <rect x="612" y="252" width="274" height="46" rx="3" class="box"/>
+          <text x="628" y="274" class="n-label">Lender underwriting API</text>
+          <text x="628" y="290" class="n-sub">constants only, never the table</text>
+
+          <line x1="14" y1="328" x2="886" y2="328" stroke="var(--rule)" stroke-width="1"/>
+          <text x="14" y="346" class="n-flag">A bank reading the API and the exporter reading the app can see different duty on one shipment.</text>
+        </svg>
+      </div>
+      <figcaption>
+        You have real tariff data in Postgres and three hardcoded tables shadowing it. Only
+        the gate check reads the real one, and only when the HS code is long enough. The
+        <b>document you hand a bank</b> and the <b>endpoint a bank calls</b> both use
+        constants. Same shipment, different numbers, no warning.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ════ FIGURE 5 ════ -->
+  <section>
+    <h2>The path that already works</h2>
+    <p class="lede">
+      Drawn for contrast. This is what a finished flow looks like in this codebase, and it
+      is the one to optimise around rather than away from.
+    </p>
+
+    <figure>
+      <div class="fig-bar"><span class="fig-no">Fig 5</span><span class="fig-name">RoDTEP recovery, CSV to claim register</span></div>
+      <div class="fig-plate">
+        <svg viewBox="0 0 900 320" role="img" aria-label="The RoDTEP recovery pipeline: CSV upload, header mapping, duplicate skip on shipping bill number, HS normalisation, a three-way rate match against 10,501 schedule rows, entitlement calculation, and a four-state claim lifecycle. Unmatched codes are reported rather than defaulted.">
+          <defs>
+            <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g color="#0D7C72">
+            <line x1="138" y1="62" x2="164" y2="62" class="wire-key" marker-end="url(#a5)"/>
+            <line x1="294" y1="62" x2="320" y2="62" class="wire-key" marker-end="url(#a5)"/>
+            <line x1="450" y1="62" x2="476" y2="62" class="wire-key" marker-end="url(#a5)"/>
+            <line x1="616" y1="62" x2="642" y2="62" class="wire-key" marker-end="url(#a5)"/>
+          </g>
+
+          <rect x="14" y="38" width="124" height="48" rx="3" class="box"/>
+          <text x="28" y="60" class="n-label">CSV in</text>
+          <text x="28" y="76" class="n-sub">ICEGATE · Tally</text>
+
+          <rect x="170" y="38" width="124" height="48" rx="3" class="box"/>
+          <text x="184" y="60" class="n-label">Map headers</text>
+          <text x="184" y="76" class="n-sub">auto-detected</text>
+
+          <rect x="326" y="38" width="124" height="48" rx="3" class="box"/>
+          <text x="340" y="60" class="n-label">Skip dupes</text>
+          <text x="340" y="76" class="n-sub">on bill number</text>
+
+          <rect x="482" y="38" width="134" height="48" rx="3" class="box"/>
+          <text x="496" y="60" class="n-label">Normalise HS</text>
+          <text x="496" y="76" class="n-sub">strip to 8 digits</text>
+
+          <rect x="648" y="38" width="238" height="48" rx="3" class="box"/>
+          <rect x="648" y="38" width="238" height="48" rx="3" class="box-key"/>
+          <text x="662" y="60" class="n-label">Match 10,501 rows</text>
+          <text x="662" y="76" class="n-sub">Appendix 4R + Notif. 60</text>
+
+          <g color="#8497AB">
+            <path d="M 767 86 L 767 106 L 200 106 L 200 126" class="wire" marker-end="url(#a5)"/>
+            <path d="M 767 106 L 450 106 L 450 126" class="wire" marker-end="url(#a5)"/>
+            <path d="M 767 106 L 700 106 L 700 126" class="wire" marker-end="url(#a5)"/>
+          </g>
+
+          <rect x="120" y="130" width="160" height="46" rx="3" class="box"/>
+          <text x="134" y="152" class="n-label">exact · 8 digit</text>
+          <text x="134" y="168" class="n-sub">claimable</text>
+
+          <rect x="370" y="130" width="160" height="46" rx="3" class="box"/>
+          <text x="384" y="152" class="n-label">prefix · 6 digit</text>
+          <text x="384" y="168" class="n-sub">claimable, flagged</text>
+
+          <rect x="620" y="130" width="160" height="46" rx="3" class="box"/>
+          <text x="634" y="152" class="n-label">no match</text>
+          <text x="634" y="168" class="n-sub">excluded</text>
+
+          <g color="#0D7C72">
+            <path d="M 200 176 L 200 200 L 260 200 L 260 216" class="wire-key" marker-end="url(#a5)"/>
+            <path d="M 450 176 L 450 200 L 260 200" class="wire-key"/>
+            <line x1="420" y1="248" x2="434" y2="248" class="wire-key" marker-end="url(#a5)"/>
+          </g>
+          <g color="#8497AB">
+            <path d="M 700 176 L 700 200 L 780 200 L 780 216" class="wire-ghost" marker-end="url(#a5)"/>
+          </g>
+
+          <rect x="110" y="222" width="300" height="52" rx="3" class="box"/>
+          <rect x="110" y="222" width="300" height="52" rx="3" class="box-key"/>
+          <text x="126" y="246" class="n-label">Entitlement = rate × FOB</text>
+          <text x="126" y="264" class="n-sub">claim register CSV · 1-yr window</text>
+
+          <rect x="440" y="222" width="210" height="52" rx="3" class="box"/>
+          <text x="456" y="246" class="n-label">Claim lifecycle</text>
+          <text x="456" y="264" class="n-sub">unclaimed · filed · credited</text>
+
+          <rect x="680" y="222" width="200" height="52" rx="3" class="band"/>
+          <text x="696" y="246" class="n-sub">reported as unmatched</text>
+          <text x="696" y="264" class="n-sub">never defaulted</text>
+
+          <text x="14" y="306" class="n-edge">Every step reads real data. No constant, no key, no model call on this path.</text>
+        </svg>
+      </div>
+      <figcaption>
+        Note what is absent. <b>No hardcoded constant, no API key, no model call.</b> A
+        rate that cannot be matched is reported as unmatched rather than defaulted, which
+        is the behaviour every other subsystem in the codebase should copy.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ════ MEASUREMENTS ════ -->
+  <section>
+    <h2>Measurements</h2>
+    <p class="lede">Taken from the working tree and the last build output, not estimated.</p>
+
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Measure</th><th class="num">Value</th><th>Where</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="k">Main bundle, first paint</td><td class="num">946 KB</td><td class="m">dist/assets/index-*.js</td></tr>
+          <tr><td class="k">Routes lazily loaded</td><td class="num">0</td><td class="m">no React.lazy in src/</td></tr>
+          <tr><td class="k">Lines in the client API layer</td><td class="num">1,511</td><td class="m">src/lib/api.ts</td></tr>
+          <tr><td class="k">Copies of the MFN duty table</td><td class="num">3</td><td class="m">api.ts · deal-pack.ts · underwriting-signal</td></tr>
+          <tr><td class="k">Implementations of the risk model</td><td class="num">2</td><td class="m">risk-scoring.ts · underwriting-signal</td></tr>
+          <tr><td class="k">Migration systems in the repo</td><td class="num">2</td><td class="m">supabase/*.sql and supabase/migrations/</td></tr>
+          <tr><td class="k">Migrations existing in both</td><td class="num">3</td><td class="m">rodtep_tracker · ca_dashboard · whatsapp_settings</td></tr>
+          <tr><td class="k">Edge functions nothing calls</td><td class="num">2</td><td class="m">zonos-classify · regulatory-alerts</td></tr>
+          <tr><td class="k">Rows behind the recovery number</td><td class="num">10,501</td><td class="m">rodtep_rates</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════ MOVES ════ -->
+  <section>
+    <h2>What I would do, in order</h2>
+    <p class="lede">
+      Ranked by damage prevented per hour spent. The first two are correctness, not
+      performance.
+    </p>
+
+    <div class="moves">
+      <div class="move">
+        <div class="move-rank">1</div>
+        <div>
+          <h3>Delete two of the three MFN tables and make the deal pack read Postgres</h3>
+          <p>
+            The bank-facing PDF and the lender API are the two places a wrong duty figure
+            costs you a relationship, and they are the two that never read the real data.
+            One shared lookup, one source, three consumers.
+          </p>
+          <span class="move-tag">Fig 4 · correctness · hours not days</span>
+        </div>
+      </div>
+
+      <div class="move">
+        <div class="move-rank">2</div>
+        <div>
+          <h3>Move the gate decision into an edge function and write the row</h3>
+          <p>
+            The <code>compliance_gates</code> table is already there and empty. Persisting
+            the verdict is what lets the lender API stop carrying its own copy of the risk
+            model, and it makes the gate result something a CA can audit after the fact.
+          </p>
+          <span class="move-tag">Fig 3 · unblocks move 1 · a few days</span>
+        </div>
+      </div>
+
+      <div class="move">
+        <div class="move-rank">3</div>
+        <div>
+          <h3>Give shipments a real document identity</h3>
+          <p>
+            The invoice number is the natural key tying the shipping bill, the realisation
+            certificate, the IGST claim and the RoDTEP entitlement together. Today it is a
+            nullable link and four manual re-entries. This is the same finding as the
+            invoice question the exporter asked.
+          </p>
+          <span class="move-tag">Fig 2 · data model · the biggest UX win</span>
+        </div>
+      </div>
+
+      <div class="move">
+        <div class="move-rank">4</div>
+        <div>
+          <h3>Split the bundle by route</h3>
+          <p>
+            Every exporter downloads all nineteen screens to see the dashboard. Lazy
+            loading the views is a contained change with no behavioural risk, and it
+            matters on the mobile connections your users are actually on.
+          </p>
+          <span class="move-tag">Fig 1 · 946 KB · an afternoon</span>
+        </div>
+      </div>
+
+      <div class="move">
+        <div class="move-rank">5</div>
+        <div>
+          <h3>Collapse to one migration system and delete the orphans</h3>
+          <p>
+            Three migrations exist in both directories, which means nobody can tell what a
+            fresh database gets. Delete the loose files, keep the timestamped folder, and
+            remove the two edge functions nothing calls.
+          </p>
+          <span class="move-tag">Housekeeping · removes ambiguity, not code</span>
+        </div>
+      </div>
+
+      <div class="move">
+        <div class="move-rank">6</div>
+        <div>
+          <h3>Leave api.ts alone until the moves above shrink it</h3>
+          <p>
+            Splitting a 1,511-line file is the tempting first move and the wrong one. Once
+            the gate check, the rate lookup and the PDF builders move server-side, most of
+            what is left is genuinely client code. Refactor the remainder, not the current
+            shape.
+          </p>
+          <span class="move-tag">Deliberately last</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>ComplianceOS · architecture teardown · 5 figures</span>
+    <span>Drawn 10 Sep 2026</span>
+  </footer>
+
+</div>
+</body>
+</html>

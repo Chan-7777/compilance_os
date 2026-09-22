@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplianceOS × BEN Finserv — Partnership Framework</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FA8112;
+    --orange-light: #FFF3E0;
+    --orange-dark: #D35400;
+    --charcoal: #1a1a2e;
+    --slate: #334155;
+    --muted: #64748b;
+    --green: #10B981;
+    --green-bg: #f0fdf4;
+    --green-border: #86efac;
+    --red: #EF4444;
+    --red-bg: #fef2f2;
+    --blue: #3B82F6;
+    --blue-bg: #eff6ff;
+    --cream: #FAF3E1;
+    --surface: #f8fafc;
+    --border: #e2e8f0;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--slate);
+    line-height: 1.6;
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Print Styles ─── */
+  @media print {
+    @page { margin: 18mm 16mm; size: A4; }
+    body { font-size: 9.5pt; background: white; }
+    .page-break { page-break-before: always; break-before: page; }
+    .no-break { page-break-inside: avoid; break-inside: avoid; }
+    .cover { min-height: auto; padding: 40px 0; }
+    .cover h1 { font-size: 28pt; }
+    section { padding: 0; margin-bottom: 20px; }
+    .container { max-width: 100%; padding: 0; }
+    .header-bar { display: none; }
+    table { font-size: 8.5pt; }
+    .infographic-grid { grid-template-columns: repeat(3, 1fr); }
+    .flow-step { padding: 12px; }
+  }
+
+  /* ─── Layout ─── */
+  .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+  /* ─── Cover ─── */
+  .cover {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+    color: white;
+    padding: 80px 0 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 4px;
+    background: var(--orange);
+  }
+  .cover .label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--orange); margin-bottom: 16px;
+  }
+  .cover h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px; font-weight: 400; line-height: 1.15;
+    margin-bottom: 8px; color: white;
+  }
+  .cover h1 span { color: var(--orange); }
+  .cover .subtitle {
+    font-size: 16px; color: #94a3b8; font-weight: 300;
+    margin-bottom: 24px;
+  }
+  .cover .meta {
+    font-size: 12px; color: #64748b;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 16px; margin-top: 16px;
+  }
+
+  /* Cover cards */
+  .cover-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-top: 32px;
+  }
+  .cover-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-top: 3px solid var(--orange);
+    border-radius: 8px; padding: 16px;
+  }
+  .cover-card h3 { font-size: 13px; color: var(--orange); margin-bottom: 6px; font-weight: 700; }
+  .cover-card p { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+
+  .contact-bar {
+    margin-top: 32px; font-size: 12px; color: #94a3b8;
+  }
+  .contact-bar strong { color: #cbd5e1; }
+
+  /* ─── Section ─── */
+  section { padding: 40px 0; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--orange);
+  }
+  .section-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--orange); color: white;
+    font-size: 16px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px; color: var(--charcoal); font-weight: 400;
+  }
+
+  h3 {
+    font-size: 15px; color: var(--orange-dark); font-weight: 700;
+    margin: 20px 0 8px;
+  }
+
+  p { margin-bottom: 10px; font-size: 14px; }
+  p.small { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* ─── Callout boxes ─── */
+  .callout {
+    border-left: 4px solid var(--orange);
+    background: var(--orange-light);
+    padding: 14px 18px; border-radius: 0 8px 8px 0;
+    margin: 16px 0; font-size: 13px;
+  }
+  .callout.green {
+    border-left-color: var(--green);
+    background: var(--green-bg);
+  }
+  .callout.blue {
+    border-left-color: var(--blue);
+    background: var(--blue-bg);
+  }
+  .callout strong { color: var(--charcoal); }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 13px;
+  }
+  th {
+    background: var(--orange); color: white;
+    text-align: left; padding: 8px 10px;
+    font-weight: 600; font-size: 12px;
+  }
+  th.slate-header { background: var(--slate); }
+  th.green-header { background: var(--green); }
+  th.red-header { background: var(--red); }
+  td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--surface); }
+  td strong { color: var(--charcoal); }
+  td em { color: var(--muted); font-size: 12px; }
+
+  /* ─── Infographic Matrix ─── */
+  .infographic {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-radius: 16px; padding: 32px;
+    margin: 24px 0; color: white;
+  }
+  .infographic h3 {
+    color: var(--orange); font-size: 18px;
+    text-align: center; margin-bottom: 24px;
+  }
+  .infographic-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .info-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 16px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .info-card:hover { transform: translateY(-2px); }
+  .info-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .info-card .value {
+    font-size: 22px; font-weight: 800; color: var(--orange);
+    margin-bottom: 4px;
+  }
+  .info-card .label {
+    font-size: 11px; color: #94a3b8; line-height: 1.4;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* ─── Partnership Matrix ─── */
+  .matrix {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; margin: 20px 0;
+    border: 2px solid var(--border); border-radius: 12px;
+    overflow: hidden;
+  }
+  .matrix-header {
+    grid-column: 1 / -1;
+    background: var(--charcoal); color: white;
+    padding: 12px 16px; font-weight: 700;
+    font-size: 14px; text-align: center;
+  }
+  .matrix-col-header {
+    padding: 10px 16px; font-weight: 700;
+    font-size: 13px; text-align: center;
+  }
+  .matrix-col-header.left {
+    background: var(--orange-light); color: var(--orange-dark);
+    border-right: 1px solid var(--border);
+  }
+  .matrix-col-header.right {
+    background: #eff6ff; color: var(--blue);
+  }
+  .matrix-cell {
+    padding: 10px 16px; font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .matrix-cell.left { border-right: 1px solid var(--border); }
+  .matrix-cell .check { color: var(--green); font-weight: 700; margin-right: 4px; }
+  .matrix-cell .cross { color: var(--red); font-weight: 700; margin-right: 4px; }
+
+  /* ─── Flow Diagram ─── */
+  .flow-container { margin: 20px 0; }
+  .flow-step {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px; margin-bottom: 2px;
+    position: relative;
+  }
+  .flow-step:nth-child(odd) { background: var(--surface); }
+  .flow-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--orange); color: white;
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .flow-content { flex: 1; }
+  .flow-content .title { font-weight: 700; font-size: 13px; color: var(--charcoal); }
+  .flow-content .desc { font-size: 12px; color: var(--slate); margin-top: 2px; }
+  .flow-content .owner {
+    font-size: 11px; color: var(--muted);
+    margin-top: 4px; font-weight: 600;
+  }
+  .flow-arrow {
+    text-align: center; color: var(--orange);
+    font-size: 18px; margin: -4px 0;
+  }
+
+  /* ─── Revenue Split Visual ─── */
+  .revenue-visual {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin: 20px 0;
+  }
+  .rev-card {
+    border-radius: 12px; padding: 20px;
+    text-align: center; position: relative;
+    overflow: hidden;
+  }
+  .rev-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+  }
+  .rev-card.compliance {
+    background: var(--orange-light);
+    border: 1px solid #fed7aa;
+  }
+  .rev-card.compliance::before { background: var(--orange); }
+  .rev-card.finance {
+    background: var(--blue-bg);
+    border: 1px solid #bfdbfe;
+  }
+  .rev-card.finance::before { background: var(--blue); }
+  .rev-card.deal {
+    background: var(--green-bg);
+    border: 1px solid var(--green-border);
+  }
+  .rev-card.deal::before { background: var(--green); }
+  .rev-card .stream-label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .rev-card.compliance .stream-label { color: var(--orange-dark); }
+  .rev-card.finance .stream-label { color: var(--blue); }
+  .rev-card.deal .stream-label { color: var(--green); }
+  .rev-card .stream-who {
+    font-size: 20px; font-weight: 800; color: var(--charcoal);
+    margin-bottom: 4px;
+  }
+  .rev-card .stream-detail { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* ─── Ownership visual ─── */
+  .ownership-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 16px 0;
+  }
+  .own-card {
+    border-radius: 10px; padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .own-card.gets { background: var(--green-bg); border-color: var(--green-border); }
+  .own-card.no { background: var(--red-bg); border-color: #fecaca; }
+  .own-card h4 { font-size: 13px; margin-bottom: 8px; }
+  .own-card.gets h4 { color: var(--green); }
+  .own-card.no h4 { color: var(--red); }
+  .own-card ul { list-style: none; padding: 0; }
+  .own-card li {
+    font-size: 12px; padding: 3px 0;
+    color: var(--slate);
+  }
+
+  /* ─── Bullet list ─── */
+  ul.items { padding-left: 0; list-style: none; }
+  ul.items li {
+    padding: 6px 0 6px 20px; position: relative;
+    font-size: 13px;
+  }
+  ul.items li::before {
+    content: ''; position: absolute; left: 0; top: 12px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--orange);
+  }
+
+  /* ─── Pilot Timeline ─── */
+  .timeline { margin: 16px 0; }
+  .tl-row {
+    display: flex; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .tl-week {
+    width: 70px; flex-shrink: 0;
+    font-size: 12px; font-weight: 800; color: var(--orange);
+  }
+  .tl-action { flex: 1; font-size: 13px; }
+  .tl-milestone { width: 160px; font-size: 12px; color: var(--muted); font-style: italic; }
+
+  /* ─── Footer ─── */
+  .doc-footer {
+    text-align: center; padding: 30px 0;
+    font-size: 11px; color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* ─── Separator ─── */
+  .sep { height: 1px; background: var(--border); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════ COVER ═══════ -->
+<div class="cover">
+  <div class="container">
+    <div class="label">Partnership Framework & Commercial Terms</div>
+    <h1><span>ComplianceOS</span> × BEN Finserv</h1>
+    <div class="subtitle">Joint Go-to-Market Collaboration</div>
+
+    <div class="cover-cards">
+      <div class="cover-card">
+        <h3>Platform</h3>
+        <p>ComplianceOS — Export compliance intelligence, risk scoring, document generation, CBAM readiness</p>
+      </div>
+      <div class="cover-card">
+        <h3>Partner</h3>
+        <p>BEN Finserv — Trade finance structuring, export funding, lender network, client relationships</p>
+      </div>
+      <div class="cover-card">
+        <h3>Market</h3>
+        <p>Indian MSME Exporters (Rs.1–10Cr turnover) shipping to EU, US, UK, UAE, Japan, Australia</p>
+      </div>
+    </div>
+
+    <div class="contact-bar">
+      <strong>Chandan Reddy</strong> · Founder, ComplianceOS ·
+      chandan.reddy2797@gmail.com · +91 7842102488
+    </div>
+    <div class="meta">March 2026 · Version 1.0 · Confidential</div>
+  </div>
+</div>
+
+<!-- ═══════ INFOGRAPHIC MATRIX ═══════ -->
+<div class="container">
+  <div class="infographic no-break">
+    <h3>Partnership at a Glance</h3>
+    <div class="infographic-grid">
+      <div class="info-card">
+        <div class="icon">🎯</div>
+        <div class="value">25%</div>
+        <div class="label">India's FTA utilization rate<br>(vs 82% Thailand)</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">🏭</div>
+        <div class="value">4×</div>
+        <div class="label">CBAM cost penalty for<br>unverified exporters</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">📄</div>
+        <div class="value">70%</div>
+        <div class="label">Shipping delays caused<br>by documentation errors</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">💰</div>
+        <div class="value">Rs.14,999</div>
+        <div class="label">Per shipment compliance<br>(0.05% of Rs.3Cr)</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">🤝</div>
+        <div class="value">0%</div>
+        <div class="label">ComplianceOS cut on<br>Benedict's finance fees</div>
+      </div>
+      <div class="info-card">
+        <div class="icon">📊</div>
+        <div class="value">0.3%</div>
+        <div class="label">Deal enablement fee<br>per closed finance deal</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PARTNERSHIP MATRIX ═══════ -->
+  <div class="matrix no-break">
+    <div class="matrix-header">WHO DOES WHAT — Quick Reference</div>
+    <div class="matrix-col-header left">ComplianceOS (Chandan)</div>
+    <div class="matrix-col-header right">BEN Finserv (Benedict)</div>
+    <div class="matrix-cell left"><span class="check">✓</span> Risk scoring engine</div>
+    <div class="matrix-cell"><span class="check">✓</span> Exporter acquisition & campaigns</div>
+    <div class="matrix-cell left"><span class="check">✓</span> Compliance checklists (33 items)</div>
+    <div class="matrix-cell"><span class="check">✓</span> Client advisory relationship</div>
+    <div class="matrix-cell left"><span class="check">✓</span> FTA savings calculator</div>
+    <div class="matrix-cell"><span class="check">✓</span> LC / TReDS / ECGC structuring</div>
+    <div class="matrix-cell left"><span class="check">✓</span> Document generation (GSP, CoO, Invoice)</div>
+    <div class="matrix-cell"><span class="check">✓</span> Working capital advisory</div>
+    <div class="matrix-cell left"><span class="check">✓</span> CBAM readiness + Scope 3</div>
+    <div class="matrix-cell"><span class="check">✓</span> Lender network & deal closing</div>
+    <div class="matrix-cell left"><span class="check">✓</span> Bank-Ready Deal Pack PDF</div>
+    <div class="matrix-cell"><span class="check">✓</span> Workshop delivery & content</div>
+    <div class="matrix-cell left"><span class="check">✓</span> Pre-shipment gate check</div>
+    <div class="matrix-cell"><span class="check">✓</span> Buyer credit assessment</div>
+    <div class="matrix-cell left"><span class="check">✓</span> API infrastructure</div>
+    <div class="matrix-cell"><span class="check">✓</span> Market feedback to product</div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ═══════ SECTION 1: THE PROBLEM ═══════ -->
+<div class="container">
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">1</div>
+      <h2>The Problem We Solve Together</h2>
+    </div>
+
+    <p>Indian MSME exporters lose crores every year to a problem that isn't lack of orders or lack of finance — it's <strong>friction across the trade cycle</strong>. Documentation errors cause 70% of shipping delays. India's FTA utilization rate is just 25%. CBAM's definitive phase is now live, and most Indian steel and aluminium exporters have no emissions data.</p>
+
+    <p>No single player solves this end-to-end. Compliance consultants don't do finance. Lenders don't do compliance. Freight forwarders do neither. The exporter coordinates between 5 different parties for a single shipment.</p>
+
+    <div class="callout">
+      <strong>Our thesis:</strong> Compliance + Finance as a single integrated flow — not separate silos. ComplianceOS provides the intelligence layer. BEN Finserv provides the finance execution layer. Together, we offer something nobody else in India offers: a compliance-gated, finance-ready export workflow.
+    </div>
+
+    <h3>The Exporter's Current Reality</h3>
+    <table>
+      <tr><th>Pain Point</th><th>Impact</th><th>Our Solution</th></tr>
+      <tr>
+        <td><strong>FTA savings unclaimed</strong></td>
+        <td>75% of preferential tariffs unused. On a Rs.3Cr shipment to UAE, that's Rs.15L+ in overpaid duties.</td>
+        <td>FTA calculator with real tariff data + Certificate of Origin generation</td>
+      </tr>
+      <tr>
+        <td><strong>CBAM unpreparedness</strong></td>
+        <td>Default EU values cost €250–300/tonne vs €65–70 with verified data. 4× penalty.</td>
+        <td>CBAM readiness module + Scope 3 data collection + quarterly report</td>
+      </tr>
+      <tr>
+        <td><strong>Documentation errors</strong></td>
+        <td>70% of shipping delays. Demurrage Rs.5,000–20,000/day. LC rejections on 65–80% of first presentations.</td>
+        <td>Pre-shipment gate check + document generators (GSP, CoO, Commercial Invoice)</td>
+      </tr>
+      <tr>
+        <td><strong>Finance access</strong></td>
+        <td>Cash flow collapses between shipment and payment. Banks require collateral most MSMEs lack.</td>
+        <td>Bank-Ready Deal Pack + compliance-gated financing + Benedict's Reverse Method</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ═══════ SECTION 2: HOW IT WORKS ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">2</div>
+      <h2>How It Works</h2>
+    </div>
+
+    <p>Benedict's Free Compliance Review form collects the exporter's product category, HS codes, destination markets, turnover, and compliance awareness. Today, this data goes to a Google Sheet and Benedict calls them manually.</p>
+
+    <p><strong>With ComplianceOS integrated</strong>, the moment an exporter submits the form, they receive an instant compliance risk report — real numbers, not generic advice. Benedict gets a pre-qualified lead with full compliance context.</p>
+
+    <h3>The Flow</h3>
+    <div class="flow-container no-break">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <div class="title">Capture</div>
+          <div class="desc">Exporter fills Benedict's Free Compliance Review form (product, markets, HS codes, turnover, compliance pain points)</div>
+          <div class="owner">→ Benedict's form + campaigns</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <div class="title">Diagnose</div>
+          <div class="desc">ComplianceOS API returns instant risk score (0–100), top 3 compliance gaps, FTA savings estimate, CBAM exposure warning</div>
+          <div class="owner">→ ComplianceOS API</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <div class="title">Advise</div>
+          <div class="desc">Benedict reviews the compliance report with the exporter. Identifies financing needs (working capital for CBAM, FTA restructuring, LC arrangement)</div>
+          <div class="owner">→ Benedict (advisory)</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-content">
+          <div class="title">Fix</div>
+          <div class="desc">Exporter uses ComplianceOS to complete checklist, generate documents (GSP Statement, CoO, Commercial Invoice), run gate check</div>
+          <div class="owner">→ ComplianceOS platform</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-content">
+          <div class="title">Finance</div>
+          <div class="desc">Benedict structures the finance deal using ComplianceOS Bank-Ready Deal Pack as supporting documentation for lenders</div>
+          <div class="owner">→ Benedict (finance)</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-content">
+          <div class="title">Ship</div>
+          <div class="desc">Gate-approved shipment with full compliance documentation. Financing in place. Exporter ships with confidence.</div>
+          <div class="owner">→ Joint outcome</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ SECTION 3: COMMERCIAL TERMS ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">3</div>
+      <h2>Commercial Terms</h2>
+    </div>
+
+    <p>Three separate revenue streams. Clean boundaries. No confusion about who earns what.</p>
+
+    <!-- Revenue Visual -->
+    <div class="revenue-visual no-break">
+      <div class="rev-card compliance">
+        <div class="stream-label">Stream 1 — Compliance</div>
+        <div class="stream-who">→ ComplianceOS</div>
+        <div class="stream-detail">Exporter pays directly.<br>Rs.14,999–24,999 per shipment.</div>
+      </div>
+      <div class="rev-card finance">
+        <div class="stream-label">Stream 2 — Finance</div>
+        <div class="stream-who">→ BEN Finserv</div>
+        <div class="stream-detail">100% to Benedict.<br>ComplianceOS takes 0%.</div>
+      </div>
+      <div class="rev-card deal">
+        <div class="stream-label">Stream 3 — Deal Fee</div>
+        <div class="stream-who">→ ComplianceOS</div>
+        <div class="stream-detail">0.3% of finance deal value<br>or Rs.20,000 minimum.</div>
+      </div>
+    </div>
+
+    <h3>Stream 1 — Compliance Revenue (ComplianceOS)</h3>
+    <p>Paid by the exporter directly to ComplianceOS.</p>
+
+    <table>
+      <tr><th>Tier</th><th>Price</th><th>Includes</th></tr>
+      <tr>
+        <td><strong>Free Audit</strong></td>
+        <td>Rs.0</td>
+        <td>Instant risk score + top 3 gaps + FTA savings estimate. Powers Benedict's form.</td>
+      </tr>
+      <tr>
+        <td><strong>Standard Shipment</strong></td>
+        <td><strong>Rs.14,999</strong> / shipment</td>
+        <td>Full compliance checklist, risk scoring, FTA eligibility & savings, regulatory gap analysis, all document generation (GSP Statement, Commercial Invoice, CoO, REX Declaration), Bank-Ready Deal Pack</td>
+      </tr>
+      <tr>
+        <td><strong>Advanced Shipment</strong><br><em>(EU / CBAM)</em></td>
+        <td><strong>Rs.24,999</strong> / shipment</td>
+        <td>Everything in Standard + CBAM readiness assessment, Scope 3 emissions estimate, advanced risk flags, multi-market compliance, CBAM quarterly report, priority processing</td>
+      </tr>
+      <tr>
+        <td><strong>Annual Unlimited</strong></td>
+        <td><strong>Rs.99,999</strong> / year</td>
+        <td>Unlimited shipments (fair use), all features, continuous compliance tracking, priority support</td>
+      </tr>
+    </table>
+    <p class="small">Context: On a Rs.3Cr shipment, Rs.14,999 is 0.05% of shipment value. A CHA charges Rs.15,000–50,000 for the same work done manually.</p>
+
+    <h3>Stream 2 — Finance Revenue (BEN Finserv)</h3>
+    <p>Earned by Benedict. ComplianceOS takes zero cut.</p>
+
+    <table>
+      <tr><th class="slate-header">Service</th><th class="slate-header">Benedict's Fee</th><th class="slate-header">ComplianceOS Share</th></tr>
+      <tr><td>LC structuring</td><td>0.5–1% of LC value</td><td><strong>0%</strong></td></tr>
+      <tr><td>TReDS facilitation</td><td>0.25–0.5% spread</td><td><strong>0%</strong></td></tr>
+      <tr><td>ECGC brokerage</td><td>10–15% of premium</td><td><strong>0%</strong></td></tr>
+      <tr><td>Working capital advisory</td><td>Advisory fee</td><td><strong>0%</strong></td></tr>
+      <tr><td>Pre/post shipment credit</td><td>0.5–1% arrangement</td><td><strong>0%</strong></td></tr>
+    </table>
+
+    <div class="callout green">
+      <strong>Why 0%?</strong> ComplianceOS intelligence is our contribution to Benedict's deal flow. Every compliance finding is a financing signal. We generate the leads and the documentation that makes deals close faster. That's our value exchange.
+    </div>
+
+    <h3>Stream 3 — Deal Enablement Fee</h3>
+    <p>For every finance deal Benedict closes where a ComplianceOS Bank-Ready Deal Pack was used:</p>
+
+    <table>
+      <tr><th>Deal Type</th><th>Fee to ComplianceOS</th><th>Rationale</th></tr>
+      <tr>
+        <td><strong>Standard deal</strong></td>
+        <td><strong>0.3% of finance deal value</strong><br>or Rs.20,000 — whichever is higher</td>
+        <td>Aligns incentives. ComplianceOS is motivated to make Deal Packs so good they accelerate closings.</td>
+      </tr>
+      <tr>
+        <td><strong>Complex / CBAM deal</strong></td>
+        <td><strong>0.5% of finance deal value</strong><br>or Rs.30,000 — whichever is higher</td>
+        <td>Higher compliance complexity = more ComplianceOS value delivered.</td>
+      </tr>
+    </table>
+    <p class="small">Example: Benedict closes a Rs.3Cr LC deal earning Rs.1.5–3L. ComplianceOS Deal Enablement Fee = 0.3% = Rs.9,000 (minimum Rs.20,000 applies, so fee is Rs.20,000). This is 6–13% of Benedict's fee — fair for the compliance intelligence that made the deal possible.</p>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ SECTION 4: OWNERSHIP ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">4</div>
+      <h2>Ownership & Boundaries</h2>
+    </div>
+
+    <p>This is a partnership between two independent businesses, not a joint venture. Clear ownership prevents future disputes.</p>
+
+    <table>
+      <tr><th>Asset</th><th>Owned By</th><th>Details</th></tr>
+      <tr>
+        <td><strong>ComplianceOS platform</strong></td>
+        <td><strong>ComplianceOS</strong></td>
+        <td>All code, algorithms, regulatory databases, risk scoring engine, document generators, API infrastructure, and technology IP.</td>
+      </tr>
+      <tr>
+        <td><strong>Client relationships</strong></td>
+        <td><strong>BEN Finserv</strong></td>
+        <td>Exporter relationships acquired through Benedict's channels, advisory practice, and finance structuring.</td>
+      </tr>
+      <tr>
+        <td><strong>Exporter accounts</strong></td>
+        <td><strong>ComplianceOS</strong></td>
+        <td>When an exporter creates a ComplianceOS account (even via Benedict's funnel), the platform account belongs to ComplianceOS.</td>
+      </tr>
+      <tr>
+        <td><strong>Lead data</strong></td>
+        <td><strong>Shared</strong></td>
+        <td>Both parties can access and follow up on exporters who come through the joint funnel.</td>
+      </tr>
+      <tr>
+        <td><strong>Product decisions</strong></td>
+        <td><strong>ComplianceOS</strong></td>
+        <td>Feature roadmap and technical decisions are made by ComplianceOS. Benedict provides market feedback that informs priorities.</td>
+      </tr>
+      <tr>
+        <td><strong>Finance practice</strong></td>
+        <td><strong>BEN Finserv</strong></td>
+        <td>All finance structuring methodology, lender relationships, and advisory IP.</td>
+      </tr>
+    </table>
+
+    <h3>Access Boundaries</h3>
+    <div class="ownership-grid no-break">
+      <div class="own-card gets">
+        <h4>✓ What Benedict Gets</h4>
+        <ul>
+          <li>API access (risk score, checklists, docs)</li>
+          <li>Co-branded Deal Pack output</li>
+          <li>Exporter-facing platform access</li>
+          <li>Regulatory alert data</li>
+          <li>Shared lead data</li>
+        </ul>
+      </div>
+      <div class="own-card no">
+        <h4>✗ What Benedict Does NOT Get</h4>
+        <ul>
+          <li>Source code or backend access</li>
+          <li>Database credentials</li>
+          <li>Risk scoring algorithm weights</li>
+          <li>Regulatory database files</li>
+          <li>Admin dashboard or deployment access</li>
+          <li>Ability to white-label as his own</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Co-Branding</h3>
+    <table>
+      <tr><th>Touchpoint</th><th>Branding</th></tr>
+      <tr><td>Benedict's form + instant results</td><td><strong>"Compliance analysis powered by ComplianceOS"</strong></td></tr>
+      <tr><td>Bank-Ready Deal Pack PDF</td><td><strong>Co-branded (both logos)</strong></td></tr>
+      <tr><td>Workshops</td><td><strong>"Export Compliance + Finance" — equal branding</strong></td></tr>
+      <tr><td>LinkedIn content</td><td><strong>Independent + cross-reference</strong></td></tr>
+      <tr><td>Direct exporter sales by ComplianceOS</td><td><strong>ComplianceOS only</strong></td></tr>
+    </table>
+
+    <div class="callout" style="margin-top: 16px;">
+      <strong>Deal Dependency Lock:</strong> Exporters onboarded through this partnership use ComplianceOS for ongoing shipments and compliance workflows unless mutually agreed otherwise. This ensures continuity for the exporter, recurring revenue for ComplianceOS, and consistent compliance quality for Benedict's finance deals.
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ SECTION 5: PROTECTION ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">5</div>
+      <h2>Protection Clauses</h2>
+    </div>
+
+    <p>NDA required before pilot starts. These clauses protect both parties.</p>
+
+    <ul class="items">
+      <li><strong>Mutual Confidentiality:</strong> Neither party discloses the other's business model, pricing, client data, technology architecture, or partnership terms to any third party.</li>
+      <li><strong>Non-Replication:</strong> Benedict agrees not to build, commission, or acquire a competing compliance technology platform during the partnership and for 12 months after termination.</li>
+      <li><strong>Data Protection:</strong> Exporter data collected through the joint funnel belongs to both parties. Neither can sell, share, or monetize independently without consent.</li>
+      <li><strong>Termination:</strong> Either party can exit with 30 days written notice. On termination: API access is revoked, co-branded materials retired, exporter ComplianceOS accounts remain active, client relationships remain with Benedict.</li>
+      <li><strong>Non-Compete:</strong> During partnership and 12 months after, neither party partners with a direct competitor for the same market segment.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════ SECTION 6: PILOT ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">6</div>
+      <h2>90-Day Pilot</h2>
+    </div>
+
+    <p>Before formalizing commercial terms, we run a 90-day pilot to validate the model with real exporters and real shipments.</p>
+
+    <div class="timeline">
+      <div class="tl-row"><div class="tl-week">Week 1</div><div class="tl-action">ComplianceOS API integrated into Benedict's form. Instant risk reports on submission.</div><div class="tl-milestone">Form upgrade live</div></div>
+      <div class="tl-row"><div class="tl-week">Week 2–3</div><div class="tl-action">Benedict soft launches with his exporter network. First exporters go through the full flow.</div><div class="tl-milestone">5–10 exporters in funnel</div></div>
+      <div class="tl-row"><div class="tl-week">Week 4</div><div class="tl-action">First joint workshop: "Export Compliance + Finance for EU Markets"</div><div class="tl-milestone">Workshop delivered</div></div>
+      <div class="tl-row"><div class="tl-week">Week 5–8</div><div class="tl-action">Exporters using ComplianceOS for shipments. Benedict structuring finance deals with Deal Packs.</div><div class="tl-milestone">First deal closed</div></div>
+      <div class="tl-row"><div class="tl-week">Week 9–12</div><div class="tl-action">Scale and optimize. Track conversion rates, deal velocity, exporter satisfaction.</div><div class="tl-milestone">50+ exporters in funnel</div></div>
+      <div class="tl-row"><div class="tl-week">Day 90</div><div class="tl-action">Review: How many exporters? How many deals? What revenue? Formalize terms or adjust.</div><div class="tl-milestone">Partnership formalized</div></div>
+    </div>
+
+    <div class="callout blue no-break">
+      <strong>Pilot Terms:</strong> All compliance features FREE for exporters in Benedict's funnel. API access FREE. Deal Enablement Fee WAIVED. NDA required before pilot starts.<br><br>
+      <strong>Success Criteria:</strong> (a) 5+ real exporters completing full compliance flow, (b) at least 1 finance deal structured using a ComplianceOS Deal Pack, (c) both parties agree the model is commercially viable.
+    </div>
+  </section>
+
+  <div class="page-break"></div>
+
+  <!-- ═══════ SECTION 7: WHAT COMPLIANCEOS BRINGS ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">7</div>
+      <h2>What ComplianceOS Brings</h2>
+    </div>
+
+    <p>ComplianceOS is a <strong>live, deployed, working product</strong> — not a concept or prototype. Backend on Railway, frontend on Vercel, database on Supabase. 586 automated tests passing. 44 live regulatory alerts from DGFT and EU Commission.</p>
+
+    <table>
+      <tr><th>Feature</th><th>What It Does</th><th>Status</th></tr>
+      <tr><td><strong>Risk Scoring</strong></td><td>0–100 compliance risk score per product × market × company. Factor-by-factor breakdown.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Compliance Checklist</strong></td><td>33 items across 10 categories per shipment. Adapts to product-country combination.</td><td>✅ Live</td></tr>
+      <tr><td><strong>FTA Savings Calculator</strong></td><td>Real tariff data from trade.gov.in. MFN vs preferential rates. Rupee savings.</td><td>✅ Live</td></tr>
+      <tr><td><strong>RoDTEP Calculator</strong></td><td>Government export rebate estimation. Net duty after FTA + RoDTEP.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Regulatory Alerts</strong></td><td>44+ live alerts from DGFT and EU Commission. Severity classified.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Document Generators</strong></td><td>GSP Statement, EU Commercial Invoice, REX Declaration, Certificate of Origin.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Pre-Shipment Gate</strong></td><td>5 automated checks. Blocks non-compliant shipments with blocking reasons.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Bank-Ready Deal Pack</strong></td><td>One-click PDF: compliance score, risk, FTA eligibility, CBAM status. For lenders.</td><td>✅ Live</td></tr>
+      <tr><td><strong>EU Compliance Hub</strong></td><td>EUDR scope check, CSDDD readiness, Forced Labour self-assessment, CBAM Scope 3.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Label Validator</strong></td><td>Rule-by-rule label compliance check per product × country. AI Vision mode.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Shipment Tracker</strong></td><td>Full CRUD. Per-shipment risk. Landed cost calculator. TReDS eligibility.</td><td>✅ Live</td></tr>
+      <tr><td><strong>Finance Tools</strong></td><td>TReDS check, Bank LC template, ECGC premium estimator.</td><td>✅ Live</td></tr>
+    </table>
+
+    <p style="margin-top: 12px;">Live product: <strong>www.complianceos.co.in</strong></p>
+  </section>
+
+  <!-- ═══════ SECTION 8: NEXT STEPS ═══════ -->
+  <section>
+    <div class="section-header no-break">
+      <div class="section-num">8</div>
+      <h2>Next Steps</h2>
+    </div>
+
+    <p>This document is a framework, not a contract. The purpose is to align on structure before we invest time building together.</p>
+
+    <div class="flow-container">
+      <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="title">Review this framework</div><div class="desc">Tell me what works and what needs adjustment.</div></div></div>
+      <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><div class="title">Sign a simple 2-page mutual NDA</div><div class="desc">Protects both of us before we share proprietary details.</div></div></div>
+      <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><div class="title">30-minute call to finalize terms</div><div class="desc">Demo the live product and align on pilot specifics.</div></div></div>
+      <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="title">API integration into your form</div><div class="desc">1–2 days of development. Instant risk reports on form submission.</div></div></div>
+      <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><div class="title">Pilot starts</div><div class="desc">You soft launch. First exporters go through the flow.</div></div></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <p style="text-align: center; font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--orange-dark); margin: 24px 0; font-style: italic;">
+      "Exporters don't fail due to lack of orders — they fail due to friction across the trade cycle."
+    </p>
+    <p style="text-align: center; font-size: 12px; color: var(--muted);">— Benedict Francis, BEN Finserv BMC</p>
+
+    <p style="text-align: center; margin-top: 12px;">ComplianceOS removes the compliance friction. BEN Finserv removes the finance friction.<br>Together, we let exporters focus on what they do best — export.</p>
+
+    <div class="sep"></div>
+
+    <div class="callout" style="text-align: center;">
+      <strong>Chandan Reddy</strong> · Founder, ComplianceOS<br>
+      chandan.reddy2797@gmail.com · +91 7842102488<br>
+      www.complianceos.co.in
+    </div>
+  </section>
+
+  <div class="doc-footer">
+    <p>This document is confidential and intended for Benedict Francis / BEN Finserv only.<br>
+    The commercial terms described are a proposed framework for discussion and do not constitute a binding agreement.</p>
+    <p style="margin-top: 8px;">ComplianceOS × BEN Finserv — Partnership Framework · March 2026 · v1.0</p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ComplianceOS - Marketing & Brand Kit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-cream: #FAF3E1;
+            --bg-tan: #F5E7C6;
+            --brand-orange: #FA8112;
+            --text-charcoal: #222222;
+            --text-muted: #666666;
+            --border-color: #E5D9C3;
+
+            --status-success: #16A34A;
+            --status-warning: #F59E0B;
+            --status-error: #DC2626;
+            --status-info: #3B82F6;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+            --radius-sm: 0.25rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-pill: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-cream);
+            color: var(--text-charcoal);
+            line-height: 1.6;
+        }
+
+        .hero {
+            background: linear-gradient(180deg, var(--bg-tan) 0%, var(--bg-cream) 100%);
+            padding: 5rem 2rem 4rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(250, 129, 18, 0.1);
+            color: var(--brand-orange);
+            border: 1px solid rgba(250, 129, 18, 0.3);
+            border-radius: var(--radius-pill);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 1rem 0;
+            color: var(--text-charcoal);
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        section {
+            margin-bottom: 6rem;
+        }
+
+        .section-header {
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .section-desc {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 1.125rem;
+            max-width: 800px;
+        }
+
+        /* GRID & CARDS */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .framework-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563EB;
+            border-radius: 4px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        /* DESIGN TOKENS */
+        .palette-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .swatch {
+            flex: 1;
+            min-width: 150px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .swatch-color {
+            height: 80px;
+        }
+
+        .swatch-info {
+            padding: 1rem;
+            background: white;
+            font-size: 0.875rem;
+        }
+
+        /* COMPONENTS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--brand-orange);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(250, 129, 18, 0.4);
+        }
+
+        .btn-primary:hover {
+            background-color: #E0700B;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px -2px rgba(250, 129, 18, 0.5);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-charcoal);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-cream);
+            border-color: #D1C5AD;
+        }
+
+        .trust-panel {
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-top: 1rem;
+        }
+
+        /* TYPOGRAPHY */
+        .type-specimen {
+            border-left: 4px solid var(--brand-orange);
+            padding-left: 1.5rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="hero">
+        <div class="hero-badge">marketingskills applied</div>
+        <h1 class="hero-title">ComplianceOS</h1>
+        <p class="hero-subtitle">The complete Brand & CRO System extending the app's visual identity with powerful
+            psychological mental models and conversion frameworks.</p>
+    </header>
+
+    <main class="container">
+
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">1. Visual Identity Foundation</h2>
+                <p class="section-desc">The core aesthetic of ComplianceOS. Warm, trustworthy, without being sterile.
+                </p>
+            </div>
+
+            <div class="palette-grid">
+                <div class="swatch">
+                    <div class="swatch-color" style="background: var(--brand-orange)"></div>
+                    <div class="swatch-info"><strong>Primary</strong><br>#FA8112</div>
+                </div>
+                <div class="swatch">
+                    <div class="swatch-color" style="background: var(--text-charcoal)"></div>
+                    <div class="swatch-info"><strong>Text</strong><br>#222222</div>
+                </div>
+                <div class="swatch">
+                    <div class="swatch-color" style="background: var(--bg-cream)"></div>
+                    <div class="swatch-info"><strong>Background</strong><br>#FAF3E1</div>
+                </div>
+                <div class="swatch">
+                    <div class="swatch-color" style="background: var(--status-success)"></div>
+                    <div class="swatch-info"><strong>Cleared</strong><br>#16A34A</div>
+                </div>
+                <div class="swatch">
+                    <div class="swatch-color" style="background: var(--status-error)"></div>
+                    <div class="swatch-info"><strong>Violation</strong><br>#DC2626</div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">2. Frontend Design: Psychology & Persuasion</h2>
+                <p class="section-desc">Applying the <strong>marketing-psychology</strong> and <strong>page-cro</strong>
+                    frameworks to the ComplianceOS frontend component design.</p>
+            </div>
+
+            <div class="grid-3">
+                <!-- Hick's Law -->
+                <div class="card">
+                    <h3 class="card-title">Hick's Law <span class="framework-tag">page-cro</span></h3>
+                    <p class="text-muted" style="font-size: 0.875rem;">Decision time increases with the number and
+                        complexity of choices.</p>
+                    <hr style="border:0; border-top:1px dashed var(--border-color); margin: 1rem 0;">
+                    <strong>Application in ComplianceOS:</strong>
+                    <p style="font-size: 0.875rem;">Never show more than one Primary Call To Action per tracking screen.
+                        When evaluating an HS code risk, the user should only see one clear path forward.</p>
+
+                    <div
+                        style="margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <button class="btn btn-primary" style="margin-bottom: 0.5rem;">Generate Customs Payload</button>
+                        <button class="btn btn-secondary"
+                            style="border:none; color: var(--text-muted); padding: 0.5rem; text-decoration: underline;">Save
+                            draft for later</button>
+                    </div>
+                </div>
+
+                <!-- Loss Aversion -->
+                <div class="card">
+                    <h3 class="card-title">Loss Aversion <span class="framework-tag">psychology</span></h3>
+                    <p class="text-muted" style="font-size: 0.875rem;">Losses feel roughly twice as painful as
+                        equivalent gains feel good.</p>
+                    <hr style="border:0; border-top:1px dashed var(--border-color); margin: 1rem 0;">
+                    <strong>Application in ComplianceOS:</strong>
+                    <p style="font-size: 0.875rem;">When alerting an MSME about an upcoming EU CBAM requirement, frame
+                        it around the liability they will suffer rather than the "smooth border entry" they will gain.
+                    </p>
+
+                    <div
+                        style="margin-top: 1.5rem; padding: 1rem; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px;">
+                        <strong
+                            style="color: #991B1B; font-size: 0.875rem; display:block; margin-bottom: 0.25rem;">Shipment
+                            At Risk of Seizure</strong>
+                        <p style="color: #7F1D1D; font-size: 0.75rem; margin:0;">Avoid impound fees at the port of entry
+                            by filing the CBAM declaration now.</p>
+                    </div>
+                </div>
+
+                <!-- Zeigarnik Effect -->
+                <div class="card">
+                    <h3 class="card-title">Zeigarnik Effect <span class="framework-tag">onboarding-cro</span></h3>
+                    <p class="text-muted" style="font-size: 0.875rem;">Unfinished tasks occupy the mind more than
+                        completed ones. Open loops create tension.</p>
+                    <hr style="border:0; border-top:1px dashed var(--border-color); margin: 1rem 0;">
+                    <strong>Application in ComplianceOS:</strong>
+                    <p style="font-size: 0.875rem;">Use progress bars everywhere. The "Shipment Readiness" score
+                        natively abuses this effect to encourage the user to upload all their commercial invoices.</p>
+
+                    <div
+                        style="margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div
+                            style="display:flex; justify-content:space-between; font-size: 0.75rem; font-weight: 700; margin-bottom:0.5rem;">
+                            <span>Setup Progress</span>
+                            <span style="color: var(--brand-orange)">85%</span>
+                        </div>
+                        <div style="height: 8px; background: var(--border-color); border-radius: 4px; overflow:hidden;">
+                            <div style="height: 100%; width: 85%; background: var(--brand-orange);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">3. B2B Trust & Social Proof</h2>
+                <p class="section-desc">Deploying the <strong>marketing-psychology</strong> Authority Bias and Bandwagon
+                    Effect inside the app interface.</p>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3 class="card-title">The "Zonos Landed Cost" Banner</h3>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem;">Using
+                        <strong>Authority Bias</strong>. By explicitly stating that our duties and taxes calculations
+                        are powered by a recognized global leader, we pass liability off the exporter.</p>
+
+                    <div class="trust-panel">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <div>
+                            <strong style="color: #166534; font-size: 0.875rem;">100% Guaranteed Landed Cost</strong>
+                            <p style="color: #15803D; font-size: 0.75rem; margin-top: 0.25rem;">Powered by Zonos. Your
+                                margins are fully protected against customs discrepancy. Any charges above this quoted
+                                amount will be completely absorbed.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">Rule of 100 (FTA Savings)</h3>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem;">Using the
+                        <strong>Rule of 100</strong> logic: Since B2B shipments are high ticket (over $100), absolute
+                        numbers feel much larger than percentages.</p>
+
+                    <div
+                        style="padding: 1rem; background: var(--bg-cream); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <p
+                            style="font-size: 0.75rem; color: var(--status-error); text-decoration: line-through; margin:0;">
+                            Save 3.5% on duties</p>
+                        <p
+                            style="font-size: 1.25rem; font-weight: 700; color: var(--status-success); margin: 0.25rem 0 0 0;">
+                            You're saving $12,400 in tariffs via CEPA.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+</body>
+
+</html>
