@@ -37,6 +37,7 @@ import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate, fetchRodtepRateDetailed , loadFTAAgreements} from '@/lib/api'
+import { convertToINR } from '@/lib/fx'
 import { colors } from '@theme/index'
 import type {
   ViewType,
@@ -379,12 +380,11 @@ function App() {
 
         // Real unclaimed RoDTEP, same rule as the RoDTEP Recovery screen: a
         // claim needs a shipping bill, and only unclaimed or rejected count.
-        const FX_TO_INR: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
         const unclaimed = (data ?? []).reduce((sum: number, s: any) => {
           const status = s.rodtep_claim_status ?? (s.rodtep_claimed ? 'filed' : 'unclaimed')
           if (status !== 'unclaimed' && status !== 'rejected') return sum
           if (!s.shipping_bill_no || !s.hs_code || !s.shipment_value || !s.rodtep_rate) return sum
-          const inr = parseFloat(s.shipment_value) * (FX_TO_INR[(s.value_currency ?? 'USD').toUpperCase()] ?? 84)
+          const inr = convertToINR(parseFloat(s.shipment_value), s.value_currency, s.date)
           return sum + Math.round(inr * (parseFloat(s.rodtep_rate) / 100))
         }, 0)
         setRodtepUnclaimed(unclaimed > 0 ? unclaimed : null)

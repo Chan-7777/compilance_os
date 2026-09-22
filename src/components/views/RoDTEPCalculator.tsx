@@ -6,6 +6,7 @@ import {
 } from '@/lib/api'
 import type { RodtepMatchType, RodtepClaimStatus, BulkImportResult } from '@/lib/api'
 import { generateRoDTEPReport } from '@/lib/rodtep-report'
+import { convertToINR } from '@/lib/fx'
 import { supabase } from '@/lib/supabase'
 import type { CompanyProfile } from '@/types'
 
@@ -35,10 +36,8 @@ function formatINR(v: number): string {
   return `₹${v.toLocaleString('en-IN')}`
 }
 
-// Convert USD/EUR shipment value to INR at rough mid-market rate
-function toINR(value: number, currency: string): number {
-  const rates: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
-  return value * (rates[currency?.toUpperCase()] ?? 84)
+function toINR(value: number, currency: string, onDate?: string): number {
+  return convertToINR(value, currency, onDate)
 }
 
 // RoDTEP deadline: 1 year from shipment date

@@ -7,6 +7,7 @@ import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
 import { colors, spacing, borderRadius, shadow } from '@theme/index'
 import { supabase } from '@/lib/supabase'
+import { convertToINR } from '@/lib/fx'
 
 interface ClientSummary {
   id: string
@@ -69,10 +70,7 @@ export function CADashboard() {
           !s.rodtep_claimed && s.rodtep_rate && s.shipment_value
       )
 
-      const toINR = (value: number, currency: string) => {
-        const rates: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
-        return value * (rates[currency?.toUpperCase()] ?? 84)
-      }
+      const toINR = (value: number, currency: string) => convertToINR(value, currency)
 
       const unclaimedRodtep = unclaimedShips.reduce(
         (sum: number, s: { shipment_value: number; value_currency: string; rodtep_rate: number }) =>

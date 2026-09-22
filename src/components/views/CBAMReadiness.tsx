@@ -7,6 +7,7 @@ import { sendWhatsAppOutreach, estimateEmissions } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { getCBAMSector, type CBAMSector } from '@/data/cbam-hs-codes'
 import { generateCBAMDeclaration, quarterOf, CBAM_DEFAULT_INTENSITY, type CBAMConsignment } from '@/lib/cbam-report'
+import { convertToINR } from '@/lib/fx'
 import type { CompanyProfile } from '@/types'
 
 interface ScopedShipment {
@@ -22,7 +23,6 @@ interface ScopedShipment {
   sector: CBAMSector | null
 }
 
-const FX_TO_INR: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
 // Rough ₹/kg used to back out tonnage from FOB when no weight is on file —
 // same heuristic runGateCheck already uses (₹150/kg for industrial goods).
 const INR_PER_KG = 150
@@ -80,7 +80,7 @@ export function CBAMReadiness({ product, companyProfile, children }: { product: 
     setGenerating(true)
     try {
       const consignments: CBAMConsignment[] = await Promise.all(inQuarter.map(async s => {
-        const inr = (s.shipment_value ?? 0) * (FX_TO_INR[(s.value_currency ?? 'USD').toUpperCase()] ?? 84)
+        const inr = convertToINR(s.shipment_value ?? 0, s.value_currency, s.date)
         const weightKg = Math.max(1, Math.round(inr / INR_PER_KG))
         const weightTonnes = weightKg / 1000
         const sector = s.sector as CBAMSector

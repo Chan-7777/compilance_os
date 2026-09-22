@@ -7,6 +7,7 @@ import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { getHSProduct } from '@/data/hs-product-db'
 import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
+import { convertToINR } from './fx'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -148,8 +149,6 @@ export interface BulkImportResult {
   byMatchType: Record<RodtepMatchType, number>
 }
 
-const FX_TO_INR: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
-
 export async function bulkImportShippingBills(
   rows: ShippingBillRow[],
   companyId: string
@@ -184,8 +183,8 @@ export async function bulkImportShippingBills(
     if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) { result.errors.push({ row: rowNo, reason: `Date "${r.date}" is not YYYY-MM-DD` }); return }
 
     const rate = rateByHs.get(hsDigits)!
-    const currency = (r.currency || 'USD').toUpperCase()
-    const inr = r.fobValue * (FX_TO_INR[currency] ?? FX_TO_INR.USD)
+    // Shipping bill date drives the rate: CBIC notifies per fortnight.
+    const inr = convertToINR(r.fobValue, r.currency, r.date)
     result.totalEntitlementINR += Math.round(inr * (rate.rate / 100))
     result.byMatchType[rate.matchType]++
     known.add(sb)
@@ -316,7 +315,7 @@ export function buildRodtepClaimCSV(
   let total = 0
   for (const s of shipments) {
     const rate = s.rodtep_rate ?? 0
-    const inr = Math.round(s.shipment_value * (FX_TO_INR[(s.value_currency || 'USD').toUpperCase()] ?? 84))
+    const inr = Math.round(convertToINR(s.shipment_value, s.value_currency, s.date))
     const ent = Math.round(inr * (rate / 100))
     total += ent
     const dl = new Date(s.date); dl.setFullYear(dl.getFullYear() + 1)
