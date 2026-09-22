@@ -57,6 +57,13 @@ reference/
 # Supabase local temp
 supabase/.temp/
 
+# Claude Code — agent worktree copies (43M of duplicated checkouts) and local overrides
+.claude/worktrees/
+.claude/settings.local.json
+
+# Page scans rendered from the PDFs in docs/ — derived, 46M, regenerable
+docs/pdf_photos/
+
 # Misc
 .eslintcache
 .prettierignore
@@ -72,3 +79,4 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 *.pyc
+.vercel
