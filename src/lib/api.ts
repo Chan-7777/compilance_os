@@ -9,6 +9,7 @@ import { getHSProduct } from '@/data/hs-product-db'
 import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
 import { convertToINR } from './fx'
 import { deriveFobValue, rodtepEntitlement, RODTEP_NOTIFIED_UNTIL, type ValueBasis } from './rodtep'
+import { isUnrelatedToTrade, cappedSeverity } from './feed-relevance'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -1118,13 +1119,26 @@ export async function fetchAlerts(countries: string[], products: string[], offse
 
   const seen = new Set<string>()
   const alerts = effectiveRows
+    // Drop items that are not regulation at all. The ingestion function stores
+    // whatever a keyword search returns, which is how an exam-prep roundup
+    // reached the dashboard tagged "Urgent — action required before your next
+    // shipment". Filtering on read fixes the rows already stored.
+    .filter(row => !isUnrelatedToTrade({
+      title: row.title, description: row.change_description, sourceName: row.source_name,
+    }))
     .map(row => {
       const title = cleanFeedText(row.title)
       const body = cleanFeedText(row.change_description)
       const relevant = isRelevant(row)
-      const severity = (relevant
+      const byProduct = (relevant
         ? row.severity
         : row.severity === 'critical' ? 'warning' : row.severity) as 'critical' | 'warning' | 'info'
+      // An item with no regulatory signal may still be listed, but it must not
+      // present itself as urgent.
+      const severity = cappedSeverity(
+        { title: row.title, description: row.change_description, sourceName: row.source_name },
+        byProduct
+      )
       return { row, title, body, relevant, severity }
     })
     // The same story often arrives from several feeds on the same day.
