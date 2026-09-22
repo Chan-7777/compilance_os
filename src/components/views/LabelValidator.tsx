@@ -27,6 +27,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
     const [uploadedImage, setUploadedImage] = useState<string | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
     const [isScanning, setIsScanning] = useState(false)
+    const [scanUnavailable, setScanUnavailable] = useState(false)
     const [linkedShipmentId, setLinkedShipmentId] = useState<string | null>(null)
     const [savedToShipment, setSavedToShipment] = useState(false)
 
@@ -107,6 +108,7 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
         if (!uploadedImage) return
 
         setIsScanning(true)
+        setScanUnavailable(false)
         try {
             // Prepare rules payload
             const simplifiedRules = rules.map(r => ({ id: r.id, rule: r.rule, guidance: r.guidance }))
@@ -118,7 +120,16 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                 activeProduct
             )
 
-            // Apply AI answers
+            // When no vision key is configured the function returns fabricated
+            // pass/fail answers. Applying them would produce a compliance score
+            // built from invented data and present it as a scan result — so
+            // refuse them and say the scanner is unavailable.
+            if (result.mock) {
+                console.warn('label-vision returned mock data: no API key configured')
+                setScanUnavailable(true)
+                return
+            }
+
             setAnswers(result.answers)
 
             // Auto-expand failed rules
@@ -127,10 +138,6 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                 if (!compliant) newExpanded[id] = true
             })
             setExpandedRules(newExpanded)
-
-            if (result.mock) {
-                console.warn('Vision API returned mock data because no API key was configured.')
-            }
         } catch (error) {
             console.error('Scan failed:', error)
             alert('Failed to scan label with AI. Please try answering manually.')
@@ -348,6 +355,25 @@ export function LabelValidator({ selectedProduct, selectedCountries, shipments }
                         >
                             {isScanning ? 'Scanning with AI...' : 'Verify with AI Vision'}
                         </Button>
+                    )}
+
+                    {scanUnavailable && (
+                        <div style={{
+                            marginTop: spacing.md,
+                            maxWidth: 520,
+                            padding: spacing.sm,
+                            backgroundColor: colors.surfaces.warningBg,
+                            color: colors.surfaces.warningText,
+                            border: `1px solid ${colors.status.pending}44`,
+                            borderRadius: borderRadius.md,
+                            fontSize: '0.8rem',
+                            lineHeight: 1.5,
+                        }}>
+                            <strong>Automatic label scanning is not available.</strong> The vision service
+                            is not configured, so nothing was read from your artwork. We have not filled in
+                            any answers, because a score built from unread data would be worse than none.
+                            Work through the checklist below manually.
+                        </div>
                     )}
                 </div>
             </div>
