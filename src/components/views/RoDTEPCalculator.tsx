@@ -3,6 +3,7 @@ import { colors, spacing, borderRadius, shadow } from '@theme/index'
 import {
   fetchRodtepRateDetailed, backfillRodtepRates, bulkImportShippingBills,
   parseCSV, csvToShippingBills, buildRodtepClaimCSV, downloadTextFile, updateRodtepClaimStatus,
+  checkHSMismatch,
 } from '@/lib/api'
 import type { RodtepMatchType, RodtepClaimStatus, BulkImportResult } from '@/lib/api'
 import { generateRoDTEPReport } from '@/lib/rodtep-report'
@@ -184,7 +185,43 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
     init()
   }, [])
 
+  /**
+   * Run the HS-vs-description check before a claim is marked filed.
+   *
+   * "HS code on the shipping bill did not match the invoice description" is
+   * the rejection reason already sitting in this table. The detector that
+   * catches it existed and was deployed, but lived on another screen and was
+   * never consulted here — so the rejection was only ever recorded after the
+   * fact, never prevented. This is the gate it was missing.
+   */
+  async function confirmedDespiteHsMismatch(s: ShipmentRodtep): Promise<boolean> {
+    if (!s.hs_code || !s.name) return true
+    try {
+      const result = await checkHSMismatch({ hsCode: s.hs_code, productDescription: s.name })
+      if (!result.mismatch || result.risk === 'clear') return true
+      const suggested = result.suggestedCodes?.[0]
+      return window.confirm(
+        `HS code may not match the goods description.\n\n` +
+        `${s.hs_code} — "${s.name}"\n\n` +
+        `${result.summary}\n` +
+        (suggested ? `\nSuggested: ${suggested.code}\n` : '') +
+        `\nThis is the mismatch that gets RoDTEP claims rejected. File anyway?`
+      )
+    } catch {
+      // Never block filing because the checker is unavailable — the exporter
+      // has a deadline and this is advisory.
+      return true
+    }
+  }
+
   async function handleStatus(shipmentId: string, status: RodtepClaimStatus, note?: string) {
+    if (status === 'filed') {
+      const shipment = shipments.find(s => s.id === shipmentId)
+      setBusyId(shipmentId)
+      const proceed = shipment ? await confirmedDespiteHsMismatch(shipment) : true
+      setBusyId(null)
+      if (!proceed) return
+    }
     setBusyId(shipmentId)
     try {
       await updateRodtepClaimStatus(shipmentId, status, note)
