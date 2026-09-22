@@ -1,0 +1,103 @@
+{
+  "_readme": [
+    "Hand-maintained inventory of behaviour changes worth tracking. live-state.mjs",
+    "reads this and works out, per feature, whether it is actually in production.",
+    "",
+    "Each feature declares the files it lives in, and for each file a 'marker' -",
+    "a literal string that must be present for the change to be considered",
+    "implemented. The marker is what makes this honest: without it, a file that",
+    "was reverted still looks like the feature is there.",
+    "",
+    "functions[] and migrations[] point at things that ship separately from the",
+    "frontend, so a feature can be half-live: UI deployed, migration never run.",
+    "",
+    "Add an entry whenever you build something you would be annoyed to lose track of."
+  ],
+
+  "features": [
+    {
+      "name": "Onboarding keeps the answers it collects",
+      "what": "Company profile writes onboarded_at and trade_role, and the gate closes as well as opens, so the modal stops reappearing on every reload.",
+      "files": [
+        { "path": "src/App.tsx", "marker": "onboarded_at" }
+      ],
+      "migrations": ["20260910000001_onboarding_completion.sql", "20260915000001_companies_update_policy.sql"]
+    },
+    {
+      "name": "Paywall off for demos",
+      "what": "Gating is behind VITE_ENFORCE_PAYWALL, so every screen is reachable unless that env var is set to 'true'.",
+      "files": [
+        { "path": "src/App.tsx", "marker": "PAYWALL_ENFORCED" }
+      ],
+      "note": "Live behaviour also depends on the Vercel env var, which this script cannot read."
+    },
+    {
+      "name": "Alerts are relevant and readable",
+      "what": "Feed HTML and double-escaped entities are stripped, duplicates dropped, and only product-relevant items stay critical.",
+      "files": [
+        { "path": "src/lib/api.ts", "marker": "cleanFeedText" }
+      ]
+    },
+    {
+      "name": "Sidebar logo is not a 4 MB PNG",
+      "what": "Inline shield SVG plus wordmark, replacing the white-boxed logo.png.",
+      "files": [
+        { "path": "src/components/Sidebar.tsx", "marker": "ComplianceOS" }
+      ]
+    },
+    {
+      "name": "Dashboard shows real unclaimed RoDTEP",
+      "what": "Dashboard prefers the figure computed from actual shipping bills over the turnover-band estimate, and captions which one it used.",
+      "files": [
+        { "path": "src/App.tsx", "marker": "rodtepUnclaimed" },
+        { "path": "src/components/views/Dashboard.tsx", "marker": "rodtepUnclaimed" }
+      ]
+    },
+    {
+      "name": "Trade agreement status comes from the database",
+      "what": "fta_agreements overlays the built-in table at runtime, and the screen shows how old the data is.",
+      "files": [
+        { "path": "src/data/fta.ts", "marker": "applyFTARows" },
+        { "path": "src/lib/api.ts", "marker": "loadFTAAgreements" },
+        { "path": "src/components/views/FTASchemes.tsx", "marker": "ftaAgeDays" }
+      ],
+      "migrations": ["20260916000001_fta_agreements_read.sql"]
+    },
+    {
+      "name": "CBAM emissions use EU default values",
+      "what": "climatiq-emissions looks up the CBAM default for the HS code's CN prefix instead of failing, and the panel appears once rather than per market.",
+      "files": [
+        { "path": "src/components/views/RiskAnalysis.tsx", "marker": "hsCode" },
+        { "path": "src/components/views/CBAMReadiness.tsx", "marker": "children" }
+      ],
+      "functions": ["climatiq-emissions"]
+    },
+    {
+      "name": "DGFT Certificate of Origin - Phase 1",
+      "what": "Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet.",
+      "files": [
+        { "path": "src/lib/dgft-coo-mapper.ts", "marker": "export" },
+        { "path": "src/lib/coo-validator.ts", "marker": "export" },
+        { "path": "src/lib/dgft-reference-maps.ts", "marker": "export" }
+      ],
+      "migrations": ["20260922000001_coo_integration.sql"],
+      "note": "Blocked on three unanswered questions: credential tenancy, fixed egress IP for DGFT's whitelist, RSA key custody."
+    },
+    {
+      "name": "RISK: self-made Certificate of Origin PDF",
+      "what": "downloadCOOPdf draws a document headed CERTIFICATE OF ORIGIN with a locally generated reference number. No agency issued it. This should be withdrawn or relabelled before any customer uses it.",
+      "files": [
+        { "path": "src/lib/api.ts", "marker": "downloadCOOPdf" }
+      ],
+      "note": "Here so it stays visible. Present = the risk is still shipped."
+    },
+    {
+      "name": "Demo seed for Meridian Tubes & Alloys",
+      "what": "Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter.",
+      "files": [
+        { "path": "supabase/seed_demo_meridian.sql", "marker": "Meridian" }
+      ],
+      "note": "Pasted into the SQL editor by hand; not a migration, so it is not tracked as applied."
+    }
+  ]
+}

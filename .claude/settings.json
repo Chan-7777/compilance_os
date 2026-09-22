@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)",
+      "WebFetch(domain:law.asia)",
+      "WebFetch(domain:lawciteadvocates.com)",
+      "WebFetch(domain:www.cyrilshroff.com)",
+      "WebFetch(domain:rawlaw.in)",
+      "WebFetch(domain:advocategandhi.com)",
+      "WebFetch(domain:netyex.com)"
+    ]
+  }
+}

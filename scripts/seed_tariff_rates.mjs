@@ -81,8 +81,8 @@ function parseCSV(csvPath) {
 }
 
 // Process both CSVs
-const csv6  = join(__dirname, '../docs/adb_mfn_applied_duty_18_03_2026_12_15_07.csv')
-const csvIN = join(__dirname, '../docs/adb_mfn_applied_duty_18_03_2026_12_28_45.csv')
+const csv6  = join(__dirname, './data/adb_mfn_applied_duty_18_03_2026_12_15_07.csv')
+const csvIN = join(__dirname, './data/adb_mfn_applied_duty_18_03_2026_12_28_45.csv')
 const rows = [...parseCSV(csv6), ...parseCSV(csvIN)]
 
 // Deduplicate — CSV has some duplicate HS codes per country, keep last value
