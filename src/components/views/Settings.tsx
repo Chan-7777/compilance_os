@@ -10,7 +10,7 @@ import { Badge } from '@/components/Badge'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
-import { fetchAPIKeys, createAPIKey, revokeAPIKey, fetchNotificationSettings, updateNotificationSettings, sendWhatsAppAlert } from '@/lib/api'
+import { fetchAPIKeys, revokeAPIKey, fetchNotificationSettings, updateNotificationSettings, sendWhatsAppAlert } from '@/lib/api'
 import type { NotificationSettings } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 import type { CountryCode, CompanyProfile, CompanySize, APIKeyInfo } from '@/types'
@@ -56,7 +56,6 @@ export function Settings({
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<APIKeyInfo[]>([])
-  const [newKeyName, setNewKeyName] = useState('')
   const [newKeyPlaintext, setNewKeyPlaintext] = useState<string | null>(null)
   const [apiKeysLoading, setApiKeysLoading] = useState(false)
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
@@ -114,20 +113,6 @@ export function Settings({
       toastError(`Test failed: ${err?.message}`)
     } finally {
       setTestSending(false)
-    }
-  }
-
-  const handleCreateKey = async () => {
-    if (!newKeyName.trim()) return
-    try {
-      const result = await createAPIKey(newKeyName.trim())
-      setNewKeyPlaintext(result.key)
-      setNewKeyName('')
-      toastSuccess('API key created')
-      const keys = await fetchAPIKeys()
-      setApiKeys(keys || [])
-    } catch (err: any) {
-      toastError(`Failed to create API key: ${err?.message}`)
     }
   }
 
@@ -541,8 +526,9 @@ export function Settings({
                 lineHeight: 1.6,
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-flex', marginRight: '6px', verticalAlign: 'middle', color: colors.accent }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <strong>API keys are optional</strong> — only needed if you want to integrate ComplianceOS
-                with third-party systems (ERP, customs software, etc.). You can use all features without configuring API keys.
+                <strong>The external API is withdrawn.</strong> The lender-facing endpoint these keys
+                authenticated has been taken down, so new keys cannot be issued and any existing key is
+                inactive. Revoke anything still listed below. Every feature of ComplianceOS works without a key.
               </div>
               <Card>
                 <CardContent>
@@ -550,19 +536,6 @@ export function Settings({
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></svg>
                     API Keys
                   </h4>
-                  {/* Create new key */}
-                  <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
-                    <input
-                      type="text"
-                      value={newKeyName}
-                      onChange={e => setNewKeyName(e.target.value)}
-                      placeholder="Key name (e.g., Production, Staging)"
-                      style={{ ...inputStyle, flex: 1 }}
-                    />
-                    <Button variant="primary" onClick={handleCreateKey} disabled={!newKeyName.trim()}>
-                      Generate Key
-                    </Button>
-                  </div>
 
                   {/* Show newly created key */}
                   {newKeyPlaintext && (
@@ -604,7 +577,7 @@ export function Settings({
                     <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>Loading keys...</div>
                   ) : apiKeys.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: spacing.md, color: colors.textMuted }}>
-                      No API keys yet. Generate one to enable third-party integrations.
+                      No API keys. Nothing to clean up.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>

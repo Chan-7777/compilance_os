@@ -61,7 +61,7 @@ export function generateBankReadyDealPack(
   } else {
     gateStatus = 'APPROVED'
     gateColor = colors.status.success
-    gateReasons.push(`All critical compliance items verified`)
+    gateReasons.push(`All critical compliance items marked complete by the exporter`)
     gateReasons.push(`Risk score within acceptable range (${risk.score}/100)`)
     gateReasons.push(`Checklist ${completionPct}% complete`)
   }
@@ -76,7 +76,7 @@ export function generateBankReadyDealPack(
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Bank-Ready Export Deal Pack — ${shipment.name}</title>
+<title>Export Compliance Summary — ${shipment.name}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 13px; line-height: 1.5; }
@@ -85,6 +85,7 @@ export function generateBankReadyDealPack(
   .header { border-bottom: 3px solid #1a1a1a; padding-bottom: 20px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
   .brand { font-size: 10px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
   .title { font-size: 22px; font-weight: 900; color: #1a1a1a; }
+  .subtitle { font-size: 11px; color: #666; margin-top: 4px; font-style: italic; }
   .meta { text-align: right; font-size: 11px; color: #888; line-height: 1.8; }
   .meta strong { color: #1a1a1a; }
 
@@ -156,7 +157,8 @@ export function generateBankReadyDealPack(
   <div class="header">
     <div>
       <div class="brand">ComplianceOS</div>
-      <div class="title">Bank-Ready Export Deal Pack</div>
+      <div class="title">Export Compliance Summary</div>
+      <div class="subtitle">Compliance position only — no shipping, customs or bank documents are attached</div>
     </div>
     <div class="meta">
       <div><strong>${refNo}</strong></div>
@@ -228,7 +230,7 @@ export function generateBankReadyDealPack(
         <div class="data-value mono">${completionPct}%</div>
         <div class="progress-track"><div class="progress-fill"></div></div>
       </div>
-      <div><div class="data-label">Verified</div><div class="data-value mono">${completed} / ${total}</div></div>
+      <div><div class="data-label">Self-reported complete</div><div class="data-value mono">${completed} / ${total}</div></div>
       <div>
         <div class="data-label">Critical Pending</div>
         <div class="data-value mono" style="color:${criticalPending > 0 ? colors.status.error : colors.status.success}">${criticalPending}</div>
@@ -308,7 +310,7 @@ export function generateBankReadyDealPack(
   <!-- Footer -->
   <div class="footer">
     <div class="footer-brand">ComplianceOS — Export Intelligence</div>
-    <div>For informational use only. Verify with qualified compliance counsel before financing decisions.</div>
+    <div>Compliance checklist items are self-reported by the exporter and are not evidenced by documents in this pack. For informational use only — verify with qualified compliance counsel before financing decisions.</div>
   </div>
 
 </div>

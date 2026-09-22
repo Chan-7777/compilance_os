@@ -73,7 +73,6 @@ export function Shipments({
   const [financeForm, setFinanceForm] = useState({ invoiceValue: '', buyerName: '', invoiceRef: '' })
   const [tredsEligibility, setTredsEligibility] = useState<null | { eligible: boolean; reason: string; maxAmount: number }>(null)
   const [lcDownloading, setLcDownloading] = useState(false)
-  const [ecgcPremium, setEcgcPremium] = useState<null | { premium: number; coverage: number }>(null)
   const [hsMismatchResults, setHsMismatchResults] = useState<Record<string, HSMismatchResult>>({})
   const [hsMismatchLoading, setHsMismatchLoading] = useState<Record<string, boolean>>({})
 
@@ -479,9 +478,20 @@ export function Shipments({
         referenceNumber: filingResults[shipment.id].reference_number
       })
       setTredsResults(prev => ({ ...prev, [shipment.id]: result }))
-      toastSuccess('Factoring unit created on the TReDS platform.')
+      toastSuccess('Factoring unit created on the financing platform.')
     } catch (err: any) {
-      toastError(`Financing request failed: ${err.message}`)
+      // supabase-js wraps a non-2xx as FunctionsHttpError, whose .message is
+      // the generic "Edge Function returned a non-2xx status code" — the real
+      // reason sits on .context. Without this the user gets an undiagnosable
+      // error, and the operator message ("set RXIL_API_KEY") is meant for us,
+      // not for an exporter.
+      const body = await err?.context?.json?.().catch(() => null)
+      console.error('TReDS financing failed', { detail: body?.error ?? err?.message })
+      toastError(
+        body?.error
+          ? 'Export invoice financing is not connected yet. We have logged this — no action needed from you.'
+          : `Financing request failed: ${err.message}`
+      )
     } finally {
       setTredsLoading(prev => ({ ...prev, [shipment.id]: false }))
     }
@@ -499,18 +509,11 @@ export function Shipments({
     }
     setTredsEligibility({
       eligible: true,
-      reason: 'IEC verified. Invoice eligible for TReDS discounting up to 90% of value.',
+      // "IEC verified" was a lie: this only checks the field is non-empty.
+      // Nothing is checked against DGFT.
+      reason: 'IEC present and invoice above the ₹1,00,000 threshold. This is a self-check against the platform rules — the IEC itself has not been verified with DGFT.',
       maxAmount: Math.round(value * 0.9),
     })
-  }
-
-  const calculateECGCPremium = () => {
-    const value = parseFloat(financeForm.invoiceValue) || 0
-    if (value <= 0) return
-    const insuredValue = value * 0.9
-    const annualPremium = Math.round(insuredValue * 0.0072)
-    const coverage = Math.round(insuredValue)
-    setEcgcPremium({ premium: annualPremium, coverage })
   }
 
   const handleDownloadLCTemplate = () => {
@@ -526,12 +529,12 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
 <h1>Letter of Credit — Application Template</h1>
 <p style="font-size:0.85rem;color:${colors.textMuted}">Complete and submit to your bank. This is a template only — your bank will issue the final LC.</p>
 <div class="section">
-<label>Applicant (Exporter)</label><div class="field">${companyProfile.name || '_______________'}</div>
-<label>IEC Number</label><div class="field">${companyProfile.iec || '_______________'}</div>
-<label>GSTIN</label><div class="field">${companyProfile.gstin || '_______________'}</div>
+<label>Applicant (Buyer — opens the LC with their bank)</label><div class="field">${financeForm.buyerName || '_______________'}</div>
 </div>
 <div class="section">
-<label>Beneficiary (Buyer)</label><div class="field">${financeForm.buyerName || '_______________'}</div>
+<label>Beneficiary (Exporter — receives payment)</label><div class="field">${companyProfile.name || '_______________'}</div>
+<label>Beneficiary IEC</label><div class="field">${companyProfile.iec || '_______________'}</div>
+<label>Beneficiary GSTIN</label><div class="field">${companyProfile.gstin || '_______________'}</div>
 <label>LC Amount (USD / INR)</label><div class="field">${financeForm.invoiceValue ? `\u20b9${parseFloat(financeForm.invoiceValue).toLocaleString('en-IN')}` : '_______________'}</div>
 <label>Invoice / PO Reference</label><div class="field">${financeForm.invoiceRef || '_______________'}</div>
 </div>
@@ -881,21 +884,17 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                 <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: spacing.xs }}>Template opens in a new tab ready to print. Submit to your bank's trade finance desk.</div>
               </div>
 
-              {/* ECGC */}
+              {/* ECGC — no premium figure. The previous 0.72% flat rate had no
+                  source, and unlike a claim estimate an insurance premium gets
+                  used to price a deal. Real ECGC pricing varies by country
+                  risk, policy type, buyer rating and tenor. */}
               <div style={{ flex: '1 1 280px', padding: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.lg, border: `1px solid ${colors.border}` }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: spacing.xs }}>ECGC Export Cover</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.md }}>Estimate your ECGC MSME Xport insurance premium. Protects up to 90% of invoice if buyer defaults.</div>
-                <button onClick={calculateECGCPremium} disabled={!financeForm.invoiceValue}
-                  style={{ padding: '8px 16px', backgroundColor: colors.primary, color: 'white', border: 'none', borderRadius: borderRadius.md, cursor: financeForm.invoiceValue ? 'pointer' : 'not-allowed', fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit', opacity: financeForm.invoiceValue ? 1 : 0.5, marginBottom: spacing.sm }}>
-                  Estimate Premium
-                </button>
-                {ecgcPremium && (
-                  <div style={{ padding: '8px 10px', borderRadius: borderRadius.sm, fontSize: '0.8rem', backgroundColor: colors.surfaces.neutralBg, border: `1px solid ${colors.border}`, color: colors.surfaces.neutralText }}>
-                    <div>Coverage: <strong>₹{ecgcPremium.coverage.toLocaleString('en-IN')}</strong></div>
-                    <div>Est. annual premium: <strong>₹{ecgcPremium.premium.toLocaleString('en-IN')}</strong></div>
-                    <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: 4 }}>Based on ECGC MSME Xport rate (0.72%). Actual rate may vary by buyer country.</div>
-                  </div>
-                )}
+                <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.md }}>ECGC cover protects a share of your invoice if the buyer defaults. Premium depends on buyer country risk, policy type, buyer credit rating and payment tenor — we do not estimate it, because a wrong premium prices your deal wrongly.</div>
+                <a href="https://www.ecgc.in" target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.primary }}>
+                  Get a quote from ECGC →
+                </a>
               </div>
             </div>
           </div>
