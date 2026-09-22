@@ -5,6 +5,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  isRealisationOverdue,
+  BRC_RULE_CHANGE_DATE,
+  BRC_PERIOD_MONTHS_LEGACY,
+  BRC_PERIOD_MONTHS_STANDARD,
+  BRC_PERIOD_MONTHS_INR,
+} from '@/lib/brc'
 import { colors, spacing, borderRadius, shadow, fontSize, fontWeight, transition } from '@theme/index'
 
 type DocType = 'brc' | 'firc'
@@ -53,11 +60,14 @@ const fmtDate = (d: string | null) => {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const isOverdue = (invoiceDate: string | null, status: BRCStatus) => {
-  if (status === 'realized' || !invoiceDate) return false
-  const daysSince = (Date.now() - new Date(invoiceDate).getTime()) / (1000 * 60 * 60 * 24)
-  return daysSince > 270
-}
+const isOverdue = (record: Pick<BRCRecord, 'invoice_date' | 'invoice_currency' | 'realized_currency' | 'status'>) =>
+  isRealisationOverdue(
+    record.invoice_date,
+    record.invoice_currency,
+    record.status === 'realized',
+    new Date(),
+    record.realized_currency
+  )
 
 const BLANK_FORM = {
   document_type: 'brc' as DocType,
@@ -104,7 +114,7 @@ export function BRCFIRCTracker() {
     // Auto-flag overdue records in local state (without writing back)
     const withOverdue = rows.map(r => ({
       ...r,
-      status: (r.status !== 'realized' && isOverdue(r.invoice_date, r.status)) ? 'overdue' as BRCStatus : r.status,
+      status: isOverdue(r) ? 'overdue' as BRCStatus : r.status,
     }))
     setRecords(withOverdue)
     setLoading(false)
@@ -228,7 +238,7 @@ export function BRCFIRCTracker() {
           { label: 'Total Invoiced',   value: `USD ${totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: `${records.length} invoices`, accent: colors.text },
           { label: 'Realized (INR)',   value: totalRealized > 0 ? `₹${(totalRealized / 100000).toFixed(2)} L` : '₹0', sub: `${records.filter(r => r.status === 'realized').length} realized`, accent: colors.status.success },
           { label: 'Pending / Partial',value: String(pendingCount), sub: 'awaiting realization', accent: colors.status.pending },
-          { label: 'Overdue (>9 mo)', value: String(overdueCount), sub: overdueCount > 0 ? 'action required' : 'all on track', accent: overdueCount > 0 ? colors.risk.high : colors.status.success },
+          { label: 'Past realisation deadline', value: String(overdueCount), sub: overdueCount > 0 ? 'action required' : 'all on track', accent: overdueCount > 0 ? colors.risk.high : colors.status.success },
         ].map(s => (
           <div key={s.label} style={card}>
             <div style={{ fontSize: fontSize.xs, color: colors.textMuted, fontWeight: fontWeight.medium, marginBottom: '6px' }}>{s.label}</div>
@@ -342,7 +352,7 @@ export function BRCFIRCTracker() {
           <div style={{ padding: `${spacing.xl} ${spacing.lg}`, textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', marginBottom: spacing.sm }}>🏦</div>
             <div style={{ fontWeight: fontWeight.semibold, color: colors.text, marginBottom: '4px' }}>No BRC / FIRC records yet</div>
-            <div style={{ fontSize: fontSize.sm, color: colors.textMuted }}>Add export invoices to track bank realization. Overdue invoices (&gt;9 months) are flagged automatically.</div>
+            <div style={{ fontSize: fontSize.sm, color: colors.textMuted }}>Add export invoices to track bank realization. Invoices past their realisation deadline are flagged automatically.</div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -389,7 +399,7 @@ export function BRCFIRCTracker() {
       </div>
 
       <div style={{ marginTop: spacing.md, padding: '10px 14px', backgroundColor: colors.surfaces.warningBg, borderRadius: borderRadius.md, fontSize: fontSize.xs, color: colors.surfaces.warningText, border: `1px solid #FCD34D` }}>
-        <strong>Note:</strong> Under FEMA, export proceeds must be realized within 9 months of shipment. Outstanding BRCs older than 270 days are highlighted as Overdue — contact your AD bank to regularize.
+        <strong>Note:</strong> Export proceeds must be realised within {BRC_PERIOD_MONTHS_LEGACY} months for invoices raised before {BRC_RULE_CHANGE_DATE}, and {BRC_PERIOD_MONTHS_STANDARD} months for invoices from that date — {BRC_PERIOD_MONTHS_INR} months where the export is invoiced or settled in rupees. Each invoice is measured against its own deadline. Whether the longer period also extends invoices already outstanding on {BRC_RULE_CHANGE_DATE} should be confirmed with your AD bank.
       </div>
     </div>
   )

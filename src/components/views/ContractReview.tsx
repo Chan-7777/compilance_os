@@ -589,7 +589,7 @@ export function ContractReview({ selectedCountries }: ContractReviewProps) {
           </strong>
           Paste contract text or upload an image. Claude checks against FEMA repatriation rules, LC soft clauses, INCOTERMS misuse, and 41 Indian-export-specific risk categories.
           <div style={{ marginTop: spacing.lg, display: 'flex', gap: spacing.md, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-            {['RBI 9-month rule', 'LC soft clauses', 'INCOTERMS 2020', 'DGFT obligations', 'Arbitration risk', 'Force majeure'].map(t => (
+            {['Export realisation period', 'LC soft clauses', 'INCOTERMS 2020', 'DGFT obligations', 'Arbitration risk', 'Force majeure'].map(t => (
               <span key={t} style={{
                 fontSize: '0.75rem', color: colors.textMuted,
                 background: colors.background, border: `1px solid ${colors.border}`,
