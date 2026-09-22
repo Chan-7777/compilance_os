@@ -8,6 +8,7 @@ import { REGULATORY_DB } from '@/data/regulatory-db'
 import { getHSProduct } from '@/data/hs-product-db'
 import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
 import { convertToINR } from './fx'
+import { deriveFobValue, rodtepEntitlement, RODTEP_NOTIFIED_UNTIL, type ValueBasis } from './rodtep'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -183,9 +184,13 @@ export async function bulkImportShippingBills(
     if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) { result.errors.push({ row: rowNo, reason: `Date "${r.date}" is not YYYY-MM-DD` }); return }
 
     const rate = rateByHs.get(hsDigits)!
-    // Shipping bill date drives the rate: CBIC notifies per fortnight.
-    const inr = convertToINR(r.fobValue, r.currency, r.date)
-    result.totalEntitlementINR += Math.round(inr * (rate.rate / 100))
+    // An ICEGATE shipping bill states FOB, so basis is genuine here — unlike a
+    // manually entered shipment value, which may be CIF. Shipping bill date
+    // drives both the exchange rate and whether RoDTEP is notified at all.
+    const fobInr = convertToINR(r.fobValue, r.currency, r.date)
+    result.totalEntitlementINR += rodtepEntitlement({
+      fobInr, ratePct: rate.rate, letExportDate: r.date,
+    }).amountInr ?? 0
     result.byMatchType[rate.matchType]++
     known.add(sb)
 
@@ -300,6 +305,10 @@ export function buildRodtepClaimCSV(
     shipping_bill_no: string | null; date: string; hs_code: string; name: string
     shipment_value: number; value_currency: string; rodtep_rate: number | null
     rodtep_match_type?: string | null
+    /** Incoterm basis of shipment_value. Absent means not recorded. */
+    value_basis?: ValueBasis | null
+    freight_value?: number | null
+    insurance_value?: number | null
   }>,
   profile: { name: string; iec?: string; gstin?: string; portOfLoading?: string }
 ): string {
@@ -311,17 +320,27 @@ export function buildRodtepClaimCSV(
   lines.push(`# ComplianceOS RoDTEP Claim Register — generated ${new Date().toISOString().slice(0, 10)}`)
   lines.push(`# Exporter: ${profile.name} | IEC: ${profile.iec ?? 'NOT SET'} | GSTIN: ${profile.gstin ?? 'NOT SET'} | Port: ${profile.portOfLoading ?? 'NOT SET'}`)
   lines.push(`# Rates: DGFT Appendix 4R as amended by Notification 60/2025-26. match_type=exact is filing-ready; prefix must be confirmed; default must NOT be filed.`)
-  lines.push(['shipping_bill_no', 'sb_date', 'ritc_hs_code', 'description', 'fob_value', 'currency', 'fob_value_inr', 'rodtep_rate_pct', 'entitlement_inr', 'match_type', 'claim_deadline', 'iec', 'gstin'].join(','))
+  lines.push(`# Entitlement is ${'FOB'} x rate. Where incoterm is not recorded the value is assumed FOB — see the basis column. A CIF or CFR value not reduced to FOB overstates the claim.`)
+  lines.push(`# RoDTEP notified to ${RODTEP_NOTIFIED_UNTIL}. Rows past that date carry no claimable entitlement.`)
+  lines.push(['shipping_bill_no', 'sb_date', 'ritc_hs_code', 'description', 'fob_value', 'currency', 'fob_value_inr', 'value_basis', 'rodtep_rate_pct', 'entitlement_inr', 'claimable', 'match_type', 'claim_deadline', 'iec', 'gstin'].join(','))
   let total = 0
   for (const s of shipments) {
     const rate = s.rodtep_rate ?? 0
-    const inr = Math.round(convertToINR(s.shipment_value, s.value_currency, s.date))
-    const ent = Math.round(inr * (rate / 100))
-    total += ent
+    const basis = deriveFobValue({
+      value: s.shipment_value,
+      basis: s.value_basis ?? 'unknown',
+      freight: s.freight_value ?? undefined,
+      insurance: s.insurance_value ?? undefined,
+    })
+    const fobInr = basis.fob === null ? null : Math.round(convertToINR(basis.fob, s.value_currency, s.date))
+    const { amountInr, claimable, note } = rodtepEntitlement({ fobInr, ratePct: rate, letExportDate: s.date })
+    total += amountInr ?? 0
     const dl = new Date(s.date); dl.setFullYear(dl.getFullYear() + 1)
     lines.push([
-      s.shipping_bill_no ?? '', s.date, s.hs_code, s.name, s.shipment_value, s.value_currency, inr,
-      rate, ent, s.rodtep_match_type ?? '', dl.toISOString().slice(0, 10), profile.iec ?? '', profile.gstin ?? '',
+      s.shipping_bill_no ?? '', s.date, s.hs_code, s.name, basis.fob ?? '', s.value_currency, fobInr ?? '',
+      basis.assumed ? 'assumed_fob' : (s.value_basis ?? 'fob'),
+      rate, amountInr ?? '', claimable ? 'yes' : `no: ${note ?? ''}`,
+      s.rodtep_match_type ?? '', dl.toISOString().slice(0, 10), profile.iec ?? '', profile.gstin ?? '',
     ].map(esc).join(','))
   }
   lines.push(`# TOTAL_ENTITLEMENT_INR,${total}`)

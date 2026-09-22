@@ -50,10 +50,35 @@ describe('buildRodtepClaimCSV', () => {
       { name: 'Acme Exports', iec: 'IEC123', gstin: 'GST123', portOfLoading: 'JNPT' }
     )
     const lines = csv.split('\n')
-    expect(lines[3]).toBe('shipping_bill_no,sb_date,ritc_hs_code,description,fob_value,currency,fob_value_inr,rodtep_rate_pct,entitlement_inr,match_type,claim_deadline,iec,gstin')
-    // 1000 USD × 84 = 84,000 INR × 1.2% = 1,008
-    expect(lines[4]).toBe('1234567,2026-03-15,72081000,HR coils,1000,USD,84000,1.2,1008,exact,2027-03-15,IEC123,GST123')
-    expect(lines[5]).toBe('# TOTAL_ENTITLEMENT_INR,1008')
+    const header = lines.find(l => l.startsWith('shipping_bill_no'))!
+    expect(header).toBe('shipping_bill_no,sb_date,ritc_hs_code,description,fob_value,currency,fob_value_inr,value_basis,rodtep_rate_pct,entitlement_inr,claimable,match_type,claim_deadline,iec,gstin')
+    // 1000 USD × 84 = 84,000 INR × 1.2% = 1,008. Incoterm not recorded, so the
+    // value is assumed FOB and the row says so rather than implying certainty.
+    const row = lines[lines.indexOf(header) + 1]
+    expect(row).toBe('1234567,2026-03-15,72081000,HR coils,1000,USD,84000,assumed_fob,1.2,1008,yes,exact,2027-03-15,IEC123,GST123')
+    expect(lines).toContain('# TOTAL_ENTITLEMENT_INR,1008')
+  })
+
+  it('claims on FOB, not on a CIF value that still carries freight and insurance', () => {
+    const csv = buildRodtepClaimCSV(
+      [{ shipping_bill_no: '9', date: '2026-03-15', hs_code: '72081000', name: 'HR coils',
+         shipment_value: 1000, value_currency: 'INR', rodtep_rate: 1.2,
+         value_basis: 'cif', freight_value: 80, insurance_value: 12 }],
+      { name: 'Acme Exports' }
+    )
+    // FOB = 1000 − 80 − 12 = 908, not 1000. Entitlement 908 × 1.2% = 10.896 → 11.
+    expect(csv).toContain(',908,INR,908,cif,1.2,11,yes,')
+    expect(csv).toContain('# TOTAL_ENTITLEMENT_INR,11')
+  })
+
+  it('marks a row unclaimable once the notified window has closed', () => {
+    const csv = buildRodtepClaimCSV(
+      [{ shipping_bill_no: '7', date: '2026-10-05', hs_code: '72081000', name: 'HR coils',
+         shipment_value: 1000, value_currency: 'INR', rodtep_rate: 1.2 }],
+      { name: 'Acme Exports' }
+    )
+    expect(csv).toContain('no: RoDTEP is notified only to 2026-09-30')
+    expect(csv).toContain('# TOTAL_ENTITLEMENT_INR,0')
   })
   it('escapes descriptions containing commas', () => {
     const csv = buildRodtepClaimCSV(
