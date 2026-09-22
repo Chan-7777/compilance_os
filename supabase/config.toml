@@ -56,3 +56,23 @@ entrypoint = "./functions/regulatory-alerts/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/customs-filing/index.ts"
+
+[functions.document-review]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/document-review/index.ts"
+
+[functions.whatsapp-alert]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/whatsapp-alert/index.ts"
+
+[functions.hs-mismatch-check]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/hs-mismatch-check/index.ts"
+
+[functions.recovery-digest]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/recovery-digest/index.ts"

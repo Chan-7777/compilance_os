@@ -19,6 +19,8 @@ export interface DashboardProps {
   onNavigate: (view: ViewType) => void
   shipments?: { gateStatus?: string }[]
   rodtepEstimate?: number | null
+  /** Real unclaimed RoDTEP from shipping bills on file. */
+  rodtepUnclaimed?: number | null
 }
 
 function formatINR(value: number): string {
@@ -53,7 +55,7 @@ const TruckIcon = () => (
   </svg>
 )
 
-export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [], rodtepEstimate = null }: DashboardProps) {
+export function Dashboard({ companyProfile, selectedProduct, selectedCountries, riskResults, alerts, onNavigate, shipments = [], rodtepEstimate = null, rodtepUnclaimed = null }: DashboardProps) {
   const overallRisk = riskResults.length > 0 ? {
     score: Math.round(riskResults.reduce((s, r) => s + r.score, 0) / riskResults.length),
     level: (() => {
@@ -61,6 +63,14 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
       return avg >= 60 ? 'high' : avg >= 30 ? 'medium' : 'low'
     })() as 'high' | 'medium' | 'low',
   } : null
+
+  // Prefer money actually owed on shipping bills over a turnover-band guess.
+  const rodtepValue = rodtepUnclaimed ?? rodtepEstimate
+  const rodtepCaption = rodtepUnclaimed != null
+    ? 'Unclaimed on your shipping bills'
+    : rodtepEstimate != null
+      ? 'Rough estimate from your turnover band'
+      : 'Import shipping bills to see this'
 
   const criticalAlerts = alerts.filter(a => a.severity === 'critical')
   const productId = PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id || selectedProduct
@@ -211,13 +221,13 @@ export function Dashboard({ companyProfile, selectedProduct, selectedCountries, 
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
                 <span style={tileLabelStyle}>RoDTEP refund est.</span>
-                <span style={{ color: rodtepEstimate != null ? colors.status.success : colors.textSubtle }}><RupeeIcon /></span>
+                <span style={{ color: rodtepValue != null ? colors.status.success : colors.textSubtle }}><RupeeIcon /></span>
               </div>
-              <div style={{ ...bigNum, color: rodtepEstimate != null ? colors.status.success : colors.textMuted }}>
-                {rodtepEstimate != null ? formatINR(rodtepEstimate) : '—'}
+              <div style={{ ...bigNum, color: rodtepValue != null ? colors.status.success : colors.textMuted }}>
+                {rodtepValue != null ? formatINR(rodtepValue) : '—'}
               </div>
               <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: spacing.xs }}>
-                {rodtepEstimate != null ? 'Unclaimed per shipment' : 'Add HS code in Settings'}
+                {rodtepCaption}
               </div>
             </div>
 

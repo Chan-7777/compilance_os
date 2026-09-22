@@ -3,6 +3,7 @@ import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Spinner } from '@/components/Spinner'
 import { colors, spacing, borderRadius } from '@theme/index'
+import { getFTAMeta, ftaAgeDays, FTA_STALE_AFTER_DAYS, type FTASourceMeta } from '@/data/fta'
 import { fetchFTAAgreements, fetchExportSchemes, fetchBatchFTASavings, fetchCountries, fetchIndiaMFNRate, fetchRodtepRate } from '@/lib/api'
 import type { CountryCode, ProductCode } from '@/types'
 
@@ -43,9 +44,11 @@ export interface FTASchemesProps {
   selectedProduct?: ProductCode
   selectedHsCode?: string | null
   selectedHsProductName?: string | null
+  /** Where agreement data came from, and when it was last confirmed. */
+  ftaMeta?: FTASourceMeta
 }
 
-export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode, selectedHsProductName }: FTASchemesProps) {
+export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode, selectedHsProductName, ftaMeta }: FTASchemesProps) {
   const isMobile = useMobile()
   const [savingsInput, setSavingsInput] = useState(1000000)
 
@@ -191,6 +194,26 @@ export function FTASchemes({ selectedCountries, selectedProduct, selectedHsCode,
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h2 style={titleStyle}>FTA & Export Schemes</h2>
+        {(() => {
+          const meta = ftaMeta ?? getFTAMeta()
+          const age = ftaAgeDays(meta)
+          const stale = age !== null && age > FTA_STALE_AFTER_DAYS
+          const when = meta.updatedAt
+            ? new Date(meta.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            : null
+          return (
+            <p style={{
+              margin: `${spacing.xs} 0 0 0`,
+              fontSize: '0.8125rem',
+              color: stale ? colors.surfaces.warningText : colors.textMuted,
+            }}>
+              {meta.source === 'database'
+                ? `Agreement status from your records${when ? `, as of ${when}` : ''}`
+                : 'Agreement status from the built-in table — not loaded from your records'}
+              {stale ? ` · not confirmed in ${age} days` : ''}
+            </p>
+          )
+        })()}
         <p style={{ color: colors.textMuted, fontSize: '0.875rem', margin: 0 }}>
           Trade agreements and Indian government export benefits
         </p>

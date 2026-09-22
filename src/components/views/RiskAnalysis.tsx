@@ -14,21 +14,28 @@ import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import { estimateEmissions } from '@/lib/api'
-import type { RiskResult, RiskFactor, CountryCode } from '@/types'
+import type { RiskResult, RiskFactor, CountryCode, CompanyProfile } from '@/types'
 
 export interface RiskAnalysisProps {
   selectedProduct: string
+  /** The company HS code on file. Falls back to the product default. */
+  hsCode?: string | null
   riskResults: Array<RiskResult & { country: CountryCode }>
+  companyProfile?: CompanyProfile
 }
 
-export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps) {
+export function RiskAnalysis({ selectedProduct, riskResults, companyProfile, hsCode = null }: RiskAnalysisProps) {
   const isMobile = useMobile()
-  const [emissionsData, setEmissionsData] = useState<Record<string, any>>({})
-  const [isEstimating, setIsEstimating] = useState<Record<string, boolean>>({})
-  const [emissionsWeight, setEmissionsWeight] = useState<Record<string, string>>({})
+  const [emissions, setEmissions] = useState<null | { error?: string; formatted?: string; source?: string; year?: number | null; region?: string | null; activity_id?: string; factor_kind?: 'cbam_default' | 'generic'; factor_name?: string | null; cn_code?: string | null }>(null)
+  const [isEstimating, setIsEstimating] = useState(false)
+  const [emissionsWeight, setEmissionsWeight] = useState('1000')
 
   const productLabel =
     PRODUCT_CATEGORIES.find(p => p.id === selectedProduct)?.label || selectedProduct
+  // Views are handed the product label, not its id, so map back before any
+  // lookup keyed by id.
+  const productId =
+    PRODUCT_CATEGORIES.find(p => p.label === selectedProduct)?.id ?? selectedProduct
 
   // Map product category to a representative HS code for emissions estimation
   const PRODUCT_HS_MAP: Record<string, string> = {
@@ -43,22 +50,24 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
     general: '9999.99',
   }
 
-  const handleEstimateEmissions = async (countryCode: string, weight: number) => {
-    setIsEstimating(prev => ({ ...prev, [countryCode]: true }))
+  const handleEstimateEmissions = async () => {
+    const weight = parseFloat(emissionsWeight)
+    if (!weight || weight <= 0) return
+    setIsEstimating(true)
     try {
-      const hsCode = PRODUCT_HS_MAP[selectedProduct] ?? '9999.99'
-      const result = await estimateEmissions(weight, hsCode, 'IN', selectedProduct, countryCode)
-      setEmissionsData(prev => ({ ...prev, [countryCode]: result }))
+      const effectiveHs = hsCode ?? PRODUCT_HS_MAP[productId] ?? '9999.99'
+      setEmissions(await estimateEmissions(weight, effectiveHs, 'IN', productId, 'EU'))
     } catch (err: any) {
       console.error('Failed to estimate emissions:', err)
-      setEmissionsData(prev => ({ ...prev, [countryCode]: { error: err?.message ?? 'Estimation failed' } }))
+      setEmissions({ error: err?.message ?? 'Estimation failed' })
     } finally {
-      setIsEstimating(prev => ({ ...prev, [countryCode]: false }))
+      setIsEstimating(false)
     }
   }
 
   // Sort by risk score descending
   const sortedResults = [...riskResults].sort((a, b) => b.score - a.score)
+  const showCbamSection = sortedResults.some(r => REGULATORY_DB[r.country]?.cbam?.active)
 
   const containerStyle: React.CSSProperties = {
     padding: spacing.lg,
@@ -275,76 +284,22 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
                   })}
                 </div>
 
-                {/* CBAM Emissions Panel */}
+                {/* CBAM is shown once, below the market cards; each card only notes it. */}
                 {country?.cbam?.active && (
                   <div style={{
                     marginTop: spacing.md,
-                    padding: spacing.md,
+                    padding: `${spacing.sm} ${spacing.md}`,
                     backgroundColor: colors.accentSurface,
                     borderRadius: borderRadius.md,
                     border: `1px solid ${colors.accent}44`,
+                    fontSize: '0.8125rem',
+                    color: colors.text,
+                    lineHeight: 1.5,
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: emissionsData[result.country] ? spacing.sm : 0 }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: colors.primary }}>CBAM CO₂e Scope 3 Estimate</div>
-                        <div style={{ fontSize: '0.75rem', color: colors.accent }}>Powered by Climatiq API</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.sm }}>
-                      <input
-                        type="number"
-                        value={emissionsWeight[result.country] ?? ''}
-                        onChange={e => setEmissionsWeight(prev => ({ ...prev, [result.country]: e.target.value }))}
-                        placeholder="Weight (kg)"
-                        min="1"
-                        style={{
-                          width: 130,
-                          padding: `${spacing.xs} ${spacing.sm}`,
-                          borderRadius: borderRadius.md,
-                          border: `1px solid ${colors.border}`,
-                          fontSize: '0.875rem',
-                          backgroundColor: colors.white,
-                        }}
-                      />
-                      <span style={{ fontSize: '0.75rem', color: colors.accent }}>kg per shipment</span>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleEstimateEmissions(result.country, parseFloat(emissionsWeight[result.country] || '1000'))}
-                        disabled={isEstimating[result.country]}
-                      >
-                        {isEstimating[result.country] ? 'Calculating...' : 'Estimate Emissions'}
-                      </Button>
-                    </div>
-
-                    {emissionsData[result.country] && (
-                      emissionsData[result.country].error ? (
-                        <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.surfaces.dangerBg, borderRadius: borderRadius.sm, fontSize: '0.8rem', color: colors.surfaces.dangerText, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                          <span>{emissionsData[result.country].error}</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.sm, marginTop: spacing.md }}>
-                          <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.sm }}>
-                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Est. Emissions (Per Tonne)</div>
-                            <div style={{ fontWeight: 700, fontSize: '1.25rem', fontFamily: "'JetBrains Mono', monospace", color: colors.surfaces.successText }}>
-                              {emissionsData[result.country].formatted}
-                            </div>
-                          </div>
-                          <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.sm }}>
-                            <div style={{ fontSize: '0.75rem', color: colors.textMuted, textTransform: 'uppercase' }}>Data Source</div>
-                            <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                              {emissionsData[result.country].source} ({emissionsData[result.country].year})
-                            </div>
-                            <div style={{ fontSize: '0.65rem', color: colors.textMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {emissionsData[result.country].activity_id}
-                            </div>
-                          </div>
-                        </div>
-                      )
+                    <strong>CBAM:</strong> {country.cbam.phase}
+                    {result.country === 'EU' && (
+                      <span style={{ color: colors.textMuted }}> See the CBAM section below for declarations and emissions.</span>
                     )}
-
-                    <CBAMReadiness product={productLabel} />
                   </div>
                 )}
 
@@ -364,6 +319,85 @@ export function RiskAnalysis({ selectedProduct, riskResults }: RiskAnalysisProps
           )
         })}
       </div>
+
+      {showCbamSection && (
+        <section style={{ marginTop: spacing.xl }} aria-labelledby="cbam-heading">
+          <h2 id="cbam-heading" style={{ ...titleStyle, fontSize: '1.375rem' }}>CBAM</h2>
+          <p style={subtitleStyle}>
+            Carbon border rules for your {productLabel.toLowerCase()} exports. The EU charges from 2026, and the UK from January 2027.
+          </p>
+
+          <CBAMReadiness product={productLabel} companyProfile={companyProfile}>
+            <div style={{
+              marginTop: spacing.xl,
+              padding: spacing.xl,
+              backgroundColor: colors.surface,
+              borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.border}`,
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text }}>Embedded emissions estimate</h3>
+              <p style={{ margin: `${spacing.xs} 0 ${spacing.md} 0`, color: colors.textMuted, fontSize: '0.875rem' }}>
+                Carbon embedded in one shipment, from Climatiq emission factors. Declarations use EU default values when no estimate is available.
+              </p>
+              <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
+                <label htmlFor="cbam-weight" style={{ fontSize: '0.8125rem', color: colors.textMuted }}>Shipment weight</label>
+                <input
+                  id="cbam-weight"
+                  type="number"
+                  min="1"
+                  value={emissionsWeight}
+                  onChange={e => setEmissionsWeight(e.target.value)}
+                  style={{
+                    width: 120,
+                    padding: `${spacing.xs} ${spacing.sm}`,
+                    borderRadius: borderRadius.md,
+                    border: `1px solid ${colors.border}`,
+                    fontSize: '0.875rem',
+                    backgroundColor: colors.white,
+                  }}
+                />
+                <span style={{ fontSize: '0.8125rem', color: colors.textMuted }}>kg</span>
+                <Button variant="primary" size="sm" onClick={handleEstimateEmissions} disabled={isEstimating}>
+                  {isEstimating ? 'Calculating…' : 'Estimate emissions'}
+                </Button>
+              </div>
+
+              {emissions?.error && (
+                <div role="alert" style={{
+                  marginTop: spacing.md,
+                  padding: spacing.sm,
+                  backgroundColor: colors.surfaces.warningBg,
+                  color: colors.surfaces.warningText,
+                  borderRadius: borderRadius.md,
+                  fontSize: '0.8125rem',
+                }}>
+                  Estimate unavailable: {emissions.error}. CBAM declarations will use EU default values instead.
+                </div>
+              )}
+
+              {emissions && !emissions.error && (
+                <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.md }}>
+                  <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, minWidth: 180 }}>
+                    <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, fontWeight: 600 }}>Estimated emissions</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: colors.text }}>{emissions.formatted}</div>
+                  </div>
+                  <div style={{ padding: spacing.sm, backgroundColor: colors.white, borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, minWidth: 180 }}>
+                    <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 1, color: colors.textMuted, fontWeight: 600 }}>Emission factor</div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500, color: colors.text }}>
+                      {emissions.factor_kind === 'cbam_default'
+                        ? `EU CBAM default · ${emissions.region ?? 'IN'} · ${emissions.year ?? ''}`
+                        : `Generic factor · ${emissions.source ?? 'Climatiq'}${emissions.year ? ` · ${emissions.year}` : ''}`}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: colors.textMuted, marginTop: 2, maxWidth: 320 }}>
+                      {emissions.factor_name ?? emissions.activity_id}{emissions.cn_code ? ` (CN ${emissions.cn_code})` : ''}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CBAMReadiness>
+        </section>
+      )}
     </div>
   )
 }

@@ -34,5 +34,17 @@ export type { RoDTEPCalculatorProps } from './RoDTEPCalculator'
 
 export { PublicCBAMChecker } from './PublicCBAMChecker'
 
+export { DocumentReview } from './DocumentReview'
+export type { DocumentReviewProps } from './DocumentReview'
+
+export { CADashboard } from './CADashboard'
+
+export { IGSTTracker } from './IGSTTracker'
+export { BRCFIRCTracker } from './BRCFIRCTracker'
+export { LicenseTracker } from './LicenseTracker'
+
+export { ContractReview } from './ContractReview'
+export type { ContractReviewProps } from './ContractReview'
+
 export { Upgrade } from './Upgrade'
 export type { UpgradeProps } from './Upgrade'

@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { calculateRiskScore } from '@/utils/risk-scoring'
 import { generateChecklist } from '@/utils/checklist-generator'
 import { generateBankReadyDealPack } from './deal-pack'
-import { FTA_DATABASE } from '@/data/fta'
+import { FTA_DATABASE, applyFTARows, getFTAMeta, type FTAAgreementRow, type FTASourceMeta } from '@/data/fta'
 import { INDIAN_EXPORT_SCHEMES } from '@/data/indian-schemes'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { getHSProduct } from '@/data/hs-product-db'
@@ -19,33 +19,323 @@ function getMFNRate(country: string): number {
   return MFN_RATES[country] ?? 5.0
 }
 
-// Get RoDTEP rate for a given HS code from Appendix 4R DB table.
-// Looks up 8-digit first, falls back to best match on 6-digit prefix.
-// Rates already reflect Notification 60/2025-26 (ch25+ halved).
-export async function fetchRodtepRate(hsCode: string): Promise<number> {
+// ─── RoDTEP Rate Lookup ───────────────────────────────────────
+// Looks up Appendix 4R (rodtep_rates table). Rates already reflect
+// Notification 60/2025-26 (ch25+ halved).
+//
+// matchType tells the caller how trustworthy the number is:
+//   exact   — 8-digit HS code found in the schedule. Safe to file on.
+//   prefix  — no 8-digit row; used the first row sharing the 6-digit
+//             sub-heading. Usually right, must be confirmed before filing.
+//   default — nothing in the schedule; 0.5% placeholder. Do NOT file on this.
+export type RodtepMatchType = 'exact' | 'prefix' | 'default'
+
+export interface RodtepRateResult {
+  rate: number
+  matchType: RodtepMatchType
+  matchedHs: string | null   // the schedule row actually used
+}
+
+export const RODTEP_DEFAULT_RATE = 0.5
+
+export async function fetchRodtepRateDetailed(hsCode: string): Promise<RodtepRateResult> {
   const digits = hsCode.replace(/\D/g, '')
-  if (digits.length < 4) return 0.5
+  if (digits.length < 4) return { rate: RODTEP_DEFAULT_RATE, matchType: 'default', matchedHs: null }
   const hs8 = digits.padEnd(8, '0')
   const hs6prefix = digits.slice(0, 6)
 
   // Try exact 8-digit match first
   const { data: exact } = await supabase
     .from('rodtep_rates')
-    .select('rate')
+    .select('hs_code, rate')
     .eq('hs_code', hs8)
     .maybeSingle()
-  if (exact?.rate != null) return Number(exact.rate)
+  if (exact?.rate != null) return { rate: Number(exact.rate), matchType: 'exact', matchedHs: exact.hs_code }
 
   // Fall back to first row matching 6-digit prefix
   const { data: approx } = await supabase
     .from('rodtep_rates')
-    .select('rate')
+    .select('hs_code, rate')
     .like('hs_code', `${hs6prefix}%`)
     .limit(1)
     .maybeSingle()
-  if (approx?.rate != null) return Number(approx.rate)
+  if (approx?.rate != null) return { rate: Number(approx.rate), matchType: 'prefix', matchedHs: approx.hs_code }
 
-  return 0.5 // default if not in schedule
+  return { rate: RODTEP_DEFAULT_RATE, matchType: 'default', matchedHs: null }
+}
+
+// Backward-compatible number-only wrapper (dashboard estimate, FTA view).
+export async function fetchRodtepRate(hsCode: string): Promise<number> {
+  return (await fetchRodtepRateDetailed(hsCode)).rate
+}
+
+// ─── RoDTEP Look-back Audit ───────────────────────────────────
+// Shipments created before rodtep_rate was cached (or via the add-shipment
+// form, which never wrote it) have rodtep_rate = NULL and are invisible to
+// the recovery tracker and CA dashboard. This backfills them in place.
+export async function backfillRodtepRates(companyId: string): Promise<number> {
+  const { data } = await supabase
+    .from('shipments')
+    .select('id, hs_code')
+    .eq('company_id', companyId)
+    .is('rodtep_rate', null)
+    .not('hs_code', 'is', null)
+    // No shipping bill means no let-export order, so nothing is claimable yet.
+    // Filling a rate here would count unshipped goods as unclaimed RoDTEP.
+    .not('shipping_bill_no', 'is', null)
+
+  if (!data || data.length === 0) return 0
+
+  // Rate lookup once per distinct HS code, not per shipment
+  const distinct = [...new Set(data.map(s => s.hs_code as string))]
+  const rateByHs = new Map<string, RodtepRateResult>()
+  await Promise.all(distinct.map(async hs => rateByHs.set(hs, await fetchRodtepRateDetailed(hs))))
+
+  let updated = 0
+  await Promise.all(data.map(async s => {
+    const r = rateByHs.get(s.hs_code)
+    if (!r) return
+    const { error } = await supabase
+      .from('shipments')
+      .update({ rodtep_rate: r.rate, rodtep_match_type: r.matchType })
+      .eq('id', s.id)
+    if (!error) updated++
+  }))
+  return updated
+}
+
+export type RodtepClaimStatus = 'unclaimed' | 'filed' | 'credited' | 'rejected'
+
+export async function updateRodtepClaimStatus(
+  shipmentId: string,
+  status: RodtepClaimStatus,
+  note?: string
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+  const { error } = await supabase
+    .from('shipments')
+    .update({
+      rodtep_claim_status: status,
+      rodtep_claimed: status === 'filed' || status === 'credited',
+      rodtep_claim_date: status === 'unclaimed' ? null : today,
+      rodtep_claim_note: note ?? null,
+    })
+    .eq('id', shipmentId)
+  if (error) throw new Error(error.message)
+}
+
+// ─── Bulk Shipping Bill Import ────────────────────────────────
+// Accepts rows parsed from a CSV export of the customer's shipping bills
+// (ICEGATE / CHA register / Tally). Looks up the RoDTEP rate for every
+// distinct HS code once, then inserts everything with the rate cached so the
+// look-back audit is populated immediately.
+export interface ShippingBillRow {
+  shippingBillNo: string
+  date: string              // YYYY-MM-DD
+  hsCode: string
+  fobValue: number
+  currency: string          // INR | USD | EUR | GBP | AED
+  description?: string
+  country?: string          // destination; defaults to 'EU'
+  buyerName?: string
+}
+
+export interface BulkImportResult {
+  inserted: number
+  skippedDuplicates: number
+  errors: Array<{ row: number; reason: string }>
+  totalEntitlementINR: number
+  byMatchType: Record<RodtepMatchType, number>
+}
+
+const FX_TO_INR: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
+
+export async function bulkImportShippingBills(
+  rows: ShippingBillRow[],
+  companyId: string
+): Promise<BulkImportResult> {
+  const result: BulkImportResult = {
+    inserted: 0, skippedDuplicates: 0, errors: [], totalEntitlementINR: 0,
+    byMatchType: { exact: 0, prefix: 0, default: 0 },
+  }
+  if (rows.length === 0) return result
+
+  // Skip shipping bills already on file for this company
+  const { data: existing } = await supabase
+    .from('shipments')
+    .select('shipping_bill_no')
+    .eq('company_id', companyId)
+    .not('shipping_bill_no', 'is', null)
+  const known = new Set((existing ?? []).map(e => String(e.shipping_bill_no).trim()))
+
+  const distinct = [...new Set(rows.map(r => r.hsCode.replace(/\D/g, '')))]
+  const rateByHs = new Map<string, RodtepRateResult>()
+  await Promise.all(distinct.map(async hs => rateByHs.set(hs, await fetchRodtepRateDetailed(hs))))
+
+  const inserts: any[] = []
+  rows.forEach((r, i) => {
+    const rowNo = i + 2 // 1-based + header line
+    const sb = r.shippingBillNo.trim()
+    if (!sb) { result.errors.push({ row: rowNo, reason: 'Missing shipping bill number' }); return }
+    if (known.has(sb)) { result.skippedDuplicates++; return }
+    const hsDigits = r.hsCode.replace(/\D/g, '')
+    if (hsDigits.length < 4) { result.errors.push({ row: rowNo, reason: `Invalid HS code "${r.hsCode}"` }); return }
+    if (!(r.fobValue > 0)) { result.errors.push({ row: rowNo, reason: 'FOB value must be > 0' }); return }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) { result.errors.push({ row: rowNo, reason: `Date "${r.date}" is not YYYY-MM-DD` }); return }
+
+    const rate = rateByHs.get(hsDigits)!
+    const currency = (r.currency || 'USD').toUpperCase()
+    const inr = r.fobValue * (FX_TO_INR[currency] ?? FX_TO_INR.USD)
+    result.totalEntitlementINR += Math.round(inr * (rate.rate / 100))
+    result.byMatchType[rate.matchType]++
+    known.add(sb)
+
+    inserts.push({
+      company_id: companyId,
+      name: r.description?.trim() || `SB ${sb}`,
+      product: 'general',
+      country: r.country?.trim() || 'EU',
+      date: r.date,
+      hs_code: hsDigits,
+      shipment_value: r.fobValue,
+      value_currency: currency,
+      shipping_bill_no: sb,
+      buyer_name: r.buyerName?.trim() || null,
+      rodtep_rate: rate.rate,
+      rodtep_match_type: rate.matchType,
+      rodtep_claimed: false,
+      rodtep_claim_status: 'unclaimed',
+      status: 'delivered',
+    })
+  })
+
+  for (let i = 0; i < inserts.length; i += 100) {
+    const batch = inserts.slice(i, i + 100)
+    const { error } = await supabase.from('shipments').insert(batch)
+    if (error) {
+      result.errors.push({ row: i + 2, reason: `Insert failed: ${error.message}` })
+    } else {
+      result.inserted += batch.length
+    }
+  }
+  return result
+}
+
+// Minimal RFC-4180-ish CSV parser (handles quoted fields with commas/newlines).
+export function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = [], field = '', inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++ } else inQuotes = false
+      } else field += c
+    } else if (c === '"') inQuotes = true
+    else if (c === ',') { row.push(field); field = '' }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++
+      row.push(field); field = ''
+      if (row.some(f => f.trim() !== '')) rows.push(row)
+      row = []
+    } else field += c
+  }
+  row.push(field)
+  if (row.some(f => f.trim() !== '')) rows.push(row)
+  return rows
+}
+
+// Maps a parsed CSV (header row + data) into ShippingBillRow[] using
+// forgiving header matching so ICEGATE / Tally / CHA exports all work.
+export function csvToShippingBills(rows: string[][]): { bills: ShippingBillRow[]; missing: string[] } {
+  if (rows.length < 2) return { bills: [], missing: ['No data rows found'] }
+  const header = rows[0].map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''))
+  const find = (...aliases: string[]) => header.findIndex(h => aliases.some(a => h === a || h.includes(a)))
+
+  const iSB = find('shippingbillno', 'sbno', 'shippingbill', 'sbnumber', 'billno')
+  const iDate = find('sbdate', 'shippingbilldate', 'date', 'leodate')
+  const iHS = find('hscode', 'ritc', 'hsn', 'tariff')
+  const iFOB = find('fobvalue', 'fob', 'value', 'amount')
+  const iCur = find('currency', 'curr', 'ccy')
+  const iDesc = find('description', 'product', 'goods', 'item')
+  const iCountry = find('destination', 'country', 'dest')
+  const iBuyer = find('buyer', 'consignee', 'importer')
+
+  const missing: string[] = []
+  if (iSB < 0) missing.push('Shipping Bill No')
+  if (iDate < 0) missing.push('Date')
+  if (iHS < 0) missing.push('HS Code')
+  if (iFOB < 0) missing.push('FOB Value')
+  if (missing.length) return { bills: [], missing }
+
+  const toISO = (raw: string): string => {
+    const s = raw.trim()
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+    const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/) // DD/MM/YYYY (Indian default)
+    if (m) {
+      const yyyy = m[3].length === 2 ? `20${m[3]}` : m[3]
+      return `${yyyy}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+    }
+    return s
+  }
+
+  const bills = rows.slice(1).map(r => ({
+    shippingBillNo: (r[iSB] ?? '').trim(),
+    date: toISO(r[iDate] ?? ''),
+    hsCode: (r[iHS] ?? '').trim(),
+    fobValue: Number(String(r[iFOB] ?? '').replace(/[^\d.]/g, '')) || 0,
+    currency: iCur >= 0 ? (r[iCur] ?? 'USD').trim() : 'USD',
+    description: iDesc >= 0 ? r[iDesc] : undefined,
+    country: iCountry >= 0 ? r[iCountry] : undefined,
+    buyerName: iBuyer >= 0 ? r[iBuyer] : undefined,
+  }))
+  return { bills, missing: [] }
+}
+
+// ─── RoDTEP Claim File (CHA / ICEGATE upload) ─────────────────
+// Structured claim register — one row per unclaimed shipping bill with the
+// exact rate, schedule row used, and computed entitlement. This is what a CHA
+// needs to file, instead of a prose "how to claim" page.
+export function buildRodtepClaimCSV(
+  shipments: Array<{
+    shipping_bill_no: string | null; date: string; hs_code: string; name: string
+    shipment_value: number; value_currency: string; rodtep_rate: number | null
+    rodtep_match_type?: string | null
+  }>,
+  profile: { name: string; iec?: string; gstin?: string; portOfLoading?: string }
+): string {
+  const esc = (v: unknown) => {
+    const s = v == null ? '' : String(v)
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const lines: string[] = []
+  lines.push(`# ComplianceOS RoDTEP Claim Register — generated ${new Date().toISOString().slice(0, 10)}`)
+  lines.push(`# Exporter: ${profile.name} | IEC: ${profile.iec ?? 'NOT SET'} | GSTIN: ${profile.gstin ?? 'NOT SET'} | Port: ${profile.portOfLoading ?? 'NOT SET'}`)
+  lines.push(`# Rates: DGFT Appendix 4R as amended by Notification 60/2025-26. match_type=exact is filing-ready; prefix must be confirmed; default must NOT be filed.`)
+  lines.push(['shipping_bill_no', 'sb_date', 'ritc_hs_code', 'description', 'fob_value', 'currency', 'fob_value_inr', 'rodtep_rate_pct', 'entitlement_inr', 'match_type', 'claim_deadline', 'iec', 'gstin'].join(','))
+  let total = 0
+  for (const s of shipments) {
+    const rate = s.rodtep_rate ?? 0
+    const inr = Math.round(s.shipment_value * (FX_TO_INR[(s.value_currency || 'USD').toUpperCase()] ?? 84))
+    const ent = Math.round(inr * (rate / 100))
+    total += ent
+    const dl = new Date(s.date); dl.setFullYear(dl.getFullYear() + 1)
+    lines.push([
+      s.shipping_bill_no ?? '', s.date, s.hs_code, s.name, s.shipment_value, s.value_currency, inr,
+      rate, ent, s.rodtep_match_type ?? '', dl.toISOString().slice(0, 10), profile.iec ?? '', profile.gstin ?? '',
+    ].map(esc).join(','))
+  }
+  lines.push(`# TOTAL_ENTITLEMENT_INR,${total}`)
+  return lines.join('\n')
+}
+
+export function downloadTextFile(filename: string, content: string, mime = 'text/csv'): void {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // Normalise HS code to DB format XXXX.XX (6 digits, dot after 4th)
@@ -273,7 +563,10 @@ export async function estimateEmissions(
   })
 
   if (error) {
-    throw new Error(error.message)
+    // supabase-js replaces the function's own message with a generic
+    // "non-2xx status code"; the real reason is in the response body.
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null)
+    throw new Error(body?.error ?? error.message)
   }
 
   return data as {
@@ -282,7 +575,12 @@ export async function estimateEmissions(
     co2e_tonnes: number
     activity_id: string
     source: string
-    year: number
+    year: number | null
+    region?: string | null
+    /** cbam_default: the EU CBAM default value for this HS code and origin. */
+    factor_kind?: 'cbam_default' | 'generic'
+    factor_name?: string | null
+    cn_code?: string | null
     cbam_applicable: boolean
     formatted: string
   }
@@ -378,6 +676,24 @@ export function fetchCountries(): Promise<{ countries: Array<{ code: string; nam
     flag: REGULATORY_DB[code].flag,
   }))
   return Promise.resolve({ countries })
+}
+
+/**
+ * Overlay the fta_agreements table onto the built-in table. Safe to call on
+ * every sign-in: a missing table, a blocked read or an empty result all leave
+ * the built-in values in place.
+ */
+export async function loadFTAAgreements(): Promise<FTASourceMeta> {
+  try {
+    const { data, error } = await supabase
+      .from('fta_agreements')
+      .select('country_code, name, status, effective_date, round, preferential_tariff, notes, updated_at')
+    if (error || !data || data.length === 0) return getFTAMeta()
+    applyFTARows(data as FTAAgreementRow[])
+  } catch {
+    // Keep the built-in values.
+  }
+  return getFTAMeta()
 }
 
 // ─── FTA Agreements & Export Schemes ─────────────────────────
@@ -634,6 +950,21 @@ export async function downloadCOOPdf(shipmentId: string, shipment?: Partial<Ship
   doc.setFontSize(9); doc.setFont('helvetica', 'normal')
   doc.text('(Non-Preferential)', W / 2, 30, { align: 'center' })
 
+  // Diagonal "unofficial draft" watermark — this PDF is generated locally and is
+  // not issued by DGFT or any chamber/agency; it must never be mistaken for a
+  // real certificate before the DGFT CoO API integration goes live.
+  doc.saveGraphicsState?.()
+  doc.setTextColor(220, 60, 60)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  ;(doc as any).setGState?.(new (doc as any).GState({ opacity: 0.5 }))
+  doc.text('UNOFFICIAL DRAFT PREVIEW — NOT ISSUED BY DGFT OR ISSUING AGENCY', W / 2, 38.5, {
+    align: 'center', angle: 0,
+  })
+  ;(doc as any).setGState?.(new (doc as any).GState({ opacity: 1 }))
+  doc.restoreGraphicsState?.()
+  doc.setTextColor(20, 20, 20)
+
   doc.setTextColor(20, 20, 20)
   doc.setFontSize(9); doc.setFont('helvetica', 'bold')
   doc.text(`Reference No: ${ref}`, margin, 44)
@@ -687,7 +1018,9 @@ export async function downloadCOOPdf(shipmentId: string, shipment?: Partial<Ship
   doc.text('Authorised Signatory', margin, sigY + 5)
   doc.text('Stamp & Signature of Issuing Body', W - margin, sigY + 5, { align: 'right' })
 
-  doc.setFontSize(7); doc.setTextColor(150, 150, 150)
+  doc.setFontSize(7); doc.setTextColor(220, 60, 60); doc.setFont('helvetica', 'bold')
+  doc.text('UNOFFICIAL DRAFT PREVIEW — NOT ISSUED BY DGFT OR ISSUING AGENCY', W / 2, 278, { align: 'center' })
+  doc.setFontSize(7); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal')
   doc.text('Generated by ComplianceOS · For official use, get this countersigned by your Chamber of Commerce or FIEO', W / 2, 284, { align: 'center' })
 
   return doc.output('blob')
@@ -703,6 +1036,23 @@ export function validateHSCode(hsCode: string, _product?: string) {
 }
 
 // ─── Alerts & Intelligence ──────────────────────────────────────
+// Feed items arrive with HTML markup and double-escaped entities baked into the
+// text, e.g. "&amp;nbsp;" or "&lt;p&gt;". Decode twice, drop tags, collapse space.
+function cleanFeedText(raw: string | null | undefined): string {
+  if (!raw) return ''
+  let text = String(raw)
+  for (let pass = 0; pass < 2; pass++) {
+    text = text
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#0?39;|&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+  }
+  return text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export async function fetchAlerts(countries: string[], products: string[], offset = 0) {
   // Query regulatory_changes directly — faster and avoids edge function auth issues
   let query = supabase
@@ -733,27 +1083,56 @@ export async function fetchAlerts(countries: string[], products: string[], offse
     { id: 's5', country_code: 'UAE', country_name: 'UAE', flag: '🇦🇪', title: 'India-UAE CEPA — Rules of Origin updated', change_description: 'India-UAE Comprehensive Economic Partnership Agreement Rules of Origin for textiles and engineering goods updated. Review Chapter 3 qualification criteria before claiming 0% preferential duty on CEPA-covered shipments.', source_url: 'https://mofaic.gov.ae', source_name: 'UAE MoFAIC', severity: 'warning', alert_type: 'regulation_change', product_tags: ['Textiles', 'Machinery'], date: '2026-02-15', scraped_at: '2026-02-15' },
   ]
 
-  // Boost product-matched alerts to top
-  const sorted = [...effectiveRows].sort((a, b) => {
-    const aMatch = products.some(p => (a.product_tags ?? []).includes(p)) ? 1 : 0
-    const bMatch = products.some(p => (b.product_tags ?? []).includes(p)) ? 1 : 0
-    if (bMatch !== aMatch) return bMatch - aMatch
-    const sevOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 }
-    return (sevOrder[a.severity] ?? 2) - (sevOrder[b.severity] ?? 2)
-  })
+  // The feed classifier keys off words like "ban", "penalty" or "withhold
+  // release" anywhere in the text, so a vape-smuggling story arrives as
+  // critical for a steel exporter. An alert is only urgent here when it is
+  // about this company's goods; everything else is demoted a level.
+  const productTerms = products
+    .flatMap(p => p.toLowerCase().split(/[^a-z]+/))
+    .filter(w => w.length > 3)
 
-  const alerts = sorted.map((row, idx) => ({
-    id: idx + 1,
-    type: row.alert_type ?? 'regulation_change',
-    severity: row.severity,
-    country: row.country_code,
-    countryName: row.country_name ?? row.country_code,
-    flag: row.flag ?? '🌐',
-    date: row.date,
-    message: row.title ? `${row.title}: ${row.change_description}` : row.change_description,
-    sourceUrl: row.source_url,
-    sourceName: row.source_name,
-  }))
+  const isRelevant = (row: { product_tags?: string[] | null; title?: string | null; change_description?: string | null }) => {
+    const tags = (row.product_tags ?? []).map(t => t.toLowerCase())
+    if (products.some(p => tags.includes(p.toLowerCase()))) return true
+    const text = `${row.title ?? ''} ${row.change_description ?? ''}`.toLowerCase()
+    return productTerms.some(term => text.includes(term))
+  }
+
+  const seen = new Set<string>()
+  const alerts = effectiveRows
+    .map(row => {
+      const title = cleanFeedText(row.title)
+      const body = cleanFeedText(row.change_description)
+      const relevant = isRelevant(row)
+      const severity = (relevant
+        ? row.severity
+        : row.severity === 'critical' ? 'warning' : row.severity) as 'critical' | 'warning' | 'info'
+      return { row, title, body, relevant, severity }
+    })
+    // The same story often arrives from several feeds on the same day.
+    .filter(a => {
+      const key = `${a.title}|${a.row.country_code}`.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => {
+      if (a.relevant !== b.relevant) return a.relevant ? -1 : 1
+      const sevOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 }
+      return (sevOrder[a.severity] ?? 2) - (sevOrder[b.severity] ?? 2)
+    })
+    .map((a, idx) => ({
+      id: idx + 1,
+      type: a.row.alert_type ?? 'regulation_change',
+      severity: a.severity,
+      country: a.row.country_code,
+      countryName: a.row.country_name ?? a.row.country_code,
+      flag: a.row.flag ?? '🌐',
+      date: a.row.date,
+      message: a.title ? `${a.title}: ${a.body}` : a.body,
+      sourceUrl: a.row.source_url,
+      sourceName: a.row.source_name,
+    }))
 
   return { alerts }
 }
@@ -769,9 +1148,16 @@ export async function generateCustomsPayload(shipment: Partial<Shipment>) {
   }
 
   return data as {
-    status: string
-    reference_number: string
-    payload_generated: any
+    status: 'submitted' | 'submission_failed' | 'payload_ready'
+    /** Issued by ICEGATE. Null whenever the payload was not actually submitted. */
+    reference_number: string | null
+    live_submission: boolean
+    icegate_job_number: number | null
+    draft_job_number: number
+    icegate_response: unknown
+    payload: unknown
+    schema_version: string
+    note: string
     timestamp: string
   }
 }
@@ -803,6 +1189,99 @@ export async function processInvoiceOCR(fileBase64: string, filename: string) {
   }
 }
 
+// ─── Document AI Review ───────────────────────────────────────
+export interface DocumentReviewIssue {
+  severity: 'critical' | 'warning' | 'info'
+  field: string
+  finding: string
+  fix: string
+}
+
+export interface DocumentReviewResult {
+  verdict: 'pass' | 'flag' | 'fail'
+  score: number
+  issues: DocumentReviewIssue[]
+  summary: string
+}
+
+export async function reviewDocuments(
+  documents: Array<{ name: string; base64: string; type: 'invoice' | 'packing_list' | 'shipping_bill' | 'other' }>,
+  context?: { hsCode?: string; destinationCountry?: string; product?: string }
+): Promise<DocumentReviewResult> {
+  const { data, error } = await supabase.functions.invoke('document-review', {
+    body: { documents, ...context },
+  })
+  if (error) throw new Error(error.message)
+  return data as DocumentReviewResult
+}
+
+// ─── Export Contract Review ───────────────────────────────────
+export type ContractType = 'sale_contract' | 'letter_of_credit' | 'freight_agreement' | 'bank_guarantee' | 'insurance_policy' | 'other'
+export type PartyPosition = 'exporter' | 'buyer'
+
+export interface ContractRedFlag {
+  clause: string
+  current_text: string
+  risk: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+}
+
+export interface ContractKeyTerm {
+  term: string
+  value: string
+  market_standard: string
+  rating: 'favourable' | 'standard' | 'unfavourable'
+}
+
+export interface ContractMissingProvision {
+  provision: string
+  importance: 'critical' | 'recommended'
+  why: string
+  suggested_language: string
+}
+
+export interface ContractNegotiability {
+  clause: string
+  current: string
+  suggested_change: string
+  realistic: 'high' | 'medium' | 'low'
+  reason: string
+}
+
+export interface ContractProtectiveClause {
+  name: string
+  purpose: string
+  language: string
+}
+
+export interface ContractReviewResult {
+  verdict: 'clear' | 'review' | 'risky'
+  risk_score: number
+  contract_type_detected: string
+  summary: string
+  red_flags: ContractRedFlag[]
+  key_terms: ContractKeyTerm[]
+  missing_provisions: ContractMissingProvision[]
+  negotiability: ContractNegotiability[]
+  protective_clauses: ContractProtectiveClause[]
+  rbi_fema_flags: string[]
+  incoterms_notes: string | null
+}
+
+export async function reviewExportContract(params: {
+  contractText?: string
+  base64?: string
+  fileName?: string
+  contractType: ContractType
+  partyPosition: PartyPosition
+  counterpartyCountry?: string
+}): Promise<ContractReviewResult> {
+  const { data, error } = await supabase.functions.invoke('contract-review', { body: params })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data as ContractReviewResult
+}
+
 // ─── WhatsApp Vendor Outreach (CBAM Scope 3) ──────────────────
 export async function sendWhatsAppOutreach(vendorData: {
   phoneNumber: string
@@ -825,6 +1304,102 @@ export async function sendWhatsAppOutreach(vendorData: {
   }
 }
 
+// ─── WhatsApp Notification Settings ─────────────────────────
+export interface NotificationSettings {
+  whatsapp_number: string | null
+  whatsapp_alerts: boolean
+}
+
+export async function fetchNotificationSettings(): Promise<NotificationSettings> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.company_id) return { whatsapp_number: null, whatsapp_alerts: false }
+
+  const { data, error } = await supabase
+    .from('companies')
+    .select('whatsapp_number, whatsapp_alerts')
+    .eq('id', profile.company_id)
+    .single()
+
+  if (error) throw new Error(error.message)
+  return { whatsapp_number: data?.whatsapp_number ?? null, whatsapp_alerts: data?.whatsapp_alerts ?? false }
+}
+
+export async function updateNotificationSettings(settings: NotificationSettings): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.company_id) throw new Error('No company found')
+
+  const { error } = await supabase
+    .from('companies')
+    .update({ whatsapp_number: settings.whatsapp_number, whatsapp_alerts: settings.whatsapp_alerts })
+    .eq('id', profile.company_id)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function sendWhatsAppAlert(payload: {
+  to: string
+  severity: 'critical' | 'warning' | 'info'
+  country: string
+  message: string
+  date?: string
+  alertKey?: string
+  companyId?: string
+}): Promise<{ success: boolean; messageId?: string; simulated?: boolean; skipped?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('whatsapp-alert', { body: payload })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// ─── HS Code Mismatch Detector ───────────────────────────────
+export interface HSMismatchSuggestedCode {
+  code: string
+  description: string
+  reason: string
+  confidence: number
+}
+
+export interface HSMismatchResult {
+  mismatch: boolean
+  risk: 'high' | 'medium' | 'low' | 'clear'
+  confidence: number
+  currentCode: { code: string; description: string }
+  suggestedCodes: HSMismatchSuggestedCode[]
+  findings: string[]
+  penaltyRisk: string
+  summary: string
+}
+
+export async function checkHSMismatch(payload: {
+  hsCode: string
+  productDescription: string
+  product?: string
+  invoiceValue?: number
+  destinationCountry?: string
+  quantity?: number
+  unit?: string
+}): Promise<HSMismatchResult> {
+  const { data, error } = await supabase.functions.invoke('hs-mismatch-check', { body: payload })
+  if (error) throw new Error(error.message)
+  if (!data?.success) throw new Error(data?.error ?? 'Mismatch check failed')
+  return data.data as HSMismatchResult
+}
+
 // ─── TReDS Trade Financing ───────────────────────────────────
 export async function submitTReDSFinancing(financingData: {
   seller: { iec?: string }
@@ -841,11 +1416,14 @@ export async function submitTReDSFinancing(financingData: {
     throw new Error(error.message)
   }
 
+  // treds-financing refuses with 503 when no TReDS platform is connected and
+  // 501 until submission is implemented, so this resolves only on a real
+  // factoring unit being created.
   return data as {
     success: boolean
     message: string
-    fu_id: string
-    simulated_payload: any
+    reference_id: string
+    factoring_unit: unknown
   }
 }
 

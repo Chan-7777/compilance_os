@@ -92,9 +92,13 @@ export interface ExportScheme {
 
 export type CompanySize = 'micro' | 'small' | 'medium' | 'large'
 
+export type TradeRole = 'exporter' | 'importer' | 'both'
+
 export interface CompanyProfile {
   name: string
   size: CompanySize
+  /** Onboarding step 1. Persisted to companies.trade_role. */
+  tradeRole?: TradeRole
   iec?: string
   gstin?: string
   // ICEGATE / customs filing fields
@@ -203,6 +207,40 @@ export interface Shipment {
   quantity?: number
   transportMode?: string
   sanctionsRisk?: 'clear' | 'flag' | 'block'
+  // DGFT Preferential Certificate of Origin fields (Trade Notice 25/2026-27)
+  district?: string
+  portOfLoading?: string
+  portOfDischarge?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  uom?: string
+  packageMarksNumbers?: string
+  importerAddress?: string
+  importerEmail?: string
+  producerDetails?: string
+  originCriterion?: string
+  isRetrospective?: boolean
+  reasonRetrospective?: string
+  isExhibition?: boolean
+}
+
+// ----------------------------------------------------------------------------
+// DGFT Certificate of Origin (CoO) Types — Trade Notice 25/2026-27
+// ----------------------------------------------------------------------------
+
+export type CoOApplicationStatus = 'DRAFT' | 'IN_PROCESS' | 'APPROVED' | 'CERTIFICATE_ISSUED' | 'REJECTED'
+
+export interface CoOApplication {
+  id: string
+  shipmentId: string
+  companyId: string
+  requestId: string
+  certificateNo?: string
+  status: CoOApplicationStatus
+  dgftResponse?: Record<string, unknown>
+  certifiedPdfUrl?: string
+  createdAt: string
+  updatedAt: string
 }
 
 // ----------------------------------------------------------------------------
@@ -327,10 +365,16 @@ export type ViewType =
   | 'alerts'
   | 'fta'
   | 'shipments'
+  | 'doc-review'
+  | 'ca-dashboard'
   | 'settings'
   | 'label-validator'
   | 'eu-compliance'
   | 'rodtep'
+  | 'igst-tracker'
+  | 'brc-firc'
+  | 'license-tracker'
+  | 'contract-review'
   | 'upgrade'
 
 export interface AppState {

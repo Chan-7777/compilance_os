@@ -101,7 +101,7 @@ function refNo(prefix: string): string {
 }
 
 /** Shared base CSS used across all four documents */
-const BASE_CSS = `
+export const BASE_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 13px; line-height: 1.5; }
   .page { max-width: 820px; margin: 0 auto; padding: 44px; }
@@ -157,7 +157,7 @@ const BASE_CSS = `
   }
 `
 
-const PRINT_BUTTONS = `
+export const PRINT_BUTTONS = `
   <div class="no-print" style="margin-bottom:20px;display:flex;gap:10px">
     <button onclick="window.print()" style="padding:10px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">Print / Save as PDF</button>
     <button onclick="window.close()" style="padding:10px 20px;background:#f1f5f9;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer">Close</button>

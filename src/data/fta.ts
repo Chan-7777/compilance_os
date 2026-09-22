@@ -51,6 +51,74 @@ export const FTA_DATABASE: FTADatabase = {
   },
 }
 
+// ----------------------------------------------------------------------------
+// Runtime source of truth
+//
+// The table above is the built-in fallback. fta_agreements in the database is
+// authoritative when it can be read, so a trade deal can be corrected without
+// shipping a new build. Consumers read FTA_DATABASE at call time, so patching
+// it in place updates every caller without changing their signatures.
+// ----------------------------------------------------------------------------
+
+export interface FTAAgreementRow {
+  country_code: string
+  name?: string | null
+  status?: string | null
+  effective_date?: string | null
+  round?: string | null
+  preferential_tariff?: boolean | null
+  notes?: string | null
+  updated_at?: string | null
+}
+
+export interface FTASourceMeta {
+  source: 'database' | 'built-in'
+  /** Newest updated_at across the rows actually applied. */
+  updatedAt: string | null
+}
+
+/** Confirmations older than this are shown as stale. */
+export const FTA_STALE_AFTER_DAYS = 90
+
+let ftaMeta: FTASourceMeta = { source: 'built-in', updatedAt: null }
+
+export function getFTAMeta(): FTASourceMeta {
+  return ftaMeta
+}
+
+/** Whole days since the data was last confirmed, or null when unknown. */
+export function ftaAgeDays(meta: FTASourceMeta = ftaMeta): number | null {
+  if (!meta.updatedAt) return null
+  const ms = Date.now() - new Date(meta.updatedAt).getTime()
+  return Number.isFinite(ms) ? Math.floor(ms / 86_400_000) : null
+}
+
+/** Overlay database rows onto the built-in table. Returns how many applied. */
+export function applyFTARows(rows: FTAAgreementRow[]): number {
+  let applied = 0
+  let newest: string | null = null
+
+  for (const row of rows) {
+    const code = row.country_code as CountryCode
+    const current = FTA_DATABASE[code]
+    if (!current) continue
+
+    FTA_DATABASE[code] = {
+      name: row.name ?? current.name,
+      status: (row.status as FTAStatus['status']) ?? current.status,
+      effectiveDate: row.effective_date ?? current.effectiveDate,
+      round: row.round ?? current.round,
+      preferentialTariff: row.preferential_tariff ?? current.preferentialTariff,
+      notes: row.notes ?? current.notes,
+    }
+    applied++
+    if (row.updated_at && (!newest || row.updated_at > newest)) newest = row.updated_at
+  }
+
+  if (applied > 0) ftaMeta = { source: 'database', updatedAt: newest }
+  return applied
+}
+
 /**
  * Get list of countries with active preferential tariff agreements
  */

@@ -14,7 +14,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:all": "vitest run && vitest run --config vitest.integration.config.ts"
+    "test:all": "vitest run && vitest run --config vitest.integration.config.ts",
+    "live-state": "node scripts/live-state.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.45.0",

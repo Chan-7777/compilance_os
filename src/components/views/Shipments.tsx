@@ -11,7 +11,8 @@ import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
-import { runGateCheck, downloadCOOPdf, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing } from '@/lib/api'
+import { runGateCheck, downloadCOOPdf, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing, checkHSMismatch } from '@/lib/api'
+import type { HSMismatchResult } from '@/lib/api'
 import type { Shipment, CountryCode, GateCheckResult, LandedCostResult, CompanyProfile } from '@/types'
 import { GateStamp } from '@/components/GateStamp'
 
@@ -73,6 +74,8 @@ export function Shipments({
   const [tredsEligibility, setTredsEligibility] = useState<null | { eligible: boolean; reason: string; maxAmount: number }>(null)
   const [lcDownloading, setLcDownloading] = useState(false)
   const [ecgcPremium, setEcgcPremium] = useState<null | { premium: number; coverage: number }>(null)
+  const [hsMismatchResults, setHsMismatchResults] = useState<Record<string, HSMismatchResult>>({})
+  const [hsMismatchLoading, setHsMismatchLoading] = useState<Record<string, boolean>>({})
 
   const DRAFT_KEY = 'cos_shipment_draft'
 
@@ -357,6 +360,24 @@ export function Shipments({
     }
   }
 
+  const handleCheckHSMismatch = async (shipment: Shipment) => {
+    if (!shipment.hsCode || !shipment.product) return
+    setHsMismatchLoading(prev => ({ ...prev, [shipment.id]: true }))
+    try {
+      const result = await checkHSMismatch({
+        hsCode: shipment.hsCode,
+        productDescription: shipment.product,
+        invoiceValue: shipment.shipmentValue,
+        destinationCountry: shipment.country,
+      })
+      setHsMismatchResults(prev => ({ ...prev, [shipment.id]: result }))
+    } catch (err: any) {
+      toastError(`HS check failed: ${err?.message ?? 'Unknown error'}`)
+    } finally {
+      setHsMismatchLoading(prev => ({ ...prev, [shipment.id]: false }))
+    }
+  }
+
   const handleRunGateCheck = async (shipmentId: string) => {
     const shipment = shipments.find(s => s.id === shipmentId)
     if (!shipment) return
@@ -441,6 +462,12 @@ export function Shipments({
 
   const handleSubmitTReDS = async (shipment: Shipment) => {
     if (!shipment.shipmentValue || !filingResults[shipment.id]) return
+    // TReDS keys off the ICEGATE shipping bill reference. A draft payload has
+    // none, so there is nothing to finance yet.
+    if (!filingResults[shipment.id].reference_number) {
+      toastError('TReDS needs a submitted shipping bill. This filing is still a draft with no ICEGATE reference.')
+      return
+    }
 
     setTredsLoading(prev => ({ ...prev, [shipment.id]: true }))
     try {
@@ -452,7 +479,7 @@ export function Shipments({
         referenceNumber: filingResults[shipment.id].reference_number
       })
       setTredsResults(prev => ({ ...prev, [shipment.id]: result }))
-      toastSuccess('Financing request recorded — a ComplianceOS advisor will contact you within 1 business day.')
+      toastSuccess('Factoring unit created on the TReDS platform.')
     } catch (err: any) {
       toastError(`Financing request failed: ${err.message}`)
     } finally {
@@ -1341,6 +1368,98 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                     {/* Pre-Shipment Compliance Gate Panel */}
                     {renderGateCheckPanel(shipment)}
 
+                    {/* HS Code Mismatch Detector */}
+                    {shipment.hsCode && (
+                      <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.md, border: `1px solid ${colors.border}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={colors.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>HS Code Mismatch Check</h4>
+                            <span style={{ fontSize: '0.72rem', color: colors.textMuted, fontWeight: 400 }}>— AI-powered CESTAT analysis</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCheckHSMismatch(shipment)}
+                            disabled={hsMismatchLoading[shipment.id]}
+                          >
+                            {hsMismatchLoading[shipment.id] ? 'Analysing…' : hsMismatchResults[shipment.id] ? 'Re-check' : 'Check HS Code'}
+                          </Button>
+                        </div>
+
+                        {hsMismatchLoading[shipment.id] && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textMuted, padding: `${spacing.sm} 0` }}>
+                            Consulting CESTAT classification database…
+                          </div>
+                        )}
+
+                        {hsMismatchResults[shipment.id] && (() => {
+                          const r = hsMismatchResults[shipment.id]
+                          const riskColor = r.risk === 'high' ? colors.risk.high : r.risk === 'medium' ? colors.risk.medium : r.risk === 'low' ? colors.risk.low : colors.status.success
+                          const riskBg = r.risk === 'high' ? colors.surfaces.dangerBg : r.risk === 'medium' ? colors.surfaces.warningBg : r.risk === 'low' ? `${colors.risk.low}15` : colors.surfaces.successBg
+                          return (
+                            <div>
+                              {/* Verdict banner */}
+                              <div style={{ padding: spacing.sm, borderRadius: borderRadius.md, backgroundColor: riskBg, border: `1px solid ${riskColor}33`, marginBottom: spacing.sm }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: riskColor, flexShrink: 0 }} />
+                                  <span style={{ fontWeight: 600, color: riskColor, fontSize: '0.85rem', textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+                                    {r.mismatch ? `Mismatch — ${r.risk} risk` : 'Code looks correct'}
+                                  </span>
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: colors.textMuted }}>
+                                    {r.confidence}% confidence
+                                  </span>
+                                </div>
+                                <div style={{ marginTop: spacing.xs, fontSize: '0.8rem', color: colors.text }}>{r.summary}</div>
+                              </div>
+
+                              {/* Current code */}
+                              <div style={{ fontSize: '0.78rem', color: colors.textMuted, marginBottom: spacing.xs }}>
+                                <strong>Declared:</strong> {r.currentCode.code} — {r.currentCode.description}
+                              </div>
+
+                              {/* Findings */}
+                              {r.findings.length > 0 && (
+                                <div style={{ marginBottom: spacing.sm }}>
+                                  {r.findings.map((f, i) => (
+                                    <div key={i} style={{ display: 'flex', gap: '6px', fontSize: '0.78rem', color: colors.text, padding: '3px 0' }}>
+                                      <span style={{ color: riskColor, flexShrink: 0 }}>→</span>
+                                      <span>{f}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Suggested codes */}
+                              {r.suggestedCodes.length > 0 && (
+                                <div style={{ marginBottom: spacing.sm }}>
+                                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textMuted, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: spacing.xs }}>
+                                    Suggested codes
+                                  </div>
+                                  {r.suggestedCodes.map((sc, i) => (
+                                    <div key={i} style={{ fontSize: '0.78rem', padding: '4px 0', borderBottom: `1px solid ${colors.border}`, display: 'flex', gap: spacing.sm, alignItems: 'flex-start' }}>
+                                      <code style={{ fontFamily: 'monospace', fontWeight: 600, color: colors.primary, flexShrink: 0 }}>{sc.code}</code>
+                                      <div>
+                                        <div>{sc.description}</div>
+                                        <div style={{ color: colors.textMuted, fontSize: '0.72rem' }}>{sc.reason}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Penalty risk */}
+                              {r.mismatch && r.penaltyRisk && (
+                                <div style={{ fontSize: '0.75rem', color: colors.risk.high, padding: `${spacing.xs} ${spacing.sm}`, backgroundColor: colors.surfaces.dangerBg, borderRadius: borderRadius.sm, marginTop: spacing.xs }}>
+                                  <strong>Penalty risk:</strong> {r.penaltyRisk}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
+
                     {/* Bank-Ready Deal Pack */}
                     <div style={{ marginTop: spacing.md, padding: spacing.md, backgroundColor: colors.surface, borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }}>
                       <div>
@@ -1388,9 +1507,18 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                       {filingResults[shipment.id] && (
                         <div style={{ marginTop: spacing.md, backgroundColor: colors.sidebar, borderRadius: borderRadius.md, padding: spacing.md, overflow: 'hidden' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.sm, color: colors.sidebarText, fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                            <span>Status: <strong style={{ color: colors.status.success }}>{filingResults[shipment.id].status.toUpperCase()}</strong></span>
-                            <span>Ref: {filingResults[shipment.id].reference_number}</span>
+                            <span>Status: <strong style={{ color: filingResults[shipment.id].status === 'submitted' ? colors.status.success : colors.status.pending }}>
+                              {filingResults[shipment.id].status === 'submitted' ? 'SUBMITTED' : 'DRAFT — NOT SUBMITTED'}
+                            </strong></span>
+                            {filingResults[shipment.id].reference_number
+                              ? <span>Ref: {filingResults[shipment.id].reference_number}</span>
+                              : <span>No ICEGATE reference issued</span>}
                           </div>
+                          {filingResults[shipment.id].note && (
+                            <div style={{ marginBottom: spacing.sm, color: colors.sidebarText, fontSize: '0.75rem' }}>
+                              {filingResults[shipment.id].note}
+                            </div>
+                          )}
                           <pre style={{
                             margin: 0,
                             padding: spacing.sm,
@@ -1401,7 +1529,7 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                             maxHeight: '200px',
                             overflowY: 'auto',
                           }}>
-                            {JSON.stringify(filingResults[shipment.id].payload_generated, null, 2)}
+                            {JSON.stringify(filingResults[shipment.id].payload, null, 2)}
                           </pre>
                         </div>
                       )}
@@ -1414,7 +1542,9 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                           <div>
                             <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: colors.surfaces.successText }}>Prepare TReDS Financing Request</h4>
                             <p style={{ margin: `${spacing.xs} 0 0`, fontSize: '0.875rem', color: colors.surfaces.successText }}>
-                              Your shipment is verified by Customs. Generate a TReDS request payload to submit via your bank's RXIL or Invoicemart portal.
+                              {filingResults[shipment.id].status === 'submitted'
+                                ? "Your shipment is submitted to Customs. Generate a TReDS request to submit via your bank's RXIL or Invoicemart portal."
+                                : 'This filing is still a draft. Submit it to ICEGATE before requesting financing.'}
                             </p>
                           </div>
                           {!tredsResults[shipment.id] ? (
@@ -1430,7 +1560,7 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                             <div style={{ textAlign: 'right' }}>
                               <Badge key="treds-badge-success" variant="info">Request Recorded</Badge>
                               <div style={{ fontSize: '0.75rem', color: colors.surfaces.successText, marginTop: spacing.xs }}>
-                                Ref: {tredsResults[shipment.id].reference_id} · Advisor will contact you
+                                FU: {tredsResults[shipment.id].reference_id}
                               </div>
                             </div>
                           )}

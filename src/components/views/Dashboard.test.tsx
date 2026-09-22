@@ -54,12 +54,13 @@ describe('Dashboard', () => {
   describe('Rendering', () => {
     it('renders without crashing', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getByText(/dashboard/i)).toBeInTheDocument()
+      expect(screen.getByText(/good to see you/i)).toBeInTheDocument()
     })
 
     it('displays company name', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getByText(/test corp/i)).toBeInTheDocument()
+      // Greeting shows first word of name: "Good to see you, Test"
+      expect(screen.getByText(/good to see you, test/i)).toBeInTheDocument()
     })
 
     it('displays product category', () => {
@@ -107,17 +108,17 @@ describe('Dashboard', () => {
   })
 
   describe('Quick Actions', () => {
-    it('renders quick action buttons', () => {
+    it('renders priority action card', () => {
       render(<Dashboard {...defaultProps} />)
-      expect(screen.getAllByText(/risk/i).length).toBeGreaterThan(0)
-      expect(screen.getByText(/my compliance checklist/i)).toBeInTheDocument()
+      // With a critical alert in mock data, priority card shows "Action needed"
+      expect(screen.getByText(/action needed/i)).toBeInTheDocument()
     })
 
-    it('calls onNavigate when quick action clicked', async () => {
+    it('calls onNavigate when priority action CTA clicked', async () => {
       const onNavigate = vi.fn()
       render(<Dashboard {...defaultProps} onNavigate={onNavigate} />)
-
-      fireEvent.click(screen.getAllByRole("button", { name: /view risk breakdown/i })[0])
+      // With critical alert, CTA is "View alert →"
+      fireEvent.click(screen.getByRole('button', { name: /view alert/i }))
       expect(onNavigate).toHaveBeenCalled()
     })
   })

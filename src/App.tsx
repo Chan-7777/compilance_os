@@ -4,8 +4,9 @@
 // ============================================================================
 
 import { useState, useMemo, useCallback, useTransition, useEffect, useRef } from 'react'
+import { getFTAMeta } from '@/data/fta'
 import { Sidebar } from '@/components/Sidebar'
-import { Auth } from '@/components/Auth'
+import { LandingPage } from '@/components/LandingPage'
 import { Spinner } from '@/components/Spinner'
 import { Onboarding } from '@/components/Onboarding'
 import { ProblemSelector } from '@/components/ProblemSelector'
@@ -23,13 +24,19 @@ import {
   LabelValidator,
   EUCompliance,
   RoDTEPCalculator,
+  DocumentReview,
+  ContractReview,
+  CADashboard,
   PublicCBAMChecker,
+  IGSTTracker,
+  BRCFIRCTracker,
+  LicenseTracker,
   Upgrade,
 } from '@/components/views'
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate } from '@/lib/api'
+import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate, fetchRodtepRateDetailed , loadFTAAgreements} from '@/lib/api'
 import { colors } from '@theme/index'
 import type {
   ViewType,
@@ -50,6 +57,8 @@ const DEFAULT_PROFILE: CompanyProfile = {
   name: 'My Company',
   size: 'small',
 }
+
+const PAYWALL_ENFORCED = import.meta.env.VITE_ENFORCE_PAYWALL === 'true'
 
 const HIGH_TURNOVER_BANDS = new Set(['₹25–100 Crore', '₹100 Crore+'])
 const isHighTurnover = (range?: string) => !!range && HIGH_TURNOVER_BANDS.has(range)
@@ -82,7 +91,16 @@ function App() {
   const [activeAlertFilter, setActiveAlertFilter] = useState<'all' | AlertSeverity>('all')
 
   const [shipments, setShipments] = useState<Shipment[]>([])
+  // The HS code actually in play: onboarding's choice if it is still in memory,
+  // otherwise the most recent shipment on file.
+  const activeHsCode = useMemo(
+    () => selectedHsCode || shipments.find(sh => sh.hsCode)?.hsCode || null,
+    [selectedHsCode, shipments]
+  )
+
   const [rodtepEstimate, setRodtepEstimate] = useState<number | null>(null)
+  const [rodtepUnclaimed, setRodtepUnclaimed] = useState<number | null>(null)
+  const [ftaMeta, setFtaMeta] = useState(getFTAMeta())
 
   // -------------------------------------------------------------------------
   // API-fetched data (replaces static utils from Phase 1)
@@ -210,28 +228,44 @@ function App() {
       '₹100 Crore+': 2_000_000_000,
     }
     const midpoint = companyProfile.turnoverRange ? TURNOVER_MIDPOINTS[companyProfile.turnoverRange] : null
-    const hsCode = selectedHsCode || (productInfo.hsPrefix?.[0] ?? null)
+    // Onboarding's HS code lives only in memory, so after a reload fall back to
+    // the most recent shipment on file before the product's generic prefix.
+    const hsCode = activeHsCode || (productInfo.hsPrefix?.[0] ?? null)
     if (!midpoint || !hsCode) { setRodtepEstimate(null); return }
     let cancelled = false
     fetchRodtepRate(hsCode).then(rate => {
       if (!cancelled) setRodtepEstimate(midpoint * (rate / 100))
     }).catch(() => { if (!cancelled) setRodtepEstimate(null) })
     return () => { cancelled = true }
-  }, [selectedHsCode, companyProfile.turnoverRange, productInfo.hsPrefix])
+  }, [activeHsCode, companyProfile.turnoverRange, productInfo.hsPrefix])
 
   // -------------------------------------------------------------------------
   // Load persisted data from Supabase when authenticated
   // -------------------------------------------------------------------------
 
-  // New user: logged in but no company profile yet → show onboarding
-  // Uses localStorage so onboarding doesn't repeat if profile row is missing
+  // Show onboarding only when the company has not completed it.
+  //
+  // The old condition was `auth.user && !auth.profile`, which is a profile-load
+  // failure, not a completion state. In exactly that state persistProfile and
+  // persistSettings return early, so every answer was discarded. user_settings
+  // cannot substitute either: selected_product is NOT NULL DEFAULT 'steel' and
+  // the signup trigger inserts a row, so every company looks pre-configured.
+  //
+  // Depends on primitives, not on auth.user or auth.profile identity. Supabase
+  // hands out a new user object on token refresh and tab focus, and re-running
+  // then against a profile fetched before onboarding reopened the form.
+  const onboardingCompletedRef = useRef(false)
+  const profileCompanyId = auth.profile?.company_id
+  const companyLoaded = !!auth.profile?.company
+  const onboardedAt = (auth.profile?.company as { onboarded_at?: string | null } | null | undefined)?.onboarded_at
   useEffect(() => {
-    if (!SUPABASE_ENABLED || auth.loading) return
-    if (auth.user && !auth.profile) {
-      const done = localStorage.getItem(`cos_ob_${auth.user.id}`)
-      if (!done) setShowOnboarding(true)
-    }
-  }, [auth.loading, auth.user, auth.profile])
+    if (!SUPABASE_ENABLED || auth.loading || !profileCompanyId) return
+    // A missing company join is unknown, not "never onboarded".
+    if (!companyLoaded) return
+    // Finished this session; the cached profile still carries the old null.
+    if (onboardingCompletedRef.current) return
+    setShowOnboarding(!onboardedAt)
+  }, [auth.loading, profileCompanyId, companyLoaded, onboardedAt])
 
   useEffect(() => {
     if (!SUPABASE_ENABLED || !auth.profile) return
@@ -246,6 +280,7 @@ function App() {
       setCompanyProfile({
         name: c.name,
         size: c.size as CompanyProfile['size'],
+        tradeRole: c.trade_role ?? undefined,
         iec: c.iec ?? undefined,
         gstin: c.gstin ?? undefined,
         address: c.address ?? undefined,
@@ -254,6 +289,16 @@ function App() {
         pin: c.pin ?? undefined,
         stateCode: c.state_code ?? undefined,
         portOfLoading: c.port_of_loading ?? undefined,
+        // Onboarding saves these; without them the dashboard cannot size a
+        // RoDTEP estimate and Settings shows blanks after a reload.
+        designation: c.designation ?? undefined,
+        whatsapp: c.whatsapp ?? undefined,
+        turnoverRange: c.turnover_range ?? undefined,
+        yearsExporting: c.years_exporting ?? undefined,
+        knownRegulations: c.known_regulations ?? undefined,
+        complianceConfidence: c.compliance_confidence ?? undefined,
+        pastComplianceIssues: c.past_compliance_issues ?? undefined,
+        painPoints: c.pain_points ?? undefined,
       })
     }
 
@@ -276,7 +321,7 @@ function App() {
           localStorage.removeItem(`cos_sel_${userId}`)
           // Show problem selector once per browser session for returning users
           const sessionKey = `cos_problem_seen_${profile.company_id}`
-          if (!sessionStorage.getItem(sessionKey)) {
+          if (!localStorage.getItem(sessionKey)) {
             setShowProblemSelector(true)
           }
         } else {
@@ -296,18 +341,14 @@ function App() {
                   .upsert({ company_id: profile.company_id, selected_product: p, selected_countries: c }, { onConflict: 'company_id' })
               ).then(() => localStorage.removeItem(`cos_sel_${userId}`), () => {})
               const sessionKey = `cos_problem_seen_${profile.company_id}`
-              if (!sessionStorage.getItem(sessionKey)) {
+              if (!localStorage.getItem(sessionKey)) {
                 setShowProblemSelector(true)
               }
             } catch {
-              // Corrupt backup — fall through to onboarding check
-              const done = localStorage.getItem(`cos_ob_${userId}`)
-              if (!done) setShowOnboarding(true)
+              // Corrupt backup. Whether to onboard is decided by companies.onboarded_at.
             }
           } else {
-            // No backup either — show onboarding unless already completed
-            const done = localStorage.getItem(`cos_ob_${userId}`)
-            if (!done) setShowOnboarding(true)
+            // No saved settings. Whether to onboard is decided by companies.onboarded_at.
           }
         }
       })
@@ -335,7 +376,22 @@ function App() {
             sanctionsRisk: s.sanctions_risk ?? undefined,
           }))
         )
+
+        // Real unclaimed RoDTEP, same rule as the RoDTEP Recovery screen: a
+        // claim needs a shipping bill, and only unclaimed or rejected count.
+        const FX_TO_INR: Record<string, number> = { INR: 1, USD: 84, EUR: 91, GBP: 107, AED: 23 }
+        const unclaimed = (data ?? []).reduce((sum: number, s: any) => {
+          const status = s.rodtep_claim_status ?? (s.rodtep_claimed ? 'filed' : 'unclaimed')
+          if (status !== 'unclaimed' && status !== 'rejected') return sum
+          if (!s.shipping_bill_no || !s.hs_code || !s.shipment_value || !s.rodtep_rate) return sum
+          const inr = parseFloat(s.shipment_value) * (FX_TO_INR[(s.value_currency ?? 'USD').toUpperCase()] ?? 84)
+          return sum + Math.round(inr * (parseFloat(s.rodtep_rate) / 100))
+        }, 0)
+        setRodtepUnclaimed(unclaimed > 0 ? unclaimed : null)
       })
+
+    // Trade agreement status: database first, built-in table as fallback.
+    void loadFTAAgreements().then(meta => setFtaMeta(meta))
 
     // Load checklist progress
     supabase
@@ -376,11 +432,13 @@ function App() {
   )
 
   const persistProfile = useCallback(
-    async (profile: CompanyProfile) => {
+    async (profile: CompanyProfile, markOnboarded = false) => {
       if (!SUPABASE_ENABLED || !auth.profile) return
-      await supabase
+      const { data: savedRows, error: saveError } = await supabase
         .from('companies')
         .update({
+          ...(markOnboarded && { onboarded_at: new Date().toISOString() }),
+          trade_role: profile.tradeRole ?? null,
           name: profile.name,
           size: profile.size,
           iec: profile.iec,
@@ -401,6 +459,12 @@ function App() {
           pain_points: profile.painPoints,
         })
         .eq('id', auth.profile.company_id)
+        .select('id')
+      // Row-level security drops an update with no error when no UPDATE policy
+      // matches, so check that a row actually changed.
+      if (saveError || !savedRows?.length) {
+        console.error('Company profile was not saved:', saveError?.message ?? 'no row updated; check the companies UPDATE policy')
+      }
     },
     [auth.profile]
   )
@@ -410,11 +474,12 @@ function App() {
   // -------------------------------------------------------------------------
 
   const handleOnboardingComplete = useCallback(
-    (product: string, countries: CountryCode[], companyDetails?: { iec?: string; gstin?: string; name?: string; designation?: string; city?: string; whatsapp?: string; turnoverRange?: string; yearsExporting?: string; knownRegulations?: string[]; complianceConfidence?: number; pastComplianceIssues?: string[]; painPoints?: string[] }, hsCode?: string, hsProductName?: string) => {
+    (product: string, countries: CountryCode[], companyDetails?: { tradeRole?: CompanyProfile['tradeRole']; iec?: string; gstin?: string; name?: string; designation?: string; city?: string; whatsapp?: string; turnoverRange?: string; yearsExporting?: string; knownRegulations?: string[]; complianceConfidence?: number; pastComplianceIssues?: string[]; painPoints?: string[] }, hsCode?: string, hsProductName?: string) => {
       setSelectedProduct(product)
       setSelectedCountries(countries)
       if (hsCode) setSelectedHsCode(hsCode)
       if (hsProductName) setSelectedHsProductName(hsProductName)
+      onboardingCompletedRef.current = true
       setShowOnboarding(false)
       persistSettings(product, countries)
       // Mark onboarding done in localStorage so it won't reappear if profile row is missing.
@@ -428,6 +493,7 @@ function App() {
         setCompanyProfile(prev => {
           const updated = {
             ...prev,
+            ...(companyDetails.tradeRole && { tradeRole: companyDetails.tradeRole }),
             ...(companyDetails.name && { name: companyDetails.name }),
             ...(companyDetails.iec && { iec: companyDetails.iec }),
             ...(companyDetails.gstin && { gstin: companyDetails.gstin }),
@@ -441,8 +507,15 @@ function App() {
             ...(companyDetails.pastComplianceIssues && { pastComplianceIssues: companyDetails.pastComplianceIssues }),
             ...(companyDetails.painPoints && { painPoints: companyDetails.painPoints }),
           }
-          persistProfile(updated)
+          persistProfile(updated, true)
           return updated
+        })
+      } else {
+        // No details captured, but the form was still completed. Mark it so the
+        // user is not asked again.
+        setCompanyProfile(prev => {
+          persistProfile(prev, true)
+          return prev
         })
       }
       if (countries.includes('EU') && isHighTurnover(companyDetails?.turnoverRange)) {
@@ -457,7 +530,7 @@ function App() {
   const handleProblemSelect = useCallback(
     (view: ViewType) => {
       if (auth.profile) {
-        sessionStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
+        localStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
       }
       setShowProblemSelector(false)
       startTransition(() => setCurrentView(view))
@@ -467,7 +540,7 @@ function App() {
 
   const handleProblemSkip = useCallback(() => {
     if (auth.profile) {
-      sessionStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
+      localStorage.setItem(`cos_problem_seen_${auth.profile.company_id}`, '1')
     }
     setShowProblemSelector(false)
   }, [auth.profile])
@@ -521,6 +594,16 @@ function App() {
         if (shipment.hsCode) insertData.hs_code = shipment.hsCode
         if (shipment.shipmentValue) insertData.shipment_value = shipment.shipmentValue
         if (shipment.buyerName) insertData.buyer_name = shipment.buyerName
+
+        // Cache the RoDTEP rate at insert time so the recovery tracker and CA
+        // dashboard see this shipment immediately (they filter on rodtep_rate).
+        if (shipment.hsCode) {
+          try {
+            const r = await fetchRodtepRateDetailed(shipment.hsCode)
+            insertData.rodtep_rate = r.rate
+            insertData.rodtep_match_type = r.matchType
+          } catch { /* rate lookup failure must not block the insert */ }
+        }
 
         const { data, error } = await supabase
           .from('shipments')
@@ -684,7 +767,7 @@ function App() {
     }
 
     if (!auth.user) {
-      return <Auth onSignIn={auth.signIn} onSignUp={auth.signUp} />
+      return <LandingPage onSignIn={auth.signIn} onSignUp={auth.signUp} />
     }
   }
 
@@ -692,9 +775,11 @@ function App() {
   // Render
   // -------------------------------------------------------------------------
 
-  // Plan enforcement: 'free' users are gated to dashboard / risk / alerts only.
+  // Plan enforcement is off unless VITE_ENFORCE_PAYWALL=true. Razorpay is not
+  // configured, so every gate led to an upgrade page whose checkout returns 503.
+  // With the flag unset, all features and the CA Dashboard are open to everyone.
   const userPlan: string = auth.profile?.company?.plan ?? 'free'
-  const isPaid = userPlan !== 'free'
+  const isPaid = !PAYWALL_ENFORCED || userPlan !== 'free'
 
   const gate = (feature: string) =>
     !isPaid ? (
@@ -714,13 +799,16 @@ function App() {
             onNavigate={handleNavigate}
             shipments={shipments}
             rodtepEstimate={rodtepEstimate}
+            rodtepUnclaimed={rodtepUnclaimed}
           />
         )
       case 'risk':
         return (
           <RiskAnalysis
             selectedProduct={productInfo.label}
+            hsCode={activeHsCode}
             riskResults={riskResults as Array<RiskResult & { country: CountryCode }>}
+            companyProfile={companyProfile}
           />
         )
       case 'checklist':
@@ -749,6 +837,7 @@ function App() {
       case 'fta':
         return gate('FTA Tariff Savings') ?? (
           <FTASchemes
+            ftaMeta={ftaMeta}
             selectedCountries={selectedCountries}
             selectedProduct={selectedProduct as any}
             selectedHsCode={selectedHsCode}
@@ -800,6 +889,29 @@ function App() {
         return gate('RoDTEP Calculator') ?? (
           <RoDTEPCalculator
             companyProfile={companyProfile}
+          />
+        )
+      case 'doc-review':
+        return gate('Document Review') ?? (
+          <DocumentReview
+            companyProfile={companyProfile}
+            selectedProduct={selectedProduct}
+            selectedCountries={selectedCountries}
+          />
+        )
+      case 'ca-dashboard':
+        return gate('CA Dashboard') ?? <CADashboard />
+      case 'igst-tracker':
+        return gate('IGST Refund Tracker') ?? <IGSTTracker />
+      case 'brc-firc':
+        return gate('BRC / FIRC Tracker') ?? <BRCFIRCTracker />
+      case 'license-tracker':
+        return gate('AA & EPCG License Tracker') ?? <LicenseTracker />
+      case 'contract-review':
+        return gate('Contract Review') ?? (
+          <ContractReview
+            selectedProduct={selectedProduct}
+            selectedCountries={selectedCountries}
           />
         )
       case 'upgrade':
@@ -854,6 +966,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onLogout={() => auth.signOut()}
         euEnabled={selectedCountries.includes('EU')}
+        caEnabled={!PAYWALL_ENFORCED || userPlan === 'ca'}
       />
       <main
         style={{ flex: 1, marginLeft: isMobile ? 0 : '232px', marginTop: '56px', overflow: 'auto', overflowX: 'hidden', paddingBottom: '24px', maxWidth: '100vw' }}

@@ -2,12 +2,14 @@
 // Alerts View - Regulatory alerts with filtering
 // ============================================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMobile } from '@/hooks/useMobile'
 import { Badge } from '@/components/Badge'
 import { Button } from '@/components/Button'
 import { EmptyState } from '@/components/EmptyState'
 import { colors, spacing, borderRadius } from '@theme/index'
+import { fetchNotificationSettings, sendWhatsAppAlert } from '@/lib/api'
+import type { NotificationSettings } from '@/lib/api'
 import type { Alert, AlertSeverity } from '@/types'
 
 const DISMISSED_KEY = 'cos_dismissed_alerts'
@@ -65,6 +67,60 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
   const [dismissedIds, setDismissedIds] = useState<number[]>(() => loadDismissed())
   const [showDismissed, setShowDismissed] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
+  // WhatsApp delivery state
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings | null>(null)
+  const [waSending, setWaSending] = useState<Set<number>>(new Set())
+  const [waSent, setWaSent] = useState<Set<number>>(new Set())
+  const autoSentRef = useRef(false)
+
+  useEffect(() => {
+    fetchNotificationSettings()
+      .then(s => setNotifSettings(s))
+      .catch(() => { /* not configured — hide WA buttons */ })
+  }, [])
+
+  // Auto-send critical alerts once per session when WA alerts are enabled
+  useEffect(() => {
+    if (!notifSettings?.whatsapp_alerts || !notifSettings.whatsapp_number || autoSentRef.current) return
+    autoSentRef.current = true
+    const criticals = alerts.filter(a => a.severity === 'critical')
+    criticals.forEach(alert => {
+      sendWhatsAppAlert({
+        to: notifSettings.whatsapp_number!,
+        severity: alert.severity,
+        country: alert.countryName,
+        message: alert.message,
+        date: alert.date,
+        alertKey: `${alert.type}:${alert.country}:${alert.date}`,
+      }).then(result => {
+        // A simulated send never reached WhatsApp, so don't mark it as sent.
+        if (!result?.simulated) setWaSent(prev => new Set(prev).add(alert.id))
+      }).catch(() => { /* silent — don't interrupt the view */ })
+    })
+  }, [notifSettings, alerts])
+
+  const handleSendToWhatsApp = async (alert: Alert) => {
+    if (!notifSettings?.whatsapp_number) return
+    setWaSending(prev => new Set(prev).add(alert.id))
+    try {
+      const result = await sendWhatsAppAlert({
+        to: notifSettings.whatsapp_number,
+        severity: alert.severity,
+        country: alert.countryName,
+        message: alert.message,
+        date: alert.date,
+        alertKey: `${alert.type}:${alert.country}:${alert.date}`,
+      })
+      // Sandbox mode logs the message instead of sending it. Showing "sent"
+      // there would be a lie the user has no way to check.
+      if (!result?.simulated) setWaSent(prev => new Set(prev).add(alert.id))
+    } catch {
+      // silently ignore — WA send is optional
+    } finally {
+      setWaSending(prev => { const s = new Set(prev); s.delete(alert.id); return s })
+    }
+  }
 
   // Sync dismissedIds to localStorage whenever they change
   useEffect(() => {
@@ -353,6 +409,39 @@ export function Alerts({ alerts, activeFilter, onFilterChange }: AlertsProps) {
                 </>
               )}
             </div>
+            {/* WhatsApp send button — only if notifications are configured */}
+            {notifSettings?.whatsapp_number && (
+              <div style={{ marginTop: spacing.sm }}>
+                <button
+                  onClick={e => { e.stopPropagation(); handleSendToWhatsApp(alert) }}
+                  disabled={waSending.has(alert.id) || waSent.has(alert.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '4px 10px', borderRadius: borderRadius.md,
+                    border: `1px solid ${waSent.has(alert.id) ? colors.status?.success ?? '#22c55e' : '#25D366'}`,
+                    backgroundColor: waSent.has(alert.id) ? (colors.surfaces?.successBg ?? '#f0fdf4') : 'transparent',
+                    color: waSent.has(alert.id) ? (colors.status?.success ?? '#22c55e') : '#25D366',
+                    fontSize: '0.75rem', fontWeight: 500, cursor: waSent.has(alert.id) ? 'default' : 'pointer',
+                    opacity: waSending.has(alert.id) ? 0.6 : 1,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {waSent.has(alert.id) ? (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Sent to WhatsApp
+                    </>
+                  ) : waSending.has(alert.id) ? (
+                    'Sending…'
+                  ) : (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      Send to WhatsApp
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -69,6 +69,39 @@ const RoDTEPIcon = () => (
     <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
   </svg>
 )
+const DocReviewIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+)
+const CAIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+  </svg>
+)
+const IGSTIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <path d="M2 10h20"/>
+    <path d="M7 15h2M12 15h3"/>
+  </svg>
+)
+const BRCIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+)
+const LicenseIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+)
 
 type NavItem = { id: ViewType; label: string; Icon: () => React.ReactElement }
 
@@ -82,11 +115,12 @@ export interface SidebarProps {
   onClose?: () => void
   onLogout?: () => void
   euEnabled?: boolean
+  caEnabled?: boolean
 }
 
 export function Sidebar({
   currentView, onNavigate, alertCount = 0,
-  isMobile = false, isOpen = false, onClose, onLogout, euEnabled = false,
+  isMobile = false, isOpen = false, onClose, onLogout, euEnabled = false, caEnabled = false,
 }: SidebarProps) {
   const isActive = (id: string) => currentView === id
 
@@ -108,7 +142,7 @@ export function Sidebar({
   })
 
   // Items that start a new logical group get a thin divider above them
-  const spacerBefore = new Set<ViewType>(['risk', 'shipments'])
+  const spacerBefore = new Set<ViewType>(['risk', 'shipments', 'igst-tracker'])
 
   const flatItems: NavItem[] = [
     { id: 'dashboard',       label: 'Dashboard',         Icon: DashboardIcon },
@@ -118,8 +152,14 @@ export function Sidebar({
     { id: 'fta',             label: 'Trade Deals',        Icon: FTAIcon },
     { id: 'rodtep',          label: 'RoDTEP Recovery',    Icon: RoDTEPIcon },
     { id: 'shipments',       label: 'Shipments',          Icon: ShipmentsIcon },
+    { id: 'doc-review',      label: 'Document Review',    Icon: DocReviewIcon },
+    { id: 'contract-review' as ViewType, label: 'Contract Review',    Icon: DocReviewIcon },
     ...(euEnabled ? [{ id: 'eu-compliance' as ViewType, label: 'EU Compliance', Icon: EUIcon }] : []),
+    ...(caEnabled ? [{ id: 'ca-dashboard' as ViewType, label: 'CA Dashboard',   Icon: CAIcon }] : []),
     { id: 'label-validator', label: 'Label Checker',      Icon: LabelIcon },
+    { id: 'igst-tracker',    label: 'IGST Refunds',       Icon: IGSTIcon },
+    { id: 'brc-firc',        label: 'BRC / FIRC',         Icon: BRCIcon },
+    { id: 'license-tracker', label: 'AA & EPCG',          Icon: LicenseIcon },
   ]
 
   return (
@@ -138,14 +178,20 @@ export function Sidebar({
         borderRight: `1px solid ${colors.sidebarBorder}`,
       }}
     >
-      {/* Logo */}
-      <div style={{ padding: `0 ${spacing.xs}`, marginBottom: spacing.lg }}>
-        <img
-          src="/logo.png"
-          alt="ComplianceOS"
-          style={{ width: '100%', height: 'auto', display: 'block', filter: 'brightness(0) invert(1)' }}
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+      {/* Logo. The PNG is a 4 MB image on an opaque white background, and the
+          white-out filter turned the whole rectangle into a pale box. */}
+      <div style={{ padding: `0 ${spacing.xs}`, marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          width: 26, height: 26, borderRadius: 6, backgroundColor: colors.accent,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </span>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.02em', color: '#fff' }}>
+          ComplianceOS
+        </span>
       </div>
 
       {/* Nav items */}

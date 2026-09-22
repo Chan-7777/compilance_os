@@ -1,10 +1,19 @@
+const MATCH_COPY: Record<string, { label: string; color: string; bg: string; border: string; text: string }> = {
+  exact:   { label: 'EXACT MATCH — FILING-READY', color: '#15803D', bg: '#F0FDF4', border: '#86EFAC', text: 'The 8-digit HS code was found in DGFT Appendix 4R. This rate can be declared on the shipping bill as-is.' },
+  prefix:  { label: 'ESTIMATED — CONFIRM RITC BEFORE FILING', color: '#C2410C', bg: '#FFF7ED', border: '#FED7AA', text: 'No 8-digit row exists for this code; the rate was taken from the same 6-digit sub-heading. Confirm the exact RITC on the shipping bill with your CHA before filing.' },
+  default: { label: 'NOT IN SCHEDULE — DO NOT FILE ON THIS FIGURE', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', text: 'This HS code was not found in Appendix 4R. The 0.5% shown is a placeholder only. Either the product is not RoDTEP-eligible or the code needs correcting.' },
+}
+
 export function generateRoDTEPReport(
   hsCode: string,
   exportValue: number,
   rate: number,
-  companyName: string
+  companyName: string,
+  matchType: 'exact' | 'prefix' | 'default' = 'exact',
+  matchedHs: string | null = null
 ): void {
   const entitlement = Math.round(exportValue * (rate / 100))
+  const match = MATCH_COPY[matchType] ?? MATCH_COPY.exact
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
   const refNo = `RODTEP-${Date.now().toString(36).toUpperCase()}`
 
@@ -83,14 +92,17 @@ export function generateRoDTEPReport(
       <div class="hero-sub">Appendix 4R / Notification 60</div>
     </div>
   </div>
-  ${notif60Flag ? `<div class="flag"><strong>Notification 60/2025-26 applies:</strong> RoDTEP rates for HS chapters 25+ were revised (effective Feb 2026). The rate shown reflects the updated schedule. Verify with your IEC-registered CHA before filing claims.</div>` : ''}
+  <div class="flag" style="background:${match.bg};border-color:${match.border};color:${match.color}"><strong>${match.label}.</strong> ${match.text}</div>
+  ${notif60Flag ? `<div class="flag"><strong>Notification 60/2025-26 applies:</strong> RoDTEP rates for HS chapters 25+ were revised (effective Feb 2026). The rate shown reflects the updated schedule.</div>` : ''}
   <div class="section">
-    <div class="section-title">Calculation Breakdown</div>
+    <div class="section-title">Calculation Breakdown (audit trail)</div>
     <div class="grid-2">
       <div><div class="data-label">Export Value (FOB)</div><div class="data-value mono">${fmtINR(exportValue)}</div></div>
       <div><div class="data-label">RoDTEP Rate</div><div class="data-value mono">${rate}% of FOB</div></div>
       <div><div class="data-label">Entitlement</div><div class="data-value mono" style="color:#15803D">${fmtINR(entitlement)}</div></div>
-      <div><div class="data-label">Scheme</div><div class="data-value">RoDTEP — Appendix 4R</div></div>
+      <div><div class="data-label">Schedule row used</div><div class="data-value mono">${matchedHs ?? 'none'}</div></div>
+      <div><div class="data-label">Source</div><div class="data-value">DGFT Appendix 4R, as amended by Notification 60/2025-26 (23 Feb 2026)</div></div>
+      <div><div class="data-label">Formula</div><div class="data-value mono" style="font-size:12px">${fmtINR(exportValue)} × ${rate}% = ${fmtINR(entitlement)}</div></div>
     </div>
   </div>
   <div class="section">

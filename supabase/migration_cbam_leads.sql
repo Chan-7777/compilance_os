@@ -20,6 +20,10 @@ CREATE INDEX IF NOT EXISTS idx_cbam_leads_created ON public.cbam_leads (created_
 -- RLS: anon can INSERT (lead capture), only service_role can SELECT
 ALTER TABLE public.cbam_leads ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anon can submit CBAM leads" ON public.cbam_leads;
+DROP POLICY IF EXISTS "Service role full access on cbam_leads" ON public.cbam_leads;
+DROP POLICY IF EXISTS "Authenticated can read cbam_leads" ON public.cbam_leads;
+
 CREATE POLICY "Anon can submit CBAM leads"
   ON public.cbam_leads FOR INSERT TO anon WITH CHECK (true);
 

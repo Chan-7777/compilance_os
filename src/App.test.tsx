@@ -40,6 +40,10 @@ vi.mock('@/lib/api', () => ({
   fetchExportSchemes: vi.fn(),
   fetchBatchFTASavings: vi.fn(),
   fetchCountries: vi.fn(),
+  fetchNotificationSettings: vi.fn().mockResolvedValue({ whatsapp_number: null, whatsapp_alerts: false }),
+  sendWhatsAppAlert: vi.fn().mockResolvedValue({ success: true, simulated: true }),
+  fetchRodtepRate: vi.fn().mockResolvedValue(0.5),
+  fetchRodtepRateDetailed: vi.fn().mockResolvedValue({ rate: 0.5, matchType: 'default', matchedHs: null }),
 }))
 
 import {
@@ -171,7 +175,7 @@ describe('App Component', () => {
       })
 
       const sidebar = getSidebar()
-      fireEvent.click(within(sidebar).getByRole('button', { name: /compliance risk/i }))
+      fireEvent.click(within(sidebar).getByRole('button', { name: /risk score/i }))
 
       expect(screen.getByRole('heading', { name: /compliance risk/i })).toBeInTheDocument()
     })
@@ -235,10 +239,10 @@ describe('App Component', () => {
       })
 
       const sidebar = getSidebar()
-      fireEvent.click(within(sidebar).getByRole('button', { name: /compliance risk/i }))
-      fireEvent.click(within(sidebar).getByRole('button', { name: /dashboard/i }))
+      fireEvent.click(within(sidebar).getByRole('button', { name: /risk score/i }))
+      fireEvent.click(within(sidebar).getByRole('button', { name: /^dashboard$/i }))
 
-      expect(screen.getByText(/my company/i)).toBeInTheDocument()
+      expect(screen.getByText(/good to see you/i)).toBeInTheDocument()
     })
   })
 
@@ -246,7 +250,7 @@ describe('App Component', () => {
     it('displays company profile', async () => {
       render(<App />)
       await waitFor(() => {
-        expect(screen.getByText(/my company/i)).toBeInTheDocument()
+        expect(screen.getByText(/good to see you/i)).toBeInTheDocument()
       })
     })
 
@@ -260,8 +264,8 @@ describe('App Component', () => {
     it('displays selected countries', async () => {
       render(<App />)
       await waitFor(() => {
-        expect(screen.getAllByText(/EU/).length).toBeGreaterThan(0)
-        expect(screen.getAllByText(/UAE/).length).toBeGreaterThan(0)
+        // Dashboard subtitle shows market count for selected countries
+        expect(screen.getAllByText(/2 markets/i).length).toBeGreaterThan(0)
       })
     })
 
@@ -308,7 +312,7 @@ describe('App Component', () => {
       fireEvent.click(within(sidebar).getByRole('button', { name: /checklist/i }))
 
       await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: /^compliance checklist$/i })).toBeInTheDocument()
       })
     })
 
@@ -322,7 +326,7 @@ describe('App Component', () => {
       fireEvent.click(within(sidebar).getByRole('button', { name: /my checklist/i }))
 
       await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: /^compliance checklist$/i })).toBeInTheDocument()
       })
     })
   })
