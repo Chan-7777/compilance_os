@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 22 Sept 2026, 6:06 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 22 Sept 2026, 6:58 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -17,10 +17,10 @@ never run reads NOT LIVE, because to a user it does not work.
 | Status | Feature | What it does |
 |---|---|---|
 | **PARTLY UNKNOWN** | Onboarding keeps the answers it collects | Company profile writes onboarded_at and trade_role, and the gate closes as well as opens, so the modal stops reappearing on every reload. |
-| **LIVE** | Paywall off for demos | Gating is behind VITE_ENFORCE_PAYWALL, so every screen is reachable unless that env var is set to 'true'. |
+| **UNCERTAIN** | Paywall off for demos | Gating is behind VITE_ENFORCE_PAYWALL, so every screen is reachable unless that env var is set to 'true'. |
 | **UNCERTAIN** | Alerts are relevant and readable | Feed HTML and double-escaped entities are stripped, duplicates dropped, and only product-relevant items stay critical. |
 | **LIVE** | Sidebar logo is not a 4 MB PNG | Inline shield SVG plus wordmark, replacing the white-boxed logo.png. |
-| **LIVE** | Dashboard shows real unclaimed RoDTEP | Dashboard prefers the figure computed from actual shipping bills over the turnover-band estimate, and captions which one it used. |
+| **UNCERTAIN** | Dashboard shows real unclaimed RoDTEP | Dashboard prefers the figure computed from actual shipping bills over the turnover-band estimate, and captions which one it used. |
 | **PARTLY UNKNOWN** | Trade agreement status comes from the database | fta_agreements overlays the built-in table at runtime, and the screen shows how old the data is. |
 | **PARTLY UNKNOWN** | CBAM emissions use EU default values | climatiq-emissions looks up the CBAM default for the HS code's CN prefix instead of failing, and the panel appears once rather than per market. |
 | **PARTLY UNKNOWN** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
@@ -29,33 +29,44 @@ never run reads NOT LIVE, because to a user it does not work.
 
 **Onboarding keeps the answers it collects - PARTLY UNKNOWN**
 
+- `src/App.tsx` - uncertain: edited 1h ago, after the live build - the live copy is older
 - `migration 20260910000001_onboarding_completion.sql` - unknown: not recorded as applied
 - `migration 20260915000001_companies_update_policy.sql` - unknown: not recorded as applied
 
+**Paywall off for demos - UNCERTAIN**
+
+- `src/App.tsx` - uncertain: edited 1h ago, after the live build - the live copy is older
+- note: Live behaviour also depends on the Vercel env var, which this script cannot read.
+
 **Alerts are relevant and readable - UNCERTAIN**
 
-- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 1h ago, after the live build - the live copy is older
+
+**Dashboard shows real unclaimed RoDTEP - UNCERTAIN**
+
+- `src/App.tsx` - uncertain: edited 1h ago, after the live build - the live copy is older
 
 **Trade agreement status comes from the database - PARTLY UNKNOWN**
 
-- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 1h ago, after the live build - the live copy is older
 - `migration 20260916000001_fta_agreements_read.sql` - unknown: not recorded as applied
 
 **CBAM emissions use EU default values - PARTLY UNKNOWN**
 
+- `src/components/views/CBAMReadiness.tsx` - uncertain: edited 1h ago, after the live build - the live copy is older
 - `function climatiq-emissions` - unknown: no deploy ever recorded
 
 **DGFT Certificate of Origin - Phase 1 - PARTLY UNKNOWN**
 
-- `src/lib/dgft-coo-mapper.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
-- `src/lib/coo-validator.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
-- `src/lib/dgft-reference-maps.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/dgft-coo-mapper.ts` - uncertain: edited 10h ago, after the live build - the live copy is older
+- `src/lib/coo-validator.ts` - uncertain: edited 10h ago, after the live build - the live copy is older
+- `src/lib/dgft-reference-maps.ts` - uncertain: edited 10h ago, after the live build - the live copy is older
 - `migration 20260922000001_coo_integration.sql` - unknown: not recorded as applied
 - note: Blocked on three unanswered questions: credential tenancy, fixed egress IP for DGFT's whitelist, RSA key custody.
 
 **RISK: self-made Certificate of Origin PDF - UNCERTAIN**
 
-- `src/lib/api.ts` - uncertain: edited 9h ago, after the live build - the live copy is older
+- `src/lib/api.ts` - uncertain: edited 1h ago, after the live build - the live copy is older
 - note: Here so it stays visible. Present = the risk is still shipped.
 
 ## Frontend
@@ -65,19 +76,35 @@ never run reads NOT LIVE, because to a user it does not work.
 | Live bundle built | 16 Sept 2026, 2:59 pm (6d ago) |
 | Deployment | https://compilance-r8q2dojuv-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
-| Source files changed since | **7** |
+| Source files changed since | **23** |
 
-### Not live - 7 file(s) changed after the last deploy
+### Not live - 23 file(s) changed after the last deploy
 
 Run `vercel --prod` to ship these.
 
-- `src/lib/eu-documents.ts` - edited 4h ago
-- `src/lib/coo-validator.ts` - edited 9h ago
-- `src/lib/coo-validator.test.ts` - edited 9h ago
-- `src/lib/dgft-coo-mapper.ts` - edited 9h ago
-- `src/lib/dgft-reference-maps.ts` - edited 9h ago
-- `src/types/index.ts` - edited 9h ago
-- `src/lib/api.ts` - edited 9h ago
+- `src/components/views/RoDTEPCalculator.tsx` - edited 1h ago
+- `src/components/views/Shipments.tsx` - edited 1h ago
+- `src/components/views/Settings.tsx` - edited 1h ago
+- `src/lib/deal-pack.ts` - edited 1h ago
+- `src/components/views/ContractReview.tsx` - edited 1h ago
+- `src/components/views/BRCFIRCTracker.tsx` - edited 1h ago
+- `src/lib/brc.test.ts` - edited 1h ago
+- `src/lib/brc.ts` - edited 1h ago
+- `src/lib/rodtep-import.test.ts` - edited 1h ago
+- `src/lib/api.ts` - edited 1h ago
+- `src/lib/rodtep.test.ts` - edited 1h ago
+- `src/lib/rodtep.ts` - edited 1h ago
+- `src/App.tsx` - edited 1h ago
+- `src/components/views/CADashboard.tsx` - edited 1h ago
+- `src/components/views/CBAMReadiness.tsx` - edited 1h ago
+- `src/lib/fx.test.ts` - edited 1h ago
+- `src/lib/fx.ts` - edited 1h ago
+- `src/lib/eu-documents.ts` - edited 5h ago
+- `src/lib/coo-validator.ts` - edited 10h ago
+- `src/lib/coo-validator.test.ts` - edited 10h ago
+- `src/lib/dgft-coo-mapper.ts` - edited 10h ago
+- `src/lib/dgft-reference-maps.ts` - edited 10h ago
+- `src/types/index.ts` - edited 10h ago
 
 ## Edge functions
 
@@ -90,9 +117,9 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 | `climatiq-emissions` | 6d ago | never recorded | UNKNOWN - never recorded |
 | `compliance-ai` | 88d ago | never recorded | UNKNOWN - never recorded |
 | `contract-review` | 80d ago | never recorded | UNKNOWN - never recorded |
-| `customs-filing` | 11d ago | never recorded | UNKNOWN - never recorded |
+| `customs-filing` | 12d ago | never recorded | UNKNOWN - never recorded |
 | `document-ocr` | 16d ago | never recorded | UNKNOWN - never recorded |
-| `document-review` | 84d ago | never recorded | UNKNOWN - never recorded |
+| `document-review` | 85d ago | never recorded | UNKNOWN - never recorded |
 | `fetch-regulatory-feeds` | 189d ago | never recorded | UNKNOWN - never recorded |
 | `hs-checklist` | 88d ago | never recorded | UNKNOWN - never recorded |
 | `hs-lookup` | 188d ago | never recorded | UNKNOWN - never recorded |
@@ -103,9 +130,9 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 | `recovery-digest` | 16d ago | never recorded | UNKNOWN - never recorded |
 | `regulatory-alerts` | 189d ago | never recorded | UNKNOWN - never recorded |
 | `sanctions-check` | 104d ago | never recorded | UNKNOWN - never recorded |
-| `treds-financing` | 11d ago | never recorded | UNKNOWN - never recorded |
+| `treds-financing` | 12d ago | never recorded | UNKNOWN - never recorded |
 | `underwriting-signal` | 189d ago | never recorded | UNKNOWN - never recorded |
-| `whatsapp-alert` | 11d ago | never recorded | UNKNOWN - never recorded |
+| `whatsapp-alert` | 12d ago | never recorded | UNKNOWN - never recorded |
 | `whatsapp-vendor-outreach` | 207d ago | never recorded | UNKNOWN - never recorded |
 | `zonos-classify` | 207d ago | never recorded | UNKNOWN - never recorded |
 | `zonos-landed-cost` | 207d ago | never recorded | UNKNOWN - never recorded |
@@ -134,6 +161,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `849c844` - docs: add audit pack, partnership material and regulatory references (3h ago).
+Branch `recover-untracked-edge-functions` at `257cb4f` - chore: add Jev decision skill, model router and project guidelines (1h ago).
 
 No uncommitted source changes.
