@@ -11,9 +11,14 @@
       "commit": "b127ed4",
       "dirty": true
     },
-    "supabase/migrations/20260923000001_invoices.sql": {
+    "20260923000001_invoices.sql": {
       "deployedAt": "2026-09-23T03:49:41.632Z",
       "commit": "a82ea97",
+      "dirty": false
+    },
+    "20260923000002_invoice_documents.sql": {
+      "deployedAt": "2026-09-23T05:57:46.723Z",
+      "commit": "e882560",
       "dirty": false
     }
   }

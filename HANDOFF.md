@@ -23,15 +23,18 @@ done.
 ## State as of 23 Sept 2026 (after phase 2 item 2)
 - Branch `recover-untracked-edge-functions`, working tree clean.
 - 704 tests / 31 files pass. `npm run build` passes. Both verified.
-- **Migration 20260923000002_invoice_documents is COMMITTED BUT NOT IN
-  PRODUCTION.** Tested on a local stack only. It must be pushed
-  (`supabase db push`, owner's approval) BEFORE the next `vercel --prod`:
-  the new Invoices view writes its columns, so a frontend deployed first
-  fails every invoice save. Then stamp it with
-  `node scripts/live-state.mjs --record migration <file>`.
-- Frontend IS deployed: live bundle 23 Sept 7:41 am. One source file has
-  changed since (src/lib/gstin.test.ts — a test, so deployed behaviour is
-  unchanged). The previously-pending `vercel --prod` is done.
+- Migration 20260923000002_invoice_documents is LIVE (owner ran
+  `supabase db push`; `migration list --linked` shows all four local AND
+  remote). Frontend with the Invoices view deployed by the owner with
+  `vercel --prod`, aliased to www.complianceos.co.in; the live bundle was
+  checked and contains the Invoices code. Both invoice migrations are
+  stamped in .live-state.json.
+- `--record migration` takes the bare filename. Passing the
+  supabase/migrations/ path used to file the record under a key the report
+  never reads (both invoice migrations showed UNKNOWN); the script now
+  strips the directory.
+- Live bundle built 23 Sept 11:26 am; LIVE_STATE reports 0 source files
+  changed since.
 - 21 edge functions in the repo, 20 live. `recovery-digest` is NOT
   deployed.
 
@@ -120,7 +123,7 @@ deploy path is unaffected.
    credit/debit note or cancel-and-reissue.
 5. Never generate a Bill of Lading. The shipping line issues it.
 
-## PHASE 2 ITEM 2 IS DONE (code) — not deployed
+## PHASE 2 ITEM 2 IS DONE and LIVE (23 Sept 2026)
 Multi-line Commercial Invoice, Proforma and Packing List.
 - `supabase/migrations/20260923000002_invoice_documents.sql`: exporter bank
   snapshot (name, branch, account, IFSC, SWIFT, AD code), payment_terms,

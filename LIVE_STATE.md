@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 23 Sept 2026, 9:20 am by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 23 Sept 2026, 11:33 am by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -23,8 +23,8 @@ never run reads NOT LIVE, because to a user it does not work.
 | **LIVE** | Dashboard shows real unclaimed RoDTEP | Dashboard prefers the figure computed from actual shipping bills over the turnover-band estimate, and captions which one it used. |
 | **LIVE** | Trade agreement status comes from the database | fta_agreements overlays the built-in table at runtime, and the screen shows how old the data is. |
 | **PARTLY UNKNOWN** | CBAM emissions use EU default values | climatiq-emissions looks up the CBAM default for the HS code's CN prefix instead of failing, and the panel appears once rather than per market. |
-| **UNCERTAIN** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
-| **UNCERTAIN** | Demo seed for Meridian Tubes & Alloys | Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter. |
+| **LIVE** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
+| **LIVE** | Demo seed for Meridian Tubes & Alloys | Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter. |
 
 **Onboarding keeps the answers it collects - PARTLY UNKNOWN**
 
@@ -35,35 +35,16 @@ never run reads NOT LIVE, because to a user it does not work.
 
 - `function climatiq-emissions` - unknown: no deploy ever recorded
 
-**DGFT Certificate of Origin - Phase 1 - UNCERTAIN**
-
-- `src/lib/dgft-coo-mapper.ts` - uncertain: edited 1h ago, after the live build - the live copy is older
-- `src/lib/coo-validator.ts` - uncertain: edited 1h ago, after the live build - the live copy is older
-- note: Blocked on three unanswered questions: credential tenancy, fixed egress IP for DGFT's whitelist, RSA key custody.
-
-**Demo seed for Meridian Tubes & Alloys - UNCERTAIN**
-
-- `supabase/seed_demo_meridian.sql` - uncertain: edited 1h ago, after the live build - the live copy is older
-- note: Pasted into the SQL editor by hand; not a migration, so it is not tracked as applied.
-
 ## Frontend
 
 | | |
 |---|---|
-| Live bundle built | 23 Sept 2026, 7:41 am (2h ago) |
-| Deployment | https://compilance-mzmr93ew8-chandans-projects-8e0b4ca0.vercel.app |
+| Live bundle built | 23 Sept 2026, 11:26 am (1h ago) |
+| Deployment | https://compilance-fkn4qegpm-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
-| Source files changed since | **5** |
+| Source files changed since | **0** |
 
-### Not live - 5 file(s) changed after the last deploy
-
-Run `vercel --prod` to ship these.
-
-- `src/lib/coo-validator.test.ts` - edited 1h ago
-- `src/lib/dgft-coo-mapper.ts` - edited 1h ago
-- `src/lib/coo-validator.ts` - edited 1h ago
-- `src/types/index.ts` - edited 1h ago
-- `src/lib/gstin.test.ts` - edited 1h ago
+No source file has changed since the last production deploy.
 
 ## Edge functions
 
@@ -75,7 +56,7 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 |---|---|---|---|
 | `climatiq-emissions` | 6d ago | never recorded | UNKNOWN - never recorded |
 | `compliance-ai` | 89d ago | never recorded | UNKNOWN - never recorded |
-| `contract-review` | 80d ago | never recorded | UNKNOWN - never recorded |
+| `contract-review` | 81d ago | never recorded | UNKNOWN - never recorded |
 | `customs-filing` | 12d ago | never recorded | UNKNOWN - never recorded |
 | `document-ocr` | 17d ago | never recorded | UNKNOWN - never recorded |
 | `document-review` | 85d ago | never recorded | UNKNOWN - never recorded |
@@ -101,7 +82,8 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 |---|---|---|
 | `20260101000000_baseline_prod_schema.sql` | yes | 23 Sept 2026, 8:55 am |
 | `20260916000001_fta_agreements_read.sql` | yes | 23 Sept 2026, 8:55 am |
-| `20260923000001_invoices.sql` | yes | UNKNOWN |
+| `20260923000001_invoices.sql` | yes | 23 Sept 2026, 9:19 am |
+| `20260923000002_invoice_documents.sql` | yes | 23 Sept 2026, 11:27 am |
 
 To check what the database really has, run this in the Supabase SQL editor:
 
@@ -113,6 +95,8 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `a82ea97` - feat: add invoices and invoice_line_items; stop Shipment claiming CoO columns (1h ago).
+Branch `recover-untracked-edge-functions` at `e882560` - fix: make the Invoices view usable on phones and tablets (1h ago).
 
-No uncommitted source changes.
+**1 source file(s) exist only on this machine.** If this disk dies, production cannot be rebuilt.
+
+- `M scripts/live-state.mjs`

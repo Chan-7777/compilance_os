@@ -68,7 +68,9 @@ function fmt(iso) {
 const argv = process.argv.slice(2)
 if (argv[0] === '--record') {
   const kind = argv[1]
-  const name = argv[2]
+  // The report looks migrations up by bare filename, so a path like
+  // supabase/migrations/x.sql would be recorded under a key nothing reads.
+  const name = argv[2] && path.basename(argv[2])
   if (!['function', 'migration'].includes(kind) || !name) {
     console.error('usage: node scripts/live-state.mjs --record <function|migration> <name>')
     process.exit(1)
