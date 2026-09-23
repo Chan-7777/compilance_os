@@ -1,1 +1,15 @@
-{"functions":{},"migrations":{}}
+{
+  "functions": {},
+  "migrations": {
+    "20260101000000_baseline_prod_schema.sql": {
+      "deployedAt": "2026-09-23T03:25:19.689Z",
+      "commit": "b127ed4",
+      "dirty": true
+    },
+    "20260916000001_fta_agreements_read.sql": {
+      "deployedAt": "2026-09-23T03:25:19.883Z",
+      "commit": "b127ed4",
+      "dirty": true
+    }
+  }
+}
