@@ -20,15 +20,20 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 6 — COMMITTED, NOT LIVE)
+## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
 - Branch `recover-untracked-edge-functions`.
 - 832 tests / 37 files pass (`npm test`). `npm run build` passes. 16 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
-- Item 6 (masters) is committed but NOT released. Migration
-  20260924000001_masters is local only. Release migration-first, then
-  frontend: the new frontend reads buyers/products/bank_accounts/signatories
-  and writes invoices.signatory_* on every draft save, so an older schema
-  breaks invoice saving.
+- Item 6 (masters) is LIVE. The owner ran `supabase db push`
+  (20260924000001 now local AND remote), then `vercel --prod`
+  (aliased to www.complianceos.co.in). Verified after: a read-only schema
+  dump of production has the 4 tables with RLS, 4 policies each, no anon
+  grant, the 6 unique indexes, invoices.signatory_name/_designation, and
+  invoices_guard() unchanged; the live bundle index--qQHUc2Q.js is
+  byte-identical to the local build and contains the Masters code.
+  Migration stamped in .live-state.json. Keep migration-first for any
+  rollback too: this frontend writes invoices.signatory_* on every draft
+  save, so an older schema breaks invoice saving.
 - Item 4 (shipping bill import matches instead of duplicating) is LIVE.
   Frontend only, no migration. Deployed with `vercel --prod` on the
   owner's approval (dpl_th2T413sStFDJTz7EJHpao5qrwSw), aliased to
@@ -319,7 +324,7 @@ Known gaps:
 - Settings' api_keys query returns 400 on the local stack (pre-existing).
 - Main bundle +~100 kB raw from the port list; lazy-load it if it matters.
 
-## PHASE 2 ITEM 6 IS DONE — COMMITTED, NOT LIVE (23 Sept 2026)
+## PHASE 2 ITEM 6 IS DONE and LIVE (23 Sept 2026)
 Buyer / product / bank account / signatory masters. Decisions agreed with
 the owner:
 - Masters only PREFILL a draft. Picking one copies values into the form;
@@ -398,10 +403,7 @@ Known gaps:
    a branch picker — fold into item 6. The import already matches by GSTIN
    and needs no change when this lands.
 5. DONE and LIVE — see the item 5 section above.
-6. DONE, committed, NOT LIVE — see the item 6 section above. Next step
-   is the owner's release: `supabase db push`, then `vercel --prod`, then
-   stamp with `node scripts/live-state.mjs --record migration
-   20260924000001_masters.sql`.
+6. DONE and LIVE — see the item 6 section above.
 
 ## Production writes already applied — do not repeat
 Both were run on 23 Sept with the owner's approval.

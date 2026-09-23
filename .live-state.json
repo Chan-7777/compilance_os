@@ -25,6 +25,11 @@
       "deployedAt": "2026-09-23T08:01:46.164Z",
       "commit": "17a119f",
       "dirty": false
+    },
+    "20260924000001_masters.sql": {
+      "deployedAt": "2026-09-23T15:15:44.224Z",
+      "commit": "4cf03c4",
+      "dirty": true
     }
   }
 }
