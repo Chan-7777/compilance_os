@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 23 Sept 2026, 1:32 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 23 Sept 2026, 1:47 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -39,8 +39,8 @@ never run reads NOT LIVE, because to a user it does not work.
 
 | | |
 |---|---|
-| Live bundle built | 23 Sept 2026, 1:30 pm (1h ago) |
-| Deployment | https://compilance-eiisp16qi-chandans-projects-8e0b4ca0.vercel.app |
+| Live bundle built | 23 Sept 2026, 1:45 pm (1h ago) |
+| Deployment | https://compilance-jtvucp5ru-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
 | Source files changed since | **0** |
 
@@ -96,6 +96,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `17a119f` - feat: gate check and RoDTEP per invoice line (phase 2 item 3) (1h ago).
+Branch `recover-untracked-edge-functions` at `0d8b904` - fix: RoDTEP Recovery judged per-line shipments by the shipment match type (1h ago).
 
 No uncommitted source changes.

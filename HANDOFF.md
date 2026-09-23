@@ -201,11 +201,11 @@ refused without insurance (friendly message), issued with it, linked to a
 shipment, dashboard moved from the single-HS 21,000 to the per-line 7,348,
 claim CSV one row per line (5,344 + 2,004), Shipments shows the primary
 line HS, gate check ran per HS with the buyer screened once. That pass
-found one bug, fixed in a follow-up commit that is NOT YET DEPLOYED: RoDTEP
+found one bug, fixed in 0d8b904 and LIVE (owner ran `vercel --prod`; live
+bundle index-CN3M0HlL.js matches the local build and has the fix): RoDTEP
 Recovery judged per-line shipments by the shipment-level match type, so a
 shipment whose single-HS lookup was 'default' showed 0 filing-ready and
 DISABLED the claim-register download, even with every line an exact match.
-Live until the next `vercel --prod`. No migration needed.
 
 Known gaps, deliberately not built:
 - The gate result says "2 HS codes ... each checked" but does not list
