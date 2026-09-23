@@ -139,7 +139,7 @@ Multi-line Commercial Invoice, Proforma and Packing List.
   Compliance view points to Invoices.
 - The Invoices view was clicked through in Chrome against a local stack:
   draft, save, FX refusal, packing-list and invoice previews, issue,
-  cancel. That pass fixed six UI bugs (see the follow-up commit). Native
+  cancel. That pass fixed seven UI bugs (see the follow-up commit). Native
   date inputs don't take typed input from chrome-devtools `fill`; set
   them with the native value setter + an input event.
 Known gaps, deliberately not built:
