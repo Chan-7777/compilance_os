@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
 import { parseCSV, csvToShippingBills, buildRodtepClaimCSV } from './api'
+import { shipmentLines, rodtepForLines, type LinkedInvoice } from './shipment-lines'
 
 describe('parseCSV', () => {
   it('splits simple rows and drops blank lines', () => {
@@ -87,5 +88,49 @@ describe('buildRodtepClaimCSV', () => {
       { name: 'A' }
     )
     expect(csv).toContain('"Coils, hot-rolled"')
+  })
+})
+
+describe('buildRodtepClaimCSV with invoice lines', () => {
+  // CIF 10,000 USD at the invoice's 83.5; freight 800 + insurance 200 split by value.
+  const invoice: LinkedInvoice = {
+    id: 'i1', invoiceNumber: 'EXP/014', kind: 'commercial', status: 'issued', incoterm: 'CIF',
+    currency: 'USD', fxRateInr: 83.5, freightAmount: 800, insuranceAmount: 200,
+    lines: [
+      { lineNo: 1, hsCode: '73041910', amount: 6000 },
+      { lineNo: 2, hsCode: '72081000', amount: 3000 },
+    ],
+  }
+  // Line 3 of the earlier example dropped: total is 9,000; charges 1,000
+  //   L1 FOB 6000 - 666.67 = 5,333.33 -> x83.5 = 445,333.06 x 1.2% = 5,344
+  //   L2 FOB 3000 - 333.33 = 2,666.67 -> x83.5 = 222,666.95 x 0.9% = 2,004
+  const shipment = {
+    shipping_bill_no: '1234567', date: '2026-09-15', hs_code: '73041910', name: 'Tubes',
+    shipment_value: 999999, value_currency: 'EUR', rodtep_rate: 5, rodtep_match_type: 'exact',
+  }
+  const rates: Record<string, number> = { '73041910': 1.2, '72081000': 0.9 }
+
+  it('writes one row per invoice line, each at its own HS rate, and totals the lines', () => {
+    const line_rodtep = rodtepForLines(shipmentLines([invoice])!, hs => ({ rate: rates[hs], matchType: 'exact' }), shipment.date)
+    const csv = buildRodtepClaimCSV([{ ...shipment, line_rodtep }], { name: 'Acme' })
+    const rows = csv.split('\n').filter(l => l.startsWith('1234567,'))
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toContain(',73041910,')
+    expect(rows[0]).toContain(',5333.33,USD,445333.06,cif,1.2,5344,yes,exact,')
+    expect(rows[1]).toContain(',72081000,')
+    expect(rows[1]).toContain(',2666.67,USD,222666.95,cif,0.9,2004,yes,exact,')
+    expect(rows[0]).toContain('EXP/014 line 1')
+    // Nothing from the shipment-level value, currency or rate leaks in.
+    expect(csv).not.toContain('999999')
+    expect(csv).toContain('# TOTAL_ENTITLEMENT_INR,7348')
+  })
+
+  it('writes a default-rate line as not claimable and leaves it out of the total', () => {
+    const line_rodtep = rodtepForLines(shipmentLines([invoice])!,
+      hs => ({ rate: rates[hs], matchType: hs === '72081000' ? 'default' : 'exact' }), shipment.date)
+    const csv = buildRodtepClaimCSV([{ ...shipment, line_rodtep }], { name: 'Acme' })
+    const rows = csv.split('\n').filter(l => l.startsWith('1234567,'))
+    expect(rows[1]).toMatch(/,no: default rate/)
+    expect(csv).toContain('# TOTAL_ENTITLEMENT_INR,5344')
   })
 })

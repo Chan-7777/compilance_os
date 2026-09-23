@@ -12,7 +12,8 @@ const header = (over: Partial<InvoiceHeaderInput> = {}): InvoiceHeaderInput => (
   buyerName: '', buyerAddress: '', buyerCountry: '', buyerTaxId: '',
   consigneeName: '', consigneeAddress: '', consigneeCountry: '',
   incoterm: '', incotermPlace: '', portOfLoading: '', portOfDischarge: '', destinationCountry: '',
-  originCountry: '', paymentTerms: '', currency: '', fxRateInr: '', fxRateDate: '', ...over,
+  originCountry: '', paymentTerms: '', currency: '', fxRateInr: '', fxRateDate: '',
+  freightAmount: '', insuranceAmount: '', ...over,
 })
 
 const line = (over: Partial<InvoiceLineInput> = {}): InvoiceLineInput => ({
@@ -55,6 +56,14 @@ describe('invoiceHeaderToRow', () => {
 
   it('flags a non-numeric rate as NaN for the caller to reject', () => {
     expect(Number.isNaN(invoiceHeaderToRow(header({ fxRateInr: 'eighty' })).fx_rate_inr)).toBe(true)
+  })
+
+  it('maps freight and insurance as invoice-currency amounts, blanks to NULL', () => {
+    expect(invoiceHeaderToRow(header({ freightAmount: '1,200.50', insuranceAmount: '85' })))
+      .toMatchObject({ freight_amount: 1200.5, insurance_amount: 85 })
+    expect(invoiceHeaderToRow(header()))
+      .toMatchObject({ freight_amount: null, insurance_amount: null })
+    expect(Number.isNaN(invoiceHeaderToRow(header({ freightAmount: 'lots' })).freight_amount)).toBe(true)
   })
 })
 

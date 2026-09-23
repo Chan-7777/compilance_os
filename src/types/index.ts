@@ -198,7 +198,13 @@ export interface Shipment {
   riskScore?: number
   checklist?: ChecklistItem[]
   completed?: number
+  /** With an issued commercial invoice: HS code of its highest-value line. */
   hsCode?: string
+  /**
+   * Distinct HS codes on the shipment's issued commercial invoice lines.
+   * Absent when there is no such invoice: the single-HS behaviour applies.
+   */
+  lineHsCodes?: string[]
   shipmentValue?: number
   gateStatus?: GateStatus
   buyerName?: string
@@ -324,6 +330,8 @@ export interface GateCheckResult {
     estimated_levy_eur?: number
     emissions_formatted?: string
   }
+  /** One entry per distinct invoice-line HS code; absent on a single-HS check. */
+  per_hs?: Array<{ hs_code: string; gate_status: GateStatus; reasons: string[] }>
   checked_at: string
 }
 

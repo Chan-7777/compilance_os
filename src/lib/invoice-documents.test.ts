@@ -19,6 +19,7 @@ function snapshot(over: Partial<InvoiceSnapshot> = {}): InvoiceSnapshot {
     incoterm: 'FOB', incotermPlace: 'Nhava Sheva', portOfLoading: 'INNSA1', portOfDischarge: 'DEHAM',
     destinationCountry: 'Germany', originCountry: 'India', paymentTerms: '30% advance',
     currency: 'USD', fxRateInr: 83.45, fxRateDate: '2026-09-20', fxRateSource: 'manual',
+    freightAmount: null, insuranceAmount: null, shipmentId: null,
     issuedAt: '2026-09-20T10:00:00Z', cancelledAt: null, cancelReason: null,
     ...over,
   }

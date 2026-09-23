@@ -8,6 +8,7 @@ import { Badge } from '@/components/Badge'
 import { colors, spacing, borderRadius, shadow } from '@theme/index'
 import { supabase } from '@/lib/supabase'
 import { convertToINR } from '@/lib/fx'
+import { fetchShipmentLineFigures } from '@/lib/api'
 
 interface ClientSummary {
   id: string
@@ -57,17 +58,27 @@ export function CADashboard() {
     // Fetch unclaimed RoDTEP per client
     const { data: rodtepData } = await supabase
       .from('shipments')
-      .select('company_id, rodtep_rate, shipment_value, value_currency, rodtep_claimed, status, date')
+      .select('id, company_id, rodtep_rate, shipment_value, value_currency, rodtep_claimed, status, date')
       .in('company_id', clientIds)
       .not('hs_code', 'is', null)
+
+    // Client shipments with an issued commercial invoice are valued per line.
+    const lineFigures = await fetchShipmentLineFigures(
+      (rodtepData ?? []).map((s: { id: string; date: string }) => ({ id: s.id, date: s.date }))
+    ).catch(() => new Map<string, never>())
 
     const summaries: ClientSummary[] = (companies ?? []).map((co: { id: string; name: string; plan: string }) => {
       const rel = rels.find((r: { client_company_id: string; client_label: string | null }) => r.client_company_id === co.id)
       const coShipments = (rodtepData ?? []).filter((s: { company_id: string }) => s.company_id === co.id)
 
       const unclaimedShips = coShipments.filter(
-        (s: { rodtep_claimed: boolean; rodtep_rate: number | null; shipment_value: number | null }) =>
-          !s.rodtep_claimed && s.rodtep_rate && s.shipment_value
+        (s: { id: string; rodtep_claimed: boolean; rodtep_rate: number | null; shipment_value: number | null }) =>
+          !s.rodtep_claimed && !lineFigures.has(s.id) && s.rodtep_rate && s.shipment_value
+      )
+      const unclaimedLineRodtep = coShipments.reduce(
+        (sum: number, s: { id: string; rodtep_claimed: boolean }) =>
+          s.rodtep_claimed ? sum : sum + (lineFigures.get(s.id)?.rodtep.amountInr ?? 0),
+        0
       )
 
       const toINR = (value: number, currency: string) => convertToINR(value, currency)
@@ -75,7 +86,7 @@ export function CADashboard() {
       const unclaimedRodtep = unclaimedShips.reduce(
         (sum: number, s: { shipment_value: number; value_currency: string; rodtep_rate: number }) =>
           sum + Math.round(toINR(s.shipment_value, s.value_currency) * (s.rodtep_rate / 100)),
-        0
+        unclaimedLineRodtep
       )
 
       const pendingShipments = coShipments.filter(

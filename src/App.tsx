@@ -37,7 +37,7 @@ import {
 import { getProductById } from '@/data'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate, fetchRodtepRateDetailed , loadFTAAgreements} from '@/lib/api'
+import { fetchBatchRiskScore, fetchChecklist, fetchAlerts, fetchRodtepRate, fetchRodtepRateDetailed, fetchShipmentLineFigures, loadFTAAgreements } from '@/lib/api'
 import { convertToINR } from '@/lib/fx'
 import { colors } from '@theme/index'
 import type {
@@ -381,14 +381,35 @@ function App() {
 
         // Real unclaimed RoDTEP, same rule as the RoDTEP Recovery screen: a
         // claim needs a shipping bill, and only unclaimed or rejected count.
-        const unclaimed = (data ?? []).reduce((sum: number, s: any) => {
+        const isOpenClaim = (s: any) => {
           const status = s.rodtep_claim_status ?? (s.rodtep_claimed ? 'filed' : 'unclaimed')
-          if (status !== 'unclaimed' && status !== 'rejected') return sum
-          if (!s.shipping_bill_no || !s.hs_code || !s.shipment_value || !s.rodtep_rate) return sum
+          return (status === 'unclaimed' || status === 'rejected') && !!s.shipping_bill_no
+        }
+        const singleHsEntitlement = (s: any) => {
+          if (!s.hs_code || !s.shipment_value || !s.rodtep_rate) return 0
           const inr = convertToINR(parseFloat(s.shipment_value), s.value_currency, s.date)
-          return sum + Math.round(inr * (parseFloat(s.rodtep_rate) / 100))
-        }, 0)
+          return Math.round(inr * (parseFloat(s.rodtep_rate) / 100))
+        }
+        const unclaimed = (data ?? []).reduce((sum: number, s: any) =>
+          isOpenClaim(s) ? sum + singleHsEntitlement(s) : sum, 0)
         setRodtepUnclaimed(unclaimed > 0 ? unclaimed : null)
+
+        // Shipments with an issued commercial invoice: HS code of the
+        // highest-value line, every distinct line HS for the gate check, and
+        // RoDTEP per line. The rest keep the single-HS figures set above.
+        void fetchShipmentLineFigures((data ?? []).map((s: any) => ({ id: s.id, date: s.date }))).then(fig => {
+          if (fig.size === 0) return
+          setShipments(prev => prev.map(s => {
+            const f = fig.get(s.id)
+            return f ? { ...s, hsCode: f.primaryHs ?? s.hsCode, lineHsCodes: f.hsCodes } : s
+          }))
+          const total = (data ?? []).reduce((sum: number, s: any) => {
+            if (!isOpenClaim(s)) return sum
+            const f = fig.get(s.id)
+            return sum + (f ? (f.rodtep.amountInr ?? 0) : singleHsEntitlement(s))
+          }, 0)
+          setRodtepUnclaimed(total > 0 ? total : null)
+        }, () => { /* invoice lines unavailable: single-HS figures stand */ })
       })
 
     // Trade agreement status: database first, built-in table as fallback.

@@ -14,6 +14,7 @@ import { useMobile } from '@/hooks/useMobile'
 import { colors, spacing, borderRadius } from '@theme/index'
 import {
   listInvoices, fetchInvoiceDocument, saveInvoiceDraft, issueInvoice, cancelInvoice, deleteInvoiceDraft,
+  linkInvoiceToShipment, listShipmentOptions, type ShipmentOption,
   type InvoiceHeaderInput, type InvoiceLineInput, type InvoiceListItem,
 } from '@/lib/invoices'
 import { printCommercialInvoice, printPackingList, printProformaInvoice, type InvoiceDocument } from '@/lib/invoice-documents'
@@ -69,9 +70,13 @@ function blankHeader(profile: CompanyProfile): InvoiceHeaderInput {
     consigneeName: '', consigneeAddress: '', consigneeCountry: '',
     incoterm: 'FOB', incotermPlace: '', portOfLoading: profile.portOfLoading ?? '', portOfDischarge: '',
     destinationCountry: '', originCountry: 'India', paymentTerms: '',
-    currency: 'USD', fxRateInr: '', fxRateDate: '',
+    currency: 'USD', fxRateInr: '', fxRateDate: '', freightAmount: '', insuranceAmount: '',
   }
 }
+
+// Incoterms whose value includes freight, and those that also include insurance.
+const FREIGHT_TERMS = new Set(['CFR', 'CPT', 'CIF', 'CIP'])
+const INSURANCE_TERMS = new Set(['CIF', 'CIP'])
 
 const LINE_LABELS: Record<keyof InvoiceLineInput, string> = {
   description: 'description', hsCode: 'HS code', quantity: 'quantity', uom: 'unit', unitPrice: 'unit price',
@@ -101,6 +106,7 @@ function formFromDocument(doc: InvoiceDocument): { header: InvoiceHeaderInput; l
       incoterm: s(i.incoterm) || 'FOB', incotermPlace: s(i.incotermPlace), portOfLoading: s(i.portOfLoading),
       portOfDischarge: s(i.portOfDischarge), destinationCountry: s(i.destinationCountry), originCountry: s(i.originCountry),
       paymentTerms: s(i.paymentTerms), currency: i.currency, fxRateInr: s(i.fxRateInr), fxRateDate: s(i.fxRateDate),
+      freightAmount: s(i.freightAmount), insuranceAmount: s(i.insuranceAmount),
     },
     lines: doc.lines.map(l => ({
       description: l.description, hsCode: l.hsCode, quantity: s(l.quantity), uom: l.uom, unitPrice: s(l.unitPrice),
@@ -138,6 +144,12 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
   }, [companyId])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  const [shipments, setShipments] = useState<ShipmentOption[]>([])
+  useEffect(() => {
+    if (!companyId) return
+    listShipmentOptions(companyId).then(setShipments, () => setShipments([]))
+  }, [companyId])
 
   const run = async (fn: () => Promise<void>, ok?: string) => {
     setBusy(true); setMessage(null)
@@ -262,6 +274,20 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               </p>
             </div>
 
+            {FREIGHT_TERMS.has(h.incoterm) && (
+              <>
+                <div style={groupTitle}>Freight and insurance</div>
+                <div style={g(4)}>
+                  {field(`Freight (${h.currency})`, 'freightAmount', { inputMode: 'decimal', placeholder: h.kind === 'commercial' ? 'required to issue' : 'optional' })}
+                  {INSURANCE_TERMS.has(h.incoterm) &&
+                    field(`Insurance (${h.currency})`, 'insuranceAmount', { inputMode: 'decimal', placeholder: h.kind === 'commercial' ? 'required to issue' : 'optional' })}
+                  <p style={{ fontSize: '0.75rem', color: colors.textMuted, margin: 0, alignSelf: 'end' }}>
+                    The amounts included in this {h.incoterm} value. RoDTEP is paid on FOB, so they are taken off, split across the lines by line value.
+                  </p>
+                </div>
+              </>
+            )}
+
             <div style={groupTitle}>Lines</div>
             {linesAsCards ? (
               <div style={{ display: 'grid', gap: spacing.md }}>
@@ -366,6 +392,18 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
   // ── List ──
   const rowActions = (inv: InvoiceListItem) => (
     <>
+      <select
+        aria-label="Shipment" title="The shipment this invoice covers" disabled={busy}
+        style={{ ...inputStyle, width: 'auto', maxWidth: 220, padding: '4px 6px', fontSize: '0.8rem' }}
+        value={inv.shipmentId ?? ''}
+        onChange={e => {
+          const shipmentId = e.target.value || null
+          void run(async () => { await linkInvoiceToShipment(inv.id, shipmentId); await refresh() },
+            shipmentId ? 'Linked to shipment' : 'Unlinked from shipment')
+        }}>
+        <option value="">No shipment</option>
+        {shipments.map(sh => <option key={sh.id} value={sh.id}>{sh.name} · {sh.date}</option>)}
+      </select>
       {inv.status === 'draft' && (
         <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(async () => {
           const doc = await fetchInvoiceDocument(inv.id)

@@ -10,6 +10,11 @@ import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
 import { convertToINR } from './fx'
 import { deriveFobValue, rodtepEntitlement, RODTEP_NOTIFIED_UNTIL, type ValueBasis } from './rodtep'
 import { isUnrelatedToTrade, cappedSeverity } from './feed-relevance'
+import {
+  mergeGateResults, shipmentLines, distinctHsCodes, primaryHsCode, rodtepForLines,
+  type LinesRodtep, type ShipmentLine,
+} from './shipment-lines'
+import { fetchLinkedInvoices } from './invoices'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -65,6 +70,48 @@ export async function fetchRodtepRateDetailed(hsCode: string): Promise<RodtepRat
   if (approx?.rate != null) return { rate: Number(approx.rate), matchType: 'prefix', matchedHs: approx.hs_code }
 
   return { rate: RODTEP_DEFAULT_RATE, matchType: 'default', matchedHs: null }
+}
+
+export interface ShipmentLineFigures {
+  lines: ShipmentLine[]
+  /** Distinct line HS codes: what the gate check iterates. */
+  hsCodes: string[]
+  /** HS code of the highest-value line: what Shipment.hsCode becomes. */
+  primaryHs: string | null
+  /** Per-line RoDTEP, each line at its own HS rate. */
+  rodtep: LinesRodtep
+}
+
+/**
+ * Per-line figures for the shipments that have an issued commercial invoice.
+ * Shipments absent from the result keep today's single-HS behaviour. Each
+ * distinct HS code's rate is looked up once. `date` is the Let Export date the
+ * RoDTEP notification window is keyed to, as elsewhere.
+ */
+export async function fetchShipmentLineFigures(
+  shipments: Array<{ id: string; date: string }>
+): Promise<Map<string, ShipmentLineFigures>> {
+  const invoices = await fetchLinkedInvoices(shipments.map(s => s.id))
+  const linesById = new Map<string, ShipmentLine[]>()
+  for (const s of shipments) {
+    const lines = shipmentLines(invoices.get(s.id) ?? [])
+    if (lines && lines.length > 0) linesById.set(s.id, lines)
+  }
+  const allHs = [...new Set([...linesById.values()].flatMap(distinctHsCodes))]
+  const rates = new Map(await Promise.all(allHs.map(async hs => [hs, await fetchRodtepRateDetailed(hs)] as const)))
+
+  const out = new Map<string, ShipmentLineFigures>()
+  for (const s of shipments) {
+    const lines = linesById.get(s.id)
+    if (!lines) continue
+    out.set(s.id, {
+      lines,
+      hsCodes: distinctHsCodes(lines),
+      primaryHs: primaryHsCode(lines),
+      rodtep: rodtepForLines(lines, hs => rates.get(hs), s.date),
+    })
+  }
+  return out
 }
 
 // Backward-compatible number-only wrapper (dashboard estimate, FTA view).
@@ -310,6 +357,12 @@ export function buildRodtepClaimCSV(
     value_basis?: ValueBasis | null
     freight_value?: number | null
     insurance_value?: number | null
+    /**
+     * Per-line RoDTEP from the shipment's issued commercial invoices. When
+     * present it replaces the shipment-level value, currency and rate: one
+     * row per invoice line.
+     */
+    line_rodtep?: LinesRodtep | null
   }>,
   profile: { name: string; iec?: string; gstin?: string; portOfLoading?: string }
 ): string {
@@ -326,6 +379,25 @@ export function buildRodtepClaimCSV(
   lines.push(['shipping_bill_no', 'sb_date', 'ritc_hs_code', 'description', 'fob_value', 'currency', 'fob_value_inr', 'value_basis', 'rodtep_rate_pct', 'entitlement_inr', 'claimable', 'match_type', 'claim_deadline', 'iec', 'gstin'].join(','))
   let total = 0
   for (const s of shipments) {
+    const dl = new Date(s.date); dl.setFullYear(dl.getFullYear() + 1)
+    if (s.line_rodtep) {
+      for (const e of s.line_rodtep.lines) {
+        const l = e.line
+        // Same rule as the shipment-level file: a default rate must not be filed.
+        const isDefault = e.matchType === 'default'
+        const counts = e.claimable && !isDefault
+        if (counts) total += e.amountInr ?? 0
+        lines.push([
+          s.shipping_bill_no ?? '', s.date, l.hsCode,
+          `${s.name} — ${l.invoiceNumber ?? 'invoice'} line ${l.lineNo}`,
+          l.fob ?? '', l.currency, l.fobInr ?? '', l.basis ?? 'none',
+          e.ratePct, e.amountInr ?? '',
+          counts ? 'yes' : `no: ${isDefault ? 'default rate — confirm the HS code before filing' : (e.note ?? '')}`,
+          e.matchType ?? '', dl.toISOString().slice(0, 10), profile.iec ?? '', profile.gstin ?? '',
+        ].map(esc).join(','))
+      }
+      continue
+    }
     const rate = s.rodtep_rate ?? 0
     const basis = deriveFobValue({
       value: s.shipment_value,
@@ -336,7 +408,6 @@ export function buildRodtepClaimCSV(
     const fobInr = basis.fob === null ? null : Math.round(convertToINR(basis.fob, s.value_currency, s.date))
     const { amountInr, claimable, note } = rodtepEntitlement({ fobInr, ratePct: rate, letExportDate: s.date })
     total += amountInr ?? 0
-    const dl = new Date(s.date); dl.setFullYear(dl.getFullYear() + 1)
     lines.push([
       s.shipping_bill_no ?? '', s.date, s.hs_code, s.name, basis.fob ?? '', s.value_currency, fobInr ?? '',
       basis.assumed ? 'assumed_fob' : (s.value_basis ?? 'fob'),
@@ -754,10 +825,42 @@ export function triggerScraper(_scraperName: string) {
 }
 
 // ─── Compliance Gate (real logic) ─────────────────────────────
+type SanctionsResponse = { data: unknown } | null
+
+function screenBuyer(buyerName: string | undefined): Promise<SanctionsResponse> {
+  return buyerName && buyerName.trim().length > 2
+    ? supabase.functions.invoke('sanctions-check', { body: { name: buyerName } })
+    : Promise.resolve(null)
+}
+
+/**
+ * Gate check. A shipment with invoice lines (lineHsCodes) is checked once per
+ * distinct line HS code and the worst status wins; the buyer is screened once
+ * for all of them. Without lines it is the single-HS check on hsCode.
+ */
 export async function runGateCheck(
   shipment: Shipment,
   checkedItems: Record<string, boolean> = {},
   companyProfile: CompanyProfile = { name: '', size: 'small' }
+): Promise<GateCheckResult> {
+  const sanctions = screenBuyer(shipment.buyerName)
+  const codes = shipment.lineHsCodes
+  if (!codes || codes.length === 0) {
+    return gateCheckForHs(shipment, checkedItems, companyProfile, sanctions)
+  }
+  const primary = shipment.hsCode && codes.includes(shipment.hsCode) ? shipment.hsCode : codes[0]
+  const ordered = [primary, ...codes.filter(c => c !== primary)]
+  const results = await Promise.all(
+    ordered.map(hsCode => gateCheckForHs({ ...shipment, hsCode }, checkedItems, companyProfile, sanctions))
+  )
+  return mergeGateResults(results)
+}
+
+async function gateCheckForHs(
+  shipment: Shipment,
+  checkedItems: Record<string, boolean>,
+  companyProfile: CompanyProfile,
+  sanctionsPromise: Promise<SanctionsResponse>
 ): Promise<GateCheckResult> {
   const risk = calculateRiskScore(shipment.product, shipment.country, companyProfile)
   const checklist = generateChecklist(shipment.product, shipment.country)
@@ -779,9 +882,6 @@ export async function runGateCheck(
 
   // Sanctions check + CBAM emissions — fire in parallel with tariff lookups
   let sanctionsResult: import('@/types').SanctionsCheckResult | undefined
-  const sanctionsPromise = shipment.buyerName && shipment.buyerName.trim().length > 2
-    ? supabase.functions.invoke('sanctions-check', { body: { name: shipment.buyerName } })
-    : Promise.resolve(null)
 
   // CBAM emissions estimate — only for EU + CBAM-scoped HS code
   let cbamEmissions: { co2e_tonnes: number; formatted: string; activity_id: string } | undefined

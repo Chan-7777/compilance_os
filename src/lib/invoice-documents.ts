@@ -60,6 +60,11 @@ export interface InvoiceSnapshot {
   fxRateInr: number | null
   fxRateDate: string | null
   fxRateSource: 'cbic' | 'manual' | 'fallback' | null
+  /** Invoice currency. Reduce a CFR/CPT or CIF/CIP value to FOB. */
+  freightAmount: number | null
+  insuranceAmount: number | null
+  /** Link to the shipment this invoice covers; editable even after issue. */
+  shipmentId: string | null
 
   issuedAt: string | null
   cancelledAt: string | null
@@ -136,6 +141,9 @@ export function invoiceDocumentFromRows(row: Row, lineRows: Row[]): InvoiceDocum
     fxRateInr: num(row.fx_rate_inr),
     fxRateDate: str(row.fx_rate_date),
     fxRateSource: str(row.fx_rate_source) as InvoiceSnapshot['fxRateSource'],
+    freightAmount: num(row.freight_amount),
+    insuranceAmount: num(row.insurance_amount),
+    shipmentId: str(row.shipment_id),
     issuedAt: str(row.issued_at),
     cancelledAt: str(row.cancelled_at),
     cancelReason: str(row.cancel_reason),

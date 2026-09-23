@@ -3,9 +3,10 @@ import { colors, spacing, borderRadius, shadow } from '@theme/index'
 import {
   fetchRodtepRateDetailed, backfillRodtepRates, bulkImportShippingBills,
   parseCSV, csvToShippingBills, buildRodtepClaimCSV, downloadTextFile, updateRodtepClaimStatus,
-  checkHSMismatch,
+  checkHSMismatch, fetchShipmentLineFigures,
 } from '@/lib/api'
 import type { RodtepMatchType, RodtepClaimStatus, BulkImportResult } from '@/lib/api'
+import type { LinesRodtep } from '@/lib/shipment-lines'
 import { generateRoDTEPReport } from '@/lib/rodtep-report'
 import { convertToINR } from '@/lib/fx'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +30,8 @@ interface ShipmentRodtep {
   rodtep_claim_status: RodtepClaimStatus | null
   rodtep_claim_note: string | null
   entitlement?: number
+  /** Present when the shipment has an issued commercial invoice: RoDTEP per line. */
+  line_rodtep?: LinesRodtep | null
 }
 
 function formatINR(v: number): string {
@@ -136,8 +139,6 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
       .from('shipments')
       .select('id, name, hs_code, shipment_value, value_currency, shipping_bill_no, date, rodtep_rate, rodtep_match_type, rodtep_claimed, rodtep_claim_status, rodtep_claim_note')
       .eq('company_id', cid)
-      .not('hs_code', 'is', null)
-      .not('shipment_value', 'is', null)
       // A RoDTEP claim needs a shipping bill. Without one the shipment has not
       // been cleared for export and cannot appear as claimable entitlement.
       .not('shipping_bill_no', 'is', null)
@@ -145,14 +146,31 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
       .limit(500)
 
     if (data) {
-      const enriched: ShipmentRodtep[] = data.map((s: ShipmentRodtep) => {
+      // Shipments with an issued commercial invoice are valued per invoice
+      // line; the rest keep the single-HS figure, and still need an HS code
+      // and value to have one.
+      const figures = await fetchShipmentLineFigures(data.map((s: ShipmentRodtep) => ({ id: s.id, date: s.date })))
+        .catch(() => new Map<string, never>())
+      const enriched: ShipmentRodtep[] = data.flatMap((s: ShipmentRodtep) => {
+        const claimStatus = s.rodtep_claim_status ?? (s.rodtep_claimed ? 'filed' : 'unclaimed')
+        const f = figures.get(s.id)
+        if (f) {
+          return [{
+            ...s,
+            hs_code: f.primaryHs ?? s.hs_code,
+            rodtep_claim_status: claimStatus,
+            entitlement: f.rodtep.amountInr ?? undefined,
+            line_rodtep: f.rodtep,
+          }]
+        }
+        if (s.hs_code == null || s.shipment_value == null) return []
         const inrValue = toINR(s.shipment_value, s.value_currency)
         const rate = s.rodtep_rate ?? 0
-        return {
+        return [{
           ...s,
-          rodtep_claim_status: s.rodtep_claim_status ?? (s.rodtep_claimed ? 'filed' : 'unclaimed'),
+          rodtep_claim_status: claimStatus,
           entitlement: rate > 0 ? Math.round(inrValue * (rate / 100)) : undefined,
-        }
+        }]
       })
       setShipments(enriched)
     }
@@ -253,7 +271,9 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
   }
 
   function handleClaimFile() {
-    const rows = unclaimed.filter(s => s.rodtep_match_type !== 'default')
+    // Per-line shipments carry their own match type per line; the file marks
+    // default-rate lines unclaimable itself.
+    const rows = unclaimed.filter(s => s.line_rodtep || s.rodtep_match_type !== 'default')
     if (rows.length === 0) return
     const csv = buildRodtepClaimCSV(rows, companyProfile)
     downloadTextFile(`rodtep-claim-register-${new Date().toISOString().slice(0, 10)}.csv`, csv)
@@ -393,9 +413,13 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
                           <span style={{ fontWeight: 500, color: colors.text }}>{s.name}</span>
                           {s.shipping_bill_no && <span style={{ color: colors.textMuted, marginLeft: spacing.xs }}>· SB {s.shipping_bill_no}</span>}
                           <span style={{ color: colors.textMuted, marginLeft: spacing.xs }}>· HS {s.hs_code}</span>
-                          <span style={{ color: colors.textMuted, marginLeft: spacing.xs }}>· {s.rodtep_rate}%</span>
+                          <span style={{ color: colors.textMuted, marginLeft: spacing.xs }}>
+                            {s.line_rodtep
+                              ? `· ${s.line_rodtep.lines.length} invoice lines, rate per line${s.line_rodtep.complete ? '' : ' (some lines have no figure)'}`
+                              : `· ${s.rodtep_rate}%`}
+                          </span>
                         </div>
-                        <MatchBadge type={s.rodtep_match_type} compact />
+                        {!s.line_rodtep && <MatchBadge type={s.rodtep_match_type} compact />}
                         <span style={{ fontWeight: 600, color: colors.status.success, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" }}>
                           {formatINR(s.entitlement!)}
                         </span>

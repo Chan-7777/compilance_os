@@ -20,9 +20,12 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 2)
+## State as of 23 Sept 2026 (after phase 2 item 3 — COMMITTED, NOT LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
-- 704 tests / 31 files pass. `npm run build` passes. Both verified.
+- 741 tests / 33 files pass. `npm run build` passes. Both verified.
+- Item 3 (per-line gate check + RoDTEP) is committed only. Migration
+  20260923000003_invoice_freight_insurance is NOT applied to production and
+  the frontend is NOT deployed. See the item 3 section for the release order.
 - Migration 20260923000002_invoice_documents is LIVE (owner ran
   `supabase db push`; `migration list --linked` shows all four local AND
   remote). Frontend with the Invoices view deployed by the owner with
@@ -157,6 +160,48 @@ Known gaps, deliberately not built:
   user input UNESCAPED into a same-origin window. escapeHtml() now exists
   there; apply it.
 
+## PHASE 2 ITEM 3 IS DONE — committed, NOT live (23 Sept 2026)
+Gate check and RoDTEP per invoice line. Decisions agreed with the owner:
+- An invoice is linked to a shipment by a "Shipment" picker on each row
+  of the Invoices view (`linkInvoiceToShipment`). Nothing set
+  invoices.shipment_id before this. No migration was needed for the link.
+- FOB per line: invoice-level `freight_amount` / `insurance_amount`
+  (invoice currency) split across lines BY LINE VALUE, remainder on the
+  last line. FOB/FCA/FAS = FOB; CFR/CPT less freight; CIF/CIP less both;
+  EXW/DAP/DPU/DDP give NO figure (with a note), never a guess.
+- Converted with the invoice's own fx_rate_inr, never src/lib/fx.ts.
+  Entitlement rounded per line, then summed. 2026-09-30 cutoff unchanged.
+- Only ISSUED COMMERCIAL invoices count. All of them on a shipment are
+  combined. No such invoice = today's single-HS behaviour, untouched.
+- Shipment.hsCode = highest-value line (compared in INR, tie -> lower
+  line_no), set IN MEMORY on load; shipments.hs_code in the DB is not
+  written. Shipment.lineHsCodes carries the distinct codes.
+- Gate: one check per distinct HS, buyer screened ONCE, worst status wins,
+  reasons from the worst-status checks only; FTA/CoO fields from the
+  primary HS; per_hs on the result lists each code's status.
+Code: src/lib/shipment-lines.ts (pure, tested), fetchShipmentLineFigures
+in api.ts, wired into App (hsCode + dashboard total), RoDTEPCalculator
+(entitlement, claim CSV one row per line; default-rate lines written as
+not claimable), CADashboard. Freight/insurance are required at ISSUE by
+invoices_guard() (trigger, not a CHECK, so older issued CIF invoices can
+still be cancelled/relinked). Verified on a local stack: all 5
+migrations apply clean; 10 trigger checks; the PostgREST embed query.
+
+RELEASE ORDER MATTERS: apply the migration BEFORE deploying the frontend.
+The new frontend writes freight_amount/insurance_amount on every draft
+save; against the old schema, saving ANY invoice fails. (Reads fall back
+to single-HS figures if the columns are missing, but saves do not.)
+Then: `node scripts/live-state.mjs --record migration 20260923000003_invoice_freight_insurance.sql`.
+
+Known gaps, deliberately not built:
+- Freight/insurance are not printed on the commercial invoice document.
+- CBAM emissions estimate and FTA savings still use the whole
+  shipment_value, per HS. shipment_value is not reconciled to invoices.
+- CBAMReadiness reads shipments.hs_code directly (not per line).
+- invoices.shipment_id FK doesn't check company. RLS means a foreign link
+  changes no one's figures; closing it needs a composite FK migration.
+- Shipment-level MatchBadge hidden for per-line rows; no per-line badge UI.
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -169,9 +214,7 @@ Known gaps, deliberately not built:
    exported). generateCBAMDeclaration shows the multi-row pattern.
    Include bank details + exporter letterhead. Retire
    generateEUCommercialInvoice the day the new one ships.
-3. Make gate check and RoDTEP iterate DISTINCT line HS codes (worst gate
-   status wins; RoDTEP summed per line). Set Shipment.hsCode to the
-   highest-value line. WRITE TESTS FIRST — this is the money path.
+3. DONE (committed, not live) — see the item 3 section above.
 4. `bulkImportShippingBills` (src/lib/api.ts:154) must match on
    IEC + invoice number + date and UPDATE the SB fields; insert only when
    nothing matches. As written it creates a DUPLICATE shipment for every
