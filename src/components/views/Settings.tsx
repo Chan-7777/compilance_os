@@ -11,6 +11,8 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
 import { validateGstin } from '@/lib/gstin'
+import { DGFT_STATES, DGFT_PORTS } from '@/lib/dgft-reference-maps'
+import { resolveStatePick, resolvePortPick, applyStatePick } from '@/lib/reference-pickers'
 import { fetchAPIKeys, revokeAPIKey, fetchNotificationSettings, updateNotificationSettings, sendWhatsAppAlert } from '@/lib/api'
 import type { NotificationSettings } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
@@ -355,14 +357,32 @@ export function Settings({
                       >
                         State
                       </label>
-                      <input
-                        id="company-state"
-                        type="text"
-                        value={companyProfile.state ?? ''}
-                        onChange={e => onUpdateProfile({ ...companyProfile, state: e.target.value })}
-                        style={inputStyle}
-                        placeholder="e.g. Maharashtra"
-                      />
+                      {/* A saved value the DGFT list lacks stays selected, as
+                          its own option, until the user picks another. */}
+                      {(() => {
+                        const pick = resolveStatePick(companyProfile.state)
+                        return (
+                          <>
+                            <select
+                              id="company-state"
+                              value={pick.kind === 'empty' ? '' : pick.value}
+                              onChange={e => onUpdateProfile(applyStatePick(companyProfile, e.target.value))}
+                              style={inputStyle}
+                            >
+                              <option value="" disabled>Select state</option>
+                              {pick.kind === 'unlisted' && (
+                                <option value={pick.value}>{pick.value} (not in DGFT list)</option>
+                              )}
+                              {DGFT_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            {pick.kind === 'unlisted' && (
+                              <div style={{ marginTop: spacing.xs, fontSize: '0.75rem', color: colors.surfaces.warningText }}>
+                                Saved as "{pick.value}", which is not in the DGFT state list. Kept until you pick one.
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
 
@@ -416,8 +436,30 @@ export function Settings({
                       value={companyProfile.portOfLoading ?? ''}
                       onChange={e => onUpdateProfile({ ...companyProfile, portOfLoading: e.target.value.toUpperCase() })}
                       style={inputStyle}
-                      placeholder="e.g. INBOM4 (Mumbai), INMAA1 (Chennai)"
+                      placeholder="Type a code or place, e.g. INNSA1 or Mundra"
+                      list="dgft-ports"
+                      autoComplete="off"
                     />
+                    <datalist id="dgft-ports">
+                      {DGFT_PORTS.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                    </datalist>
+                    {(() => {
+                      const pick = resolvePortPick(companyProfile.portOfLoading)
+                      if (pick.kind === 'empty') return null
+                      if (pick.kind === 'listed') {
+                        return (
+                          <div style={{ marginTop: spacing.xs, fontSize: '0.75rem', color: colors.textMuted }}>
+                            {pick.value} · {pick.label}
+                          </div>
+                        )
+                      }
+                      return (
+                        <div style={{ marginTop: spacing.xs, fontSize: '0.75rem', color: colors.surfaces.warningText }}>
+                          "{pick.value}" is not in the DGFT port list. That list is an extract and may be
+                          incomplete, so it is kept as typed; check it against your shipping bill.
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <div>

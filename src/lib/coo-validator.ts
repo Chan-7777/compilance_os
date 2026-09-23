@@ -24,7 +24,8 @@ import {
 export interface CoOApplicationData {
   tradeAgreementId: string
   preferenceCriterion: string
-  destinationCountryIso?: string
+  /** Country name as DGFT's annexure spells it (it has no ISO codes). */
+  destinationCountry?: string
   rollUpAbsorption?: boolean
   /** Pass a pre-fetched sanctions result to avoid a duplicate network call
    *  when the caller already screened this company elsewhere in the flow. */
@@ -81,8 +82,8 @@ function checkReferenceTables(shipment: CoOShipmentInput, applicationData: CoOAp
   if (shipment.portOfDischarge && !lookupPort(shipment.portOfDischarge)) {
     errors.push({ field: 'shipment.portOfDischarge', message: `Port of discharge "${shipment.portOfDischarge}" is not a recognised DGFT port code` })
   }
-  if (applicationData.destinationCountryIso && !lookupCountry(applicationData.destinationCountryIso)) {
-    errors.push({ field: 'destinationCountryIso', message: `Destination country ISO code "${applicationData.destinationCountryIso}" is not a recognised DGFT country code` })
+  if (applicationData.destinationCountry && !lookupCountry(applicationData.destinationCountry)) {
+    errors.push({ field: 'destinationCountry', message: `Destination country "${applicationData.destinationCountry}" is not in the DGFT country list` })
   }
   if (!shipment.uom || !lookupUom(shipment.uom)) {
     errors.push({ field: 'shipment.uom', message: `Unit of measure "${shipment.uom ?? ''}" is not a recognised DGFT UOM code` })
@@ -101,14 +102,13 @@ function checkReferenceTables(shipment: CoOShipmentInput, applicationData: CoOAp
 function checkStateAndDistrict(company: CompanyProfile, shipment: CoOShipmentInput): CoOValidationError[] {
   const errors: CoOValidationError[] = []
   if (!company.state || !lookupState(company.state)) {
-    errors.push({ field: 'company.state', message: `State "${company.state ?? ''}" is not a recognised DGFT state code` })
+    errors.push({ field: 'company.state', message: `State "${company.state ?? ''}" is not in the DGFT state list` })
     return errors
   }
-  if (shipment.district) {
-    const stateEntry = lookupState(company.state)!
-    if (!lookupDistrict(stateEntry.code, shipment.district)) {
-      errors.push({ field: 'shipment.district', message: `District "${shipment.district}" is not recognised for state "${company.state}"` })
-    }
+  // The annexure does not say which state a district is in, so this can
+  // only check the name exists, not that it belongs to company.state.
+  if (shipment.district && !lookupDistrict(shipment.district)) {
+    errors.push({ field: 'shipment.district', message: `District "${shipment.district}" is not in the DGFT district list` })
   }
   return errors
 }

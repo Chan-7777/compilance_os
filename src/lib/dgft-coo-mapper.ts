@@ -19,7 +19,8 @@ export interface DgftCoOPayload {
     gstin?: string
     address?: string
     city?: string
-    stateCode?: string
+    /** State name as the annexure spells it; the API takes the name. */
+    state?: string
     district?: string
     pin?: string
   }
@@ -65,7 +66,7 @@ export function buildDgftCoODataPayload(
   company: CompanyProfile,
   opts: { requestId: string; tradeAgreementId: string; preferenceCriterion: string; rollUpAbsorption?: boolean }
 ): DgftCoOPayload {
-  const stateEntry = company.state ? lookupState(company.state) : undefined
+  const state = company.state ? lookupState(company.state) : undefined
   const agreement = lookupTradeAgreement(opts.tradeAgreementId)
   const uomEntry = shipment.uom ? lookupUom(shipment.uom) : undefined
 
@@ -77,7 +78,7 @@ export function buildDgftCoODataPayload(
       gstin: company.gstin,
       address: company.address,
       city: company.city,
-      stateCode: stateEntry?.code,
+      state,
       district: shipment.district,
       pin: company.pin,
     },

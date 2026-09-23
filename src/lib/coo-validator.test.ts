@@ -21,7 +21,7 @@ const baseShipment: CoOShipmentInput = {
   date: '2026-09-01',
   status: 'pending',
   hsCode: '72081000',
-  portOfLoading: 'Mundra',
+  portOfLoading: 'INMUN1',
   uom: 'KGS',
   invoiceNumber: 'INV-001',
   invoiceDate: '2026-08-30',
@@ -30,7 +30,7 @@ const baseShipment: CoOShipmentInput = {
 const baseApplicationData = {
   tradeAgreementId: 'INDIA_UAE_CEPA',
   preferenceCriterion: 'CTH',
-  destinationCountryIso: 'AE',
+  destinationCountry: 'United Arab Emirates',
   rollUpAbsorption: true,
 }
 

@@ -1,100 +1,98 @@
 // ============================================================================
-// DGFT Reference Maps — Trade Notice 25/2026-27
+// DGFT Reference Maps
 //
-// Static, typed lookup tables for the Annexure codes the DGFT Preferential
-// Certificate of Origin API requires (state/district, port, country, UOM,
-// trade agreement, issuing office). These are the codes the pre-flight
-// validator checks user input against before anything is sent to DGFT.
+// States, districts, UOMs, countries and domestic ports come from
+// docs/Certificate+of+Origin+Open+API+v1.0.pdf, section 7 (Annexure), via
+// src/lib/dgft-annexure-data.ts, which scripts/extract_dgft_annexure.py
+// generates. Do not add entries by hand: a wrong port code ends up on a
+// shipping bill. If a value is missing, get a newer DGFT source and rerun.
 //
-// This is a starter set covering the states/ports/agreements most relevant
-// to current ComplianceOS shipments, not the full DGFT annexure. Extend the
-// maps below as more corridors come online — do not hardcode fallbacks
-// elsewhere in the codebase.
+// What the PDF does not give, and so this module does not either:
+//  - codes for states, districts or countries (the API takes the name)
+//  - which state a district or a port is in, so nothing here can narrow
+//    ports by state or districts by state
+// The domestic port table stops at exactly 1,000 rows, as does the
+// international table, which visibly ends mid-alphabet. Treat the port list
+// as an extract: a code missing from it is not proof the code is wrong.
 // ============================================================================
+
+import {
+  STATE_NAMES,
+  DISTRICT_NAMES,
+  UOM_ROWS,
+  COUNTRY_NAMES,
+  DOMESTIC_PORT_ROWS,
+} from '@/lib/dgft-annexure-data'
+
+export { DGFT_ANNEXURE_SOURCE } from '@/lib/dgft-annexure-data'
 
 export interface DgftCodeEntry {
   code: string
   name: string
 }
 
-// ─── States & Districts (Annexure — State/District codes) ──────────────────
+const key = (s: string) => s.trim().toUpperCase()
 
-export const DGFT_STATE_CODES: Record<string, DgftCodeEntry> = {
-  'GUJARAT': { code: 'GJ', name: 'Gujarat' },
-  'MAHARASHTRA': { code: 'MH', name: 'Maharashtra' },
-  'TAMIL NADU': { code: 'TN', name: 'Tamil Nadu' },
-  'KARNATAKA': { code: 'KA', name: 'Karnataka' },
-  'DELHI': { code: 'DL', name: 'Delhi' },
-  'HARYANA': { code: 'HR', name: 'Haryana' },
-  'PUNJAB': { code: 'PB', name: 'Punjab' },
-  'WEST BENGAL': { code: 'WB', name: 'West Bengal' },
-  'UTTAR PRADESH': { code: 'UP', name: 'Uttar Pradesh' },
-  'RAJASTHAN': { code: 'RJ', name: 'Rajasthan' },
-  'TELANGANA': { code: 'TS', name: 'Telangana' },
-  'ANDHRA PRADESH': { code: 'AP', name: 'Andhra Pradesh' },
+function byName(names: readonly string[]): Map<string, string> {
+  return new Map(names.map(n => [key(n), n]))
 }
 
-// District codes are state-scoped in the DGFT annexure; keyed here as
-// "STATE_CODE:DISTRICT_NAME" (upper-cased) → DGFT district code.
-export const DGFT_DISTRICT_CODES: Record<string, DgftCodeEntry> = {
-  'GJ:AHMEDABAD': { code: 'GJ-AHM', name: 'Ahmedabad' },
-  'GJ:SURAT': { code: 'GJ-SUR', name: 'Surat' },
-  'GJ:KACHCHH': { code: 'GJ-KUT', name: 'Kachchh' },
-  'MH:MUMBAI': { code: 'MH-MUM', name: 'Mumbai' },
-  'MH:PUNE': { code: 'MH-PUN', name: 'Pune' },
-  'TN:CHENNAI': { code: 'TN-CHE', name: 'Chennai' },
-  'TN:TIRUPUR': { code: 'TN-TIR', name: 'Tirupur' },
-  'KA:BENGALURU': { code: 'KA-BLR', name: 'Bengaluru' },
-  'DL:NEW DELHI': { code: 'DL-NDL', name: 'New Delhi' },
+// ─── States, districts, countries (names only) ─────────────────────────────
+
+export const DGFT_STATES = STATE_NAMES
+export const DGFT_DISTRICTS = DISTRICT_NAMES
+export const DGFT_COUNTRIES = COUNTRY_NAMES
+
+const STATES = byName(STATE_NAMES)
+const DISTRICTS = byName(DISTRICT_NAMES)
+const COUNTRIES = byName(COUNTRY_NAMES)
+
+// ─── Units of measure ───────────────────────────────────────────────────────
+
+export const DGFT_UOM_CODES: Record<string, DgftCodeEntry> =
+  Object.fromEntries(UOM_ROWS.map(r => [r.code, { code: r.code, name: r.name }]))
+
+// ─── Domestic ports ─────────────────────────────────────────────────────────
+
+// Rows of the port table whose code is not IN + 4 characters (OTHERS, DEEMED
+// and two malformed codes). Kept out of the picker; a user can still type one.
+const PORT_CODE = /^IN[A-Z0-9]{4}$/
+
+export const DGFT_PORTS: readonly DgftCodeEntry[] =
+  DOMESTIC_PORT_ROWS.filter(r => PORT_CODE.test(r.code)).map(r => ({ code: r.code, name: r.name }))
+
+export const DGFT_PORT_ROWS_EXCLUDED: readonly DgftCodeEntry[] =
+  DOMESTIC_PORT_ROWS.filter(r => !PORT_CODE.test(r.code)).map(r => ({ code: r.code, name: r.name }))
+
+const PORTS = new Map(DGFT_PORTS.map(p => [p.code, p]))
+
+/** The PDF spelling of a state name, matched ignoring case and edge spaces. */
+export function lookupState(name: string): string | undefined {
+  return STATES.get(key(name))
 }
 
-// ─── Ports (Annexure — Port of Loading / Discharge codes, ICEGATE-aligned) ──
-
-export const DGFT_PORT_CODES: Record<string, DgftCodeEntry> = {
-  'JNPT': { code: 'INNSA1', name: 'Jawaharlal Nehru Port, Mumbai' },
-  'MUNDRA': { code: 'INMUN1', name: 'Mundra Port, Gujarat' },
-  'CHENNAI': { code: 'INMAA1', name: 'Chennai Port' },
-  'KOLKATA': { code: 'INCCU1', name: 'Kolkata Port' },
-  'COCHIN': { code: 'INCOK1', name: 'Cochin Port' },
-  'PIPAVAV': { code: 'INPAV1', name: 'Pipavav Port, Gujarat' },
-  'KANDLA': { code: 'INIXY1', name: 'Kandla Port, Gujarat' },
-  'DELHI AIR CARGO': { code: 'INDEL4', name: 'Delhi Air Cargo Complex' },
-  'MUMBAI AIR CARGO': { code: 'INBOM4', name: 'Mumbai Air Cargo Complex' },
+/** The PDF spelling of a district name. The PDF cannot say which state it is in. */
+export function lookupDistrict(name: string): string | undefined {
+  return DISTRICTS.get(key(name))
 }
 
-// ─── Countries (ISO 3166-1 alpha-2 ↔ DGFT country code) ─────────────────────
-
-export const DGFT_COUNTRY_CODES: Record<string, DgftCodeEntry> = {
-  'US': { code: 'USA', name: 'United States of America' },
-  'GB': { code: 'GBR', name: 'United Kingdom' },
-  'AE': { code: 'UAE', name: 'United Arab Emirates' },
-  'DE': { code: 'DEU', name: 'Germany' },
-  'FR': { code: 'FRA', name: 'France' },
-  'NL': { code: 'NLD', name: 'Netherlands' },
-  'IT': { code: 'ITA', name: 'Italy' },
-  'ES': { code: 'ESP', name: 'Spain' },
-  'JP': { code: 'JPN', name: 'Japan' },
-  'AU': { code: 'AUS', name: 'Australia' },
-  'SG': { code: 'SGP', name: 'Singapore' },
-  'CN': { code: 'CHN', name: 'China' },
-  'ZA': { code: 'ZAF', name: 'South Africa' },
-  'BR': { code: 'BRA', name: 'Brazil' },
+/** A domestic port by its ICEGATE code (e.g. INNSA1), not by place name. */
+export function lookupPort(code: string): DgftCodeEntry | undefined {
+  return PORTS.get(key(code))
 }
 
-// ─── Units of Measure (standardized UOM codes) ──────────────────────────────
-
-export const DGFT_UOM_CODES: Record<string, DgftCodeEntry> = {
-  'KGS': { code: 'KGS', name: 'Kilograms' },
-  'MTS': { code: 'MTS', name: 'Metric Tons' },
-  'NOS': { code: 'NOS', name: 'Numbers' },
-  'PCS': { code: 'PCS', name: 'Pieces' },
-  'MTR': { code: 'MTR', name: 'Meters' },
-  'SQM': { code: 'SQM', name: 'Square Meters' },
-  'LTR': { code: 'LTR', name: 'Liters' },
-  'DOZ': { code: 'DOZ', name: 'Dozens' },
-  'SET': { code: 'SET', name: 'Sets' },
-  'BOX': { code: 'BOX', name: 'Boxes' },
+/** The PDF spelling of a country name. The PDF has no ISO codes. */
+export function lookupCountry(name: string): string | undefined {
+  return COUNTRIES.get(key(name))
 }
+
+export function lookupUom(code: string): DgftCodeEntry | undefined {
+  return DGFT_UOM_CODES[key(code)]
+}
+
+// NOT from the annexure: the trade agreement and origin criterion tables
+// below predate it and have not been checked against the PDF (7.2, 7.5).
+// CoO integration is frozen; verify them before it is unfrozen.
 
 // ─── Trade Agreements (Agreement ID ↔ Regional / Issuing office code) ───────
 
@@ -140,27 +138,6 @@ export const DGFT_ORIGIN_CRITERIA: Record<string, DgftCodeEntry> = {
   'CTSH': { code: 'CTSH', name: 'Change in Tariff Sub-Heading' },
   'RVC': { code: 'RVC', name: 'Regional Value Content' },
 }
-
-export function lookupState(name: string): DgftCodeEntry | undefined {
-  return DGFT_STATE_CODES[name.trim().toUpperCase()]
-}
-
-export function lookupDistrict(stateCode: string, district: string): DgftCodeEntry | undefined {
-  return DGFT_DISTRICT_CODES[`${stateCode.trim().toUpperCase()}:${district.trim().toUpperCase()}`]
-}
-
-export function lookupPort(name: string): DgftCodeEntry | undefined {
-  return DGFT_PORT_CODES[name.trim().toUpperCase()]
-}
-
-export function lookupCountry(isoAlpha2: string): DgftCodeEntry | undefined {
-  return DGFT_COUNTRY_CODES[isoAlpha2.trim().toUpperCase()]
-}
-
-export function lookupUom(code: string): DgftCodeEntry | undefined {
-  return DGFT_UOM_CODES[code.trim().toUpperCase()]
-}
-
 export function lookupTradeAgreement(id: string): TradeAgreementEntry | undefined {
   return DGFT_TRADE_AGREEMENTS[id.trim().toUpperCase()]
 }

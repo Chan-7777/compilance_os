@@ -22,7 +22,7 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
-- 769 tests / 34 files pass. `npm run build` passes. Both verified.
+- 793 tests / 36 files pass. `npm run build` passes. Both verified (item 5).
 - Item 4 (shipping bill import matches instead of duplicating) is LIVE.
   Frontend only, no migration. Deployed with `vercel --prod` on the
   owner's approval (dpl_th2T413sStFDJTz7EJHpao5qrwSw), aliased to
@@ -262,6 +262,54 @@ local stack needed ports 5532x (Windows reserves 54225-54324 here) and
 [inbucket] enabled = false; those edits were reverted, not committed.
 Nit: the banner's entitlement total includes bills already claimed.
 
+## PHASE 2 ITEM 5 IS DONE — committed, NOT deployed (23 Sept 2026)
+Settings: State is a picker, Port of Loading is a searchable code field.
+Frontend only, no migration. Ships when the owner runs `vercel --prod`.
+
+The source is NOT the two PDFs the plan named. TN No.25 has no code
+tables (field names only) and Notification 39's annexure is RoDTEP 4R
+tariff changes. The tables are in docs/Certificate+of+Origin+Open+API+v1.0.pdf
+section 7. scripts/extract_dgft_annexure.py (pdfplumber) generates
+src/lib/dgft-annexure-data.ts from it; a test pins the PDF's sha256.
+Rows: 38 states, 698 districts (692 distinct), 37 UOMs, 264 countries
+(255 distinct), 1000 domestic ports (996 kept; OTHERS, DEEMED, INDAGENCY,
+INCCQ left out of the picker).
+
+What the PDF does NOT give, so the app does not either:
+- No codes for states, districts or countries — names only. The old
+  stub's GJ/MH, GJ-AHM and USA/UAE codes were not from any source; gone.
+- No state for a district or a port. So there is NO state -> district ->
+  port cascade and no district step: it could only be built by guessing.
+  Changing the state never clears or filters the port.
+- Port tables stop at exactly 1,000 rows; the international one visibly
+  ends mid-Belgium. Treat the domestic list as an extract. Hence the port
+  field still takes free text and only warns on an unlisted code.
+Needs a better DGFT/ICEGATE source (full port master with state, district
+master with state) before the cascade can be built.
+
+Existing rows are never rewritten. A stored state matching a PDF name
+ignoring case ("Maharashtra") shows as selected and is not written back
+until the user picks; one not in the list shows as its own option with a
+warning; an unlisted port ("JNPT") is kept as typed with a warning.
+companies.district does not exist and was not added.
+
+CoO validator/mapper (frozen, no UI imports them) moved to the new
+lookups: port by code only, country by PDF name, district by name only.
+Trade agreement and origin criterion tables were NOT checked against
+the PDF (sections 7.2, 7.5) — verify before CoO is unfrozen.
+
+Clicked through in Chrome on a local stack (5532x ports, inbucket off,
+reverted): Maharashtra/JNPT loaded as MAHARASHTRA + unlisted-port warning
+with no DB write; picked GUJARAT (port and state_code untouched), typed
+inmun1 -> INMUN1 named Mundra SEZ; saved and reloaded; an unlisted state
+showed as its own option and stayed in the DB. No new console errors.
+Known gaps:
+- GSTIN 26's name in gstin.ts ("Dadra and Nagar Haveli and Daman and
+  Diu") is not a PDF state, so a company picking either PDF value sees a
+  (non-blocking) GSTIN/state mismatch message.
+- Settings' api_keys query returns 400 on the local stack (pre-existing).
+- Main bundle +~100 kB raw from the port list; lazy-load it if it matters.
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -284,11 +332,7 @@ Nit: the banner's entitlement total includes bills already claimed.
    ideally a company_registrations master (GSTIN, state, address, port) as
    a branch picker — fold into item 6. The import already matches by GSTIN
    and needs no change when this lands.
-5. Settings pickers: state -> district -> port. src/lib/dgft-reference-maps.ts
-   is a STUB — verified counts: 12 of 36 states, 9 districts covering
-   only 5 states, 9 ports, 14 countries, 10 UOMs. Complete it from the
-   annexure PDFs in docs/ (TN No.25 dated 07.09.2026.pdf, Annexure to
-   Notification No. 39.pdf). Note docs/pdf_photos/ is gitignored.
+5. DONE, committed, NOT deployed — see the item 5 section above.
 6. Buyer / product / signatory / bank masters.
 
 ## Production writes already applied — do not repeat
