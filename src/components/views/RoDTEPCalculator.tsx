@@ -60,9 +60,11 @@ const PRESETS = [
   { label: '₹1Cr', value: 10_000_000 },
 ]
 
-const CSV_TEMPLATE = `shipping_bill_no,sb_date,hs_code,description,fob_value,currency,destination,buyer
-1234567,15/03/2026,72081000,Hot-rolled steel coils,45000,USD,EU,Muller Stahl GmbH
-1234890,02/04/2026,61091000,Cotton T-shirts,12000,EUR,EU,Textil Nord AB`
+// iec, gstin, invoice_no and invoice_date are optional. With them, a bill whose
+// invoice was made in ComplianceOS updates that invoice's shipment.
+const CSV_TEMPLATE = `shipping_bill_no,sb_date,hs_code,description,fob_value,currency,destination,buyer,iec,gstin,invoice_no,invoice_date
+1234567,15/03/2026,72081000,Hot-rolled steel coils,45000,USD,EU,Muller Stahl GmbH,,,,
+1234890,02/04/2026,61091000,Cotton T-shirts,12000,EUR,EU,Textil Nord AB,,,,`
 
 // ── Audit-trail badge: tells the customer how much to trust the number ──
 const MATCH_META: Record<RodtepMatchType, { label: string; bg: string; fg: string; hint: string }> = {
@@ -387,13 +389,21 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
             {importError && <div style={{ marginTop: spacing.sm, fontSize: '0.8rem', color: colors.status.error }}>{importError}</div>}
             {importResult && (
               <div style={{ marginTop: spacing.sm, padding: spacing.sm, backgroundColor: colors.white, border: `1px solid ${colors.border}`, borderRadius: borderRadius.md, fontSize: '0.8rem', color: colors.text }}>
-                <strong>Imported {importResult.inserted}</strong> shipping bill{importResult.inserted !== 1 ? 's' : ''} → <strong style={{ color: colors.surfaces.successText }}>{formatINR(importResult.totalEntitlementINR)}</strong> new entitlement found
-                {importResult.skippedDuplicates > 0 && <> · {importResult.skippedDuplicates} already on file</>}
+                <strong>{importResult.inserted} new</strong>, <strong>{importResult.updated} updated</strong> shipment{importResult.updated !== 1 ? 's' : ''}
+                {importResult.linked > 0 && <>, {importResult.linked} invoice{importResult.linked !== 1 ? 's' : ''} linked</>}
+                {' '}→ <strong style={{ color: colors.surfaces.successText }}>{formatINR(importResult.totalEntitlementINR)}</strong> entitlement on these bills
+                {importResult.skippedDuplicates > 0 && <> · {importResult.skippedDuplicates} repeated in the file</>}
                 <span style={{ color: colors.textMuted }}> · {importResult.byMatchType.exact} exact / {importResult.byMatchType.prefix} estimated / {importResult.byMatchType.default} not in schedule</span>
-                {importResult.errors.length > 0 && (
+                {(importResult.iecUnchecked > 0 || importResult.invoiceNotFound > 0) && (
+                  <div style={{ marginTop: spacing.xs, color: colors.textMuted }}>
+                    {importResult.iecUnchecked > 0 && <>{importResult.iecUnchecked} row{importResult.iecUnchecked !== 1 ? 's' : ''} had no IEC to check. </>}
+                    {importResult.invoiceNotFound > 0 && <>{importResult.invoiceNotFound} row{importResult.invoiceNotFound !== 1 ? 's' : ''} named an invoice that matched no issued commercial invoice (check the number and date).</>}
+                  </div>
+                )}
+                {importResult.rejected.length > 0 && (
                   <ul style={{ margin: `${spacing.xs} 0 0`, paddingLeft: 18, color: colors.status.error }}>
-                    {importResult.errors.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.reason}</li>)}
-                    {importResult.errors.length > 5 && <li>…and {importResult.errors.length - 5} more</li>}
+                    {importResult.rejected.slice(0, 5).map((e, i) => <li key={i}>Row {e.row}: {e.reason}</li>)}
+                    {importResult.rejected.length > 5 && <li>…and {importResult.rejected.length - 5} more</li>}
                   </ul>
                 )}
               </div>

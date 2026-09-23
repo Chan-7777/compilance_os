@@ -22,7 +22,10 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
-- 743 tests / 33 files pass. `npm run build` passes. Both verified.
+- 769 tests / 34 files pass. `npm run build` passes. Both verified.
+- Item 4 (shipping bill import matches instead of duplicating) is
+  COMMITTED, NOT LIVE. Frontend only, no migration: ship with
+  `vercel --prod` when the owner approves.
 - Item 3 (per-line gate check + RoDTEP) is LIVE. The owner ran
   `supabase db push` (20260923000003 now local AND remote) and then
   `vercel --prod` (aliased to www.complianceos.co.in). Verified after: a
@@ -218,6 +221,37 @@ Known gaps, deliberately not built:
   changes no one's figures; closing it needs a composite FK migration.
 - Shipment-level MatchBadge hidden for per-line rows; no per-line badge UI.
 
+## PHASE 2 ITEM 4 IS DONE — committed, NOT LIVE (23 Sept 2026)
+Shipping bill import updates the matching shipment instead of inserting a
+duplicate. Rules agreed with the owner, in src/lib/sb-import.ts (pure,
+tested); bulkImportShippingBills in api.ts only loads and applies:
+- IEC on the row must equal companies.iec (trimmed, case-insensitive),
+  else rejected. Row IEC but no company IEC -> rejected. No IEC column ->
+  accepted, counted `iecUnchecked`.
+- Match an ISSUED COMMERCIAL invoice on number (trimmed, case-insensitive)
+  + date, and on exporter_gstin when the row has a GSTIN. Two matches with
+  no GSTIN on the row -> rejected as ambiguous (branches). Number without a
+  valid date -> no invoice match, counted `invoiceNotFound`.
+- Invoice linked -> UPDATE that shipment. Unlinked -> update the shipment
+  already carrying the SB and link it, or create one and link it.
+- No invoice -> match shipping_bill_no -> update; else insert.
+- Overwritten: shipping_bill_no, date, hs_code, shipment_value,
+  value_currency, rodtep_rate, rodtep_match_type. country/buyer_name only
+  when empty. NEVER: name, status, gate/risk/sanctions, any rodtep_claim_*.
+- Rejected, never guessed: invoice's shipment has a different SB; SB already
+  on another shipment (leftover duplicates of the old bug — merge by hand);
+  SB on 2+ shipments; invoice linked to a shipment outside the company;
+  second row for the same invoice with a different SB.
+- CSV: optional iec / gstin / invoice_no / invoice_date columns. Header
+  matching now prefers exact names and never reuses a column, so "Invoice
+  Date" is not the SB date, "Invoice Value" not the FOB, "Importer Exporter
+  Code" not the buyer.
+Known limits: no transaction — a failed invoice link after a created
+shipment is reported per row, the shipment stays. Shipments with an SB are
+read in one query, so PostgREST's row cap (1000 by default) applies. One
+row per SB: a multi-item SB file keeps only its first row per SB; invoice
+lines already carry per-line HS. Not clicked through in Chrome yet.
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -231,10 +265,15 @@ Known gaps, deliberately not built:
    Include bank details + exporter letterhead. Retire
    generateEUCommercialInvoice the day the new one ships.
 3. DONE and LIVE — see the item 3 section above.
-4. `bulkImportShippingBills` (src/lib/api.ts:154) must match on
-   IEC + invoice number + date and UPDATE the SB fields; insert only when
-   nothing matches. As written it creates a DUPLICATE shipment for every
-   SB whose invoice was generated in-app.
+4. DONE, committed, NOT LIVE — see the item 4 section below.
+4a. Branches: let two GSTINs of one company reuse an invoice number.
+   GST numbers invoices per GSTIN per FY, but invoices_number_unique_per_fy
+   is (company, kind, number, FY), so a second state branch's "EXP/001" is
+   refused at save. Needs a migration rebuilding that index with
+   exporter_gstin (loosening only; existing rows can't violate it), and
+   ideally a company_registrations master (GSTIN, state, address, port) as
+   a branch picker — fold into item 6. The import already matches by GSTIN
+   and needs no change when this lands.
 5. Settings pickers: state -> district -> port. src/lib/dgft-reference-maps.ts
    is a STUB — verified counts: 12 of 36 states, 9 districts covering
    only 5 states, 9 ports, 14 countries, 10 UOMs. Complete it from the

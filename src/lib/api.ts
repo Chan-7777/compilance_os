@@ -15,6 +15,7 @@ import {
   type LinesRodtep, type ShipmentLine,
 } from './shipment-lines'
 import { fetchLinkedInvoices } from './invoices'
+import { planShippingBillImport, type ImportAction, type ImportShipment, type ShippingBillRow } from './sb-import'
 import type { CountryCode, GateCheckResult, GateStatus, APIKeyInfo, Shipment, CompanyProfile, CompanySize } from '@/types'
 
 // ─── Local Helpers ────────────────────────────────────────────
@@ -176,24 +177,26 @@ export async function updateRodtepClaimStatus(
 
 // ─── Bulk Shipping Bill Import ────────────────────────────────
 // Accepts rows parsed from a CSV export of the customer's shipping bills
-// (ICEGATE / CHA register / Tally). Looks up the RoDTEP rate for every
-// distinct HS code once, then inserts everything with the rate cached so the
-// look-back audit is populated immediately.
-export interface ShippingBillRow {
-  shippingBillNo: string
-  date: string              // YYYY-MM-DD
-  hsCode: string
-  fobValue: number
-  currency: string          // INR | USD | EUR | GBP | AED
-  description?: string
-  country?: string          // destination; defaults to 'EU'
-  buyerName?: string
-}
+// (ICEGATE / CHA register / Tally). Matching lives in sb-import.ts: a bill
+// whose invoice was made in-app UPDATES that invoice's shipment instead of
+// creating a duplicate. This function only loads what the plan needs and
+// applies it.
+export type { ShippingBillRow } from './sb-import'
 
 export interface BulkImportResult {
+  /** New shipments created. */
   inserted: number
+  /** Existing shipments whose shipping bill fields were updated. */
+  updated: number
+  /** Invoices newly linked to a shipment (new or existing). */
+  linked: number
+  /** Same shipping bill repeated within the file. */
   skippedDuplicates: number
-  errors: Array<{ row: number; reason: string }>
+  rejected: Array<{ row: number; reason: string }>
+  /** Rows accepted without an IEC column to check against. */
+  iecUnchecked: number
+  /** Rows naming an invoice that matched no issued commercial invoice. */
+  invoiceNotFound: number
   totalEntitlementINR: number
   byMatchType: Record<RodtepMatchType, number>
 }
@@ -203,73 +206,97 @@ export async function bulkImportShippingBills(
   companyId: string
 ): Promise<BulkImportResult> {
   const result: BulkImportResult = {
-    inserted: 0, skippedDuplicates: 0, errors: [], totalEntitlementINR: 0,
+    inserted: 0, updated: 0, linked: 0, skippedDuplicates: 0, rejected: [],
+    iecUnchecked: 0, invoiceNotFound: 0, totalEntitlementINR: 0,
     byMatchType: { exact: 0, prefix: 0, default: 0 },
   }
   if (rows.length === 0) return result
 
-  // Skip shipping bills already on file for this company
-  const { data: existing } = await supabase
-    .from('shipments')
-    .select('shipping_bill_no')
-    .eq('company_id', companyId)
-    .not('shipping_bill_no', 'is', null)
-  const known = new Set((existing ?? []).map(e => String(e.shipping_bill_no).trim()))
+  const [company, invoices, withSb] = await Promise.all([
+    supabase.from('companies').select('iec').eq('id', companyId).maybeSingle(),
+    supabase.from('invoices')
+      .select('id, shipment_id, kind, status, invoice_number, invoice_date, exporter_gstin')
+      .eq('company_id', companyId).eq('kind', 'commercial').eq('status', 'issued'),
+    supabase.from('shipments')
+      .select('id, shipping_bill_no, country, buyer_name')
+      .eq('company_id', companyId).not('shipping_bill_no', 'is', null),
+  ])
+  for (const r of [company, invoices, withSb]) if (r.error) throw new Error(r.error.message)
 
-  const distinct = [...new Set(rows.map(r => r.hsCode.replace(/\D/g, '')))]
+  // Shipments the invoices point at, which may not have a shipping bill yet.
+  // Filtered by company: invoices.shipment_id does not enforce it.
+  const known = new Set((withSb.data ?? []).map(s => s.id))
+  const linkedIds = [...new Set((invoices.data ?? []).map(i => i.shipment_id).filter((id): id is string => !!id && !known.has(id)))]
+  let linkedShipments: ImportShipment[] = []
+  if (linkedIds.length > 0) {
+    const { data, error } = await supabase.from('shipments')
+      .select('id, shipping_bill_no, country, buyer_name')
+      .eq('company_id', companyId).in('id', linkedIds)
+    if (error) throw new Error(error.message)
+    linkedShipments = data ?? []
+  }
+
+  const distinct = [...new Set(rows.map(r => r.hsCode.replace(/\D/g, '')).filter(hs => hs.length >= 4))]
   const rateByHs = new Map<string, RodtepRateResult>()
   await Promise.all(distinct.map(async hs => rateByHs.set(hs, await fetchRodtepRateDetailed(hs))))
 
-  const inserts: any[] = []
-  rows.forEach((r, i) => {
-    const rowNo = i + 2 // 1-based + header line
-    const sb = r.shippingBillNo.trim()
-    if (!sb) { result.errors.push({ row: rowNo, reason: 'Missing shipping bill number' }); return }
-    if (known.has(sb)) { result.skippedDuplicates++; return }
-    const hsDigits = r.hsCode.replace(/\D/g, '')
-    if (hsDigits.length < 4) { result.errors.push({ row: rowNo, reason: `Invalid HS code "${r.hsCode}"` }); return }
-    if (!(r.fobValue > 0)) { result.errors.push({ row: rowNo, reason: 'FOB value must be > 0' }); return }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) { result.errors.push({ row: rowNo, reason: `Date "${r.date}" is not YYYY-MM-DD` }); return }
-
-    const rate = rateByHs.get(hsDigits)!
-    // An ICEGATE shipping bill states FOB, so basis is genuine here — unlike a
-    // manually entered shipment value, which may be CIF. Shipping bill date
-    // drives both the exchange rate and whether RoDTEP is notified at all.
-    const fobInr = convertToINR(r.fobValue, r.currency, r.date)
-    result.totalEntitlementINR += rodtepEntitlement({
-      fobInr, ratePct: rate.rate, letExportDate: r.date,
-    }).amountInr ?? 0
-    result.byMatchType[rate.matchType]++
-    known.add(sb)
-
-    inserts.push({
-      company_id: companyId,
-      name: r.description?.trim() || `SB ${sb}`,
-      product: 'general',
-      country: r.country?.trim() || 'EU',
-      date: r.date,
-      hs_code: hsDigits,
-      shipment_value: r.fobValue,
-      value_currency: (r.currency || 'USD').toUpperCase(),
-      shipping_bill_no: sb,
-      buyer_name: r.buyerName?.trim() || null,
-      rodtep_rate: rate.rate,
-      rodtep_match_type: rate.matchType,
-      rodtep_claimed: false,
-      rodtep_claim_status: 'unclaimed',
-      status: 'delivered',
-    })
+  const plan = planShippingBillImport(rows, {
+    companyId,
+    companyIec: company.data?.iec ?? null,
+    invoices: invoices.data ?? [],
+    shipments: [...(withSb.data ?? []), ...linkedShipments],
+    rateFor: hs => rateByHs.get(hs),
   })
+  result.rejected.push(...plan.rejected)
+  result.skippedDuplicates = plan.skippedDuplicates
+  result.iecUnchecked = plan.iecUnchecked
+  result.invoiceNotFound = plan.invoiceNotFound
 
-  for (let i = 0; i < inserts.length; i += 100) {
-    const batch = inserts.slice(i, i + 100)
-    const { error } = await supabase.from('shipments').insert(batch)
+  const counted = (a: ImportAction) => {
+    result.totalEntitlementINR += a.entitlementInr
+    result.byMatchType[a.matchType]++
+  }
+  const link = async (a: ImportAction, shipmentId: string) => {
+    if (!a.linkInvoiceId) return
+    const { error } = await supabase.from('invoices')
+      .update({ shipment_id: shipmentId })
+      .eq('id', a.linkInvoiceId).eq('company_id', companyId)
+    if (error) result.rejected.push({ row: a.row, reason: `Shipping bill saved but linking its invoice failed: ${error.message}` })
+    else result.linked++
+  }
+
+  // Plain inserts in batches, as before.
+  const plain = plan.actions.filter(a => a.kind === 'insert' && !a.linkInvoiceId)
+  for (let i = 0; i < plain.length; i += 100) {
+    const batch = plain.slice(i, i + 100)
+    const { error } = await supabase.from('shipments').insert(batch.map(a => a.kind === 'insert' ? a.values : {}))
     if (error) {
-      result.errors.push({ row: i + 2, reason: `Insert failed: ${error.message}` })
+      for (const a of batch) result.rejected.push({ row: a.row, reason: `Insert failed: ${error.message}` })
     } else {
       result.inserted += batch.length
+      batch.forEach(counted)
     }
   }
+
+  // Inserts that must be linked, and updates: one at a time, in file order.
+  for (const a of plan.actions) {
+    if (a.kind === 'insert') {
+      if (!a.linkInvoiceId) continue
+      const { data, error } = await supabase.from('shipments').insert(a.values).select('id').single()
+      if (error || !data) { result.rejected.push({ row: a.row, reason: `Insert failed: ${error?.message ?? 'no row returned'}` }); continue }
+      result.inserted++
+      counted(a)
+      await link(a, data.id)
+    } else {
+      const { error } = await supabase.from('shipments')
+        .update(a.patch).eq('id', a.shipmentId).eq('company_id', companyId)
+      if (error) { result.rejected.push({ row: a.row, reason: `Update failed: ${error.message}` }); continue }
+      result.updated++
+      counted(a)
+      await link(a, a.shipmentId)
+    }
+  }
+  result.rejected.sort((x, y) => x.row - y.row)
   return result
 }
 
@@ -302,7 +329,26 @@ export function parseCSV(text: string): string[][] {
 export function csvToShippingBills(rows: string[][]): { bills: ShippingBillRow[]; missing: string[] } {
   if (rows.length < 2) return { bills: [], missing: ['No data rows found'] }
   const header = rows[0].map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''))
-  const find = (...aliases: string[]) => header.findIndex(h => aliases.some(a => h === a || h.includes(a)))
+  // A column taken by one field is never read as another, and an exact header
+  // beats a partial one: "Invoice Date" must not become the SB date, nor
+  // "Invoice Value" the FOB, nor "Importer Exporter Code" the buyer.
+  const claimed = new Set<number>()
+  const free = (i: number) => !claimed.has(i)
+  const claim = (i: number) => { if (i >= 0) claimed.add(i); return i }
+  const find = (...aliases: string[]) => {
+    for (const a of aliases) {
+      const i = header.findIndex((h, j) => free(j) && h === a)
+      if (i >= 0) return i
+    }
+    return header.findIndex((h, j) => free(j) && aliases.some(a => h.includes(a)))
+  }
+
+  // IEC is matched exactly: "iec" is inside ordinary words ("No of Pieces").
+  const iIec = claim(header.findIndex(h => ['iec', 'iecno', 'ieccode', 'importerexportercode'].includes(h)))
+  const iGstin = claim(find('gstin', 'gstno', 'gstnumber'))
+  const iInvNo = claim(find('invoiceno', 'invoicenumber', 'invno', 'invnumber'))
+  const iInvDate = claim(find('invoicedate', 'invdate'))
+  header.forEach((h, j) => { if (h.startsWith('invoice')) claimed.add(j) }) // e.g. Invoice Value
 
   const iSB = find('shippingbillno', 'sbno', 'shippingbill', 'sbnumber', 'billno')
   const iDate = find('sbdate', 'shippingbilldate', 'date', 'leodate')
@@ -330,6 +376,7 @@ export function csvToShippingBills(rows: string[][]): { bills: ShippingBillRow[]
     }
     return s
   }
+  const optional = (r: string[], i: number) => (i >= 0 && r[i]?.trim() ? r[i].trim() : undefined)
 
   const bills = rows.slice(1).map(r => ({
     shippingBillNo: (r[iSB] ?? '').trim(),
@@ -340,6 +387,10 @@ export function csvToShippingBills(rows: string[][]): { bills: ShippingBillRow[]
     description: iDesc >= 0 ? r[iDesc] : undefined,
     country: iCountry >= 0 ? r[iCountry] : undefined,
     buyerName: iBuyer >= 0 ? r[iBuyer] : undefined,
+    iec: optional(r, iIec),
+    gstin: optional(r, iGstin),
+    invoiceNumber: optional(r, iInvNo),
+    invoiceDate: iInvDate >= 0 && r[iInvDate]?.trim() ? toISO(r[iInvDate]) : undefined,
   }))
   return { bills, missing: [] }
 }

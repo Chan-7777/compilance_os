@@ -36,6 +36,36 @@ describe('csvToShippingBills', () => {
     expect(bills[0].date).toBe('2026-04-02')
     expect(bills[0].currency).toBe('EUR')
   })
+  it('reads IEC, GSTIN, invoice number and invoice date when present', () => {
+    const rows = parseCSV(
+      'SB No,SB Date,RITC,FOB Value,Curr,IEC,GSTIN,Invoice No,Invoice Date\n' +
+      '1234567,15/03/2026,72081000,1000,USD,AAECM4512R,27AAECM4512R1Z2,EXP/001,10/03/2026\n'
+    )
+    const { bills, missing } = csvToShippingBills(rows)
+    expect(missing).toEqual([])
+    expect(bills[0]).toMatchObject({
+      date: '2026-03-15', iec: 'AAECM4512R', gstin: '27AAECM4512R1Z2',
+      invoiceNumber: 'EXP/001', invoiceDate: '2026-03-10',
+    })
+  })
+  it('does not mistake invoice columns for the SB date, FOB or buyer', () => {
+    const rows = parseCSV(
+      'Invoice Date,Invoice Value,Importer Exporter Code,SB No,SB Date,RITC,FOB Value,Consignee,No of Pieces\n' +
+      '10/03/2026,1250,AAECM4512R,1234567,15/03/2026,72081000,1000,Muller GmbH,40\n'
+    )
+    const { bills } = csvToShippingBills(rows)
+    expect(bills[0]).toMatchObject({
+      date: '2026-03-15', fobValue: 1000, buyerName: 'Muller GmbH',
+      iec: 'AAECM4512R', invoiceDate: '2026-03-10',
+    })
+  })
+  it('leaves the new fields undefined for a file without them', () => {
+    const { bills } = csvToShippingBills(parseCSV('shipping_bill_no,sb_date,hs_code,fob_value\n9,2026-04-02,61091000,12000\n'))
+    expect(bills[0].iec).toBeUndefined()
+    expect(bills[0].gstin).toBeUndefined()
+    expect(bills[0].invoiceNumber).toBeUndefined()
+    expect(bills[0].invoiceDate).toBeUndefined()
+  })
   it('reports which required columns are missing', () => {
     const { bills, missing } = csvToShippingBills(parseCSV('description,value\nfoo,1\n'))
     expect(bills).toEqual([])
