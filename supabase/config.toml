@@ -1,3 +1,49 @@
+# Local development config for the Supabase CLI.
+#
+# Until 23 Sept 2026 this file held only [functions.*] entries, so
+# `supabase start` on a clean checkout failed before it reached the
+# migrations. The sections below are what `supabase init` generates.
+#
+# Windows note: the default 54321-54324 ports fall inside a range
+# Windows/Hyper-V reserves on some machines, which surfaces as
+#   "bind: An attempt was made to access a socket in a way forbidden
+#    by its access permissions"
+# It hits api (54321), db (54322), studio (54323) and the inbucket mail
+# catcher (54324). If you get it, edit the port values in place for your
+# machine -- do not append a second [db]/[api] table, TOML rejects
+# duplicate sections and the CLI fails with CliConfigParseError.
+# Check your reserved ranges with:
+#   netsh interface ipv4 show excludedportrange protocol=tcp
+
+project_id = "complianceos"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+additional_redirect_urls = ["https://127.0.0.1:5173"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
 
 [functions.document-ocr]
 enabled = true
