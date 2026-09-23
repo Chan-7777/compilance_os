@@ -10,7 +10,7 @@
 // ============================================================================
 
 import { supabase } from '@/lib/supabase'
-import type { Shipment, CompanyProfile, SanctionsCheckResult } from '@/types'
+import type { CoOShipmentInput, CompanyProfile, SanctionsCheckResult } from '@/types'
 import {
   lookupState,
   lookupDistrict,
@@ -72,7 +72,7 @@ async function checkDeniedEntityList(company: CompanyProfile, prefetched?: Sanct
   return errors
 }
 
-function checkReferenceTables(shipment: Shipment, applicationData: CoOApplicationData): CoOValidationError[] {
+function checkReferenceTables(shipment: CoOShipmentInput, applicationData: CoOApplicationData): CoOValidationError[] {
   const errors: CoOValidationError[] = []
 
   if (!shipment.portOfLoading || !lookupPort(shipment.portOfLoading)) {
@@ -98,7 +98,7 @@ function checkReferenceTables(shipment: Shipment, applicationData: CoOApplicatio
   return errors
 }
 
-function checkStateAndDistrict(company: CompanyProfile, shipment: Shipment): CoOValidationError[] {
+function checkStateAndDistrict(company: CompanyProfile, shipment: CoOShipmentInput): CoOValidationError[] {
   const errors: CoOValidationError[] = []
   if (!company.state || !lookupState(company.state)) {
     errors.push({ field: 'company.state', message: `State "${company.state ?? ''}" is not a recognised DGFT state code` })
@@ -113,7 +113,7 @@ function checkStateAndDistrict(company: CompanyProfile, shipment: Shipment): CoO
   return errors
 }
 
-function checkAgreementConditionalRules(shipment: Shipment, applicationData: CoOApplicationData): CoOValidationError[] {
+function checkAgreementConditionalRules(shipment: CoOShipmentInput, applicationData: CoOApplicationData): CoOValidationError[] {
   const errors: CoOValidationError[] = []
   const agreement = lookupTradeAgreement(applicationData.tradeAgreementId)
   if (!agreement) return errors // already reported by checkReferenceTables
@@ -140,7 +140,7 @@ function checkAgreementConditionalRules(shipment: Shipment, applicationData: CoO
   return errors
 }
 
-function checkHsCodeAndInvoiceConsistency(shipment: Shipment): CoOValidationError[] {
+function checkHsCodeAndInvoiceConsistency(shipment: CoOShipmentInput): CoOValidationError[] {
   const errors: CoOValidationError[] = []
   const hs = (shipment.hsCode ?? '').replace(/\D/g, '')
   if (hs.length !== 8) {
@@ -163,7 +163,7 @@ function checkHsCodeAndInvoiceConsistency(shipment: Shipment): CoOValidationErro
 }
 
 export async function validateCoOPreflight(
-  shipment: Shipment,
+  shipment: CoOShipmentInput,
   company: CompanyProfile,
   applicationData: CoOApplicationData
 ): Promise<CoOValidationResult> {

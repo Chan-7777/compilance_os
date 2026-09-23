@@ -4,7 +4,7 @@ const invoke = vi.fn()
 vi.mock('@/lib/supabase', () => ({ supabase: { functions: { invoke: (...args: unknown[]) => invoke(...args) } } }))
 
 import { validateCoOPreflight } from './coo-validator'
-import type { Shipment, CompanyProfile } from '@/types'
+import type { CoOShipmentInput, CompanyProfile } from '@/types'
 
 const baseCompany: CompanyProfile = {
   name: 'Acme Exports Pvt Ltd',
@@ -13,7 +13,7 @@ const baseCompany: CompanyProfile = {
   state: 'Gujarat',
 }
 
-const baseShipment: Shipment = {
+const baseShipment: CoOShipmentInput = {
   id: 'ship-1',
   name: 'Hot-rolled steel coils',
   product: 'steel',

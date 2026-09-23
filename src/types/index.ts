@@ -207,12 +207,25 @@ export interface Shipment {
   quantity?: number
   transportMode?: string
   sanctionsRisk?: 'clear' | 'flag' | 'block'
-  // DGFT Preferential Certificate of Origin fields (Trade Notice 25/2026-27)
-  district?: string
+  // Not columns on shipments yet: they belong to the invoice (see the
+  // invoices migration) and will be read from there.
   portOfLoading?: string
-  portOfDischarge?: string
   invoiceNumber?: string
   invoiceDate?: string
+}
+
+// ----------------------------------------------------------------------------
+// DGFT Certificate of Origin (CoO) Types — Trade Notice 25/2026-27
+// ----------------------------------------------------------------------------
+
+/**
+ * Input to the (frozen) DGFT CoO pre-flight validator and payload mapper.
+ * These fields exist on no table; they were on Shipment, which made the type
+ * claim columns the database doesn't have.
+ */
+export interface CoOShipmentInput extends Shipment {
+  district?: string
+  portOfDischarge?: string
   uom?: string
   packageMarksNumbers?: string
   importerAddress?: string
@@ -223,10 +236,6 @@ export interface Shipment {
   reasonRetrospective?: string
   isExhibition?: boolean
 }
-
-// ----------------------------------------------------------------------------
-// DGFT Certificate of Origin (CoO) Types — Trade Notice 25/2026-27
-// ----------------------------------------------------------------------------
 
 export type CoOApplicationStatus = 'DRAFT' | 'IN_PROCESS' | 'APPROVED' | 'CERTIFICATE_ISSUED' | 'REJECTED'
 

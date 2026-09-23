@@ -8,7 +8,7 @@
 // validateCoOPreflight() first and pass a stable requestId for idempotency.
 // ============================================================================
 
-import type { Shipment, CompanyProfile } from '@/types'
+import type { CoOShipmentInput, CompanyProfile } from '@/types'
 import { lookupState, lookupPort, lookupTradeAgreement, lookupUom } from '@/lib/dgft-reference-maps'
 
 export interface DgftCoOPayload {
@@ -61,7 +61,7 @@ export interface DgftCoOPayload {
 }
 
 export function buildDgftCoODataPayload(
-  shipment: Shipment,
+  shipment: CoOShipmentInput,
   company: CompanyProfile,
   opts: { requestId: string; tradeAgreementId: string; preferenceCriterion: string; rollUpAbsorption?: boolean }
 ): DgftCoOPayload {
