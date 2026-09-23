@@ -24,9 +24,13 @@ done.
 - Branch `recover-untracked-edge-functions`.
 - 838 tests / 37 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
-- Item 4a (branches) is COMMITTED, NOT LIVE. Migration
-  20260924000002_invoice_number_per_gstin is local only; release it
-  (`supabase db push`) before `vercel --prod`. See the item 4a section.
+- Item 4a (branches) is LIVE. The owner ran `supabase db push`
+  (20260924000002 now local AND remote), recorded it in .live-state.json,
+  then `vercel --prod` (aliased to www.complianceos.co.in). Verified after:
+  a read-only schema dump of production has the new index with the GSTIN
+  key, the invoices_number_blank_gstin_guard trigger, and invoices_guard()
+  unchanged; the live bundle index-Bw-r7y2k.js is byte-identical to the
+  local build and contains the GSTIN check.
 - Item 6 (masters) is LIVE. The owner ran `supabase db push`
   (20260924000001 now local AND remote), then `vercel --prod`
   (aliased to www.complianceos.co.in). Verified after: a read-only schema
@@ -383,7 +387,7 @@ Known gaps:
 - Line product picker column appears only when products exist; below
   1440px lines are cards with the picker at the top.
 
-## PHASE 2 ITEM 4a IS DONE — committed, NOT LIVE (23 Sept 2026)
+## PHASE 2 ITEM 4a IS DONE and LIVE (23 Sept 2026)
 Two GSTINs (branches) of one company may reuse an invoice number. Decisions
 agreed with the owner:
 - invoices_number_unique_per_fy keeps its NAME and gains the GSTIN,
@@ -440,7 +444,7 @@ then `vercel --prod`. Either order is safe (no new columns), keep the habit.
    generateEUCommercialInvoice the day the new one ships.
 3. DONE and LIVE — see the item 3 section above.
 4. DONE and LIVE — see the item 4 section below.
-4a. DONE, NOT LIVE — see the item 4a section above. Original brief:
+4a. DONE and LIVE — see the item 4a section above. Original brief:
    Branches: let two GSTINs of one company reuse an invoice number.
    GST numbers invoices per GSTIN per FY, but invoices_number_unique_per_fy
    is (company, kind, number, FY), so a second state branch's "EXP/001" is

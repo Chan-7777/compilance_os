@@ -30,6 +30,11 @@
       "deployedAt": "2026-09-23T15:15:44.224Z",
       "commit": "4cf03c4",
       "dirty": true
+    },
+    "20260924000002_invoice_number_per_gstin.sql": {
+      "deployedAt": "2026-09-23T15:48:50.686Z",
+      "commit": "737d7a2",
+      "dirty": true
     }
   }
 }
