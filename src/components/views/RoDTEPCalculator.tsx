@@ -6,7 +6,7 @@ import {
   checkHSMismatch, fetchShipmentLineFigures,
 } from '@/lib/api'
 import type { RodtepMatchType, RodtepClaimStatus, BulkImportResult } from '@/lib/api'
-import type { LinesRodtep } from '@/lib/shipment-lines'
+import { filingReadyInr, type LinesRodtep } from '@/lib/shipment-lines'
 import { generateRoDTEPReport } from '@/lib/rodtep-report'
 import { convertToINR } from '@/lib/fx'
 import { supabase } from '@/lib/supabase'
@@ -271,19 +271,23 @@ export function RoDTEPCalculator({ companyProfile }: RoDTEPCalculatorProps) {
   }
 
   function handleClaimFile() {
-    // Per-line shipments carry their own match type per line; the file marks
-    // default-rate lines unclaimable itself.
-    const rows = unclaimed.filter(s => s.line_rodtep || s.rodtep_match_type !== 'default')
+    // A per-line shipment's default-rate lines are written as not claimable.
+    const rows = filingReady
     if (rows.length === 0) return
     const csv = buildRodtepClaimCSV(rows, companyProfile)
     downloadTextFile(`rodtep-claim-register-${new Date().toISOString().slice(0, 10)}.csv`, csv)
   }
 
   const unclaimed = shipments.filter(s => (s.rodtep_claim_status === 'unclaimed' || s.rodtep_claim_status === 'rejected') && s.entitlement !== undefined)
-  const filingReady = unclaimed.filter(s => s.rodtep_match_type !== 'default')
-  const needsReview = unclaimed.filter(s => s.rodtep_match_type === 'default')
+  // Per-line shipments are judged by their lines' own rate matches, never the
+  // shipment-level match type (which describes the single-HS lookup).
+  const readyInr = (s: ShipmentRodtep) => (s.line_rodtep ? filingReadyInr(s.line_rodtep) : (s.entitlement ?? 0))
+  const filingReady = unclaimed.filter(s => (s.line_rodtep ? readyInr(s) > 0 : s.rodtep_match_type !== 'default'))
+  const needsReview = unclaimed.filter(s => (s.line_rodtep
+    ? s.line_rodtep.lines.some(l => l.matchType === 'default')
+    : s.rodtep_match_type === 'default'))
   const totalUnclaimed = unclaimed.reduce((sum, s) => sum + (s.entitlement ?? 0), 0)
-  const totalFilingReady = filingReady.reduce((sum, s) => sum + (s.entitlement ?? 0), 0)
+  const totalFilingReady = filingReady.reduce((sum, s) => sum + readyInr(s), 0)
   const rejected = shipments.filter(s => s.rodtep_claim_status === 'rejected')
   const credited = shipments.filter(s => s.rodtep_claim_status === 'credited').reduce((sum, s) => sum + (s.entitlement ?? 0), 0)
   const urgentCount = unclaimed.filter(s => {

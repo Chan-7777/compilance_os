@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   countingInvoices, shipmentLines, apportionInvoiceFob, distinctHsCodes, primaryHsCode,
-  rodtepForLines, worstGateStatus, mergeGateResults,
+  rodtepForLines, worstGateStatus, mergeGateResults, filingReadyInr,
   type LinkedInvoice,
 } from './shipment-lines'
 import type { GateCheckResult } from '@/types'
@@ -199,6 +199,22 @@ describe('rodtepForLines: rate per line, entitlement summed per line', () => {
   it('carries the rate match type per line so a default-rate line is visible', () => {
     const r = rodtepForLines(shipmentLines([cif])!, hs => ({ rate: 0.5, matchType: hs === '72081000' ? 'default' : 'exact' }), '2026-09-15')
     expect(r.lines.map(l => l.matchType)).toEqual(['exact', 'default', 'exact'])
+  })
+})
+
+describe('filingReadyInr: what may go in the claim file', () => {
+  it('counts claimable lines on a scheduled (exact or prefix) rate', () => {
+    // Shipment-level match type is irrelevant: each line carries its own.
+    const r = rodtepForLines(shipmentLines([cif])!, rateFor, '2026-09-15')
+    expect(filingReadyInr(r)).toBe(8342)
+    expect(r.lines.some(l => l.matchType === 'default')).toBe(false)
+  })
+
+  it('leaves out default-rate lines and unclaimable lines', () => {
+    const r = rodtepForLines(shipmentLines([cif])!,
+      hs => ({ rate: RATES[hs], matchType: hs === '72081000' ? 'default' : 'prefix' }), '2026-09-15')
+    expect(filingReadyInr(r)).toBe(5411 + 902)
+    expect(filingReadyInr(rodtepForLines(shipmentLines([cif])!, rateFor, '2026-10-01'))).toBe(0)
   })
 })
 

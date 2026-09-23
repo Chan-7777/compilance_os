@@ -205,6 +205,15 @@ export function rodtepForLines(
   }
 }
 
+/**
+ * The part of a per-line entitlement that may go in a claim file: claimable
+ * lines whose rate came from the schedule. A default rate is not filed, the
+ * same rule the shipment-level claim file applies to a whole shipment.
+ */
+export function filingReadyInr(r: LinesRodtep): number {
+  return r.lines.reduce((sum, l) => sum + (l.claimable && l.matchType !== 'default' ? (l.amountInr ?? 0) : 0), 0)
+}
+
 const SEVERITY: Record<GateStatus, number> = { approved: 0, pending: 1, blocked: 2 }
 
 /** blocked > pending > approved. Nothing checked is not an approval. */

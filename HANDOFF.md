@@ -22,7 +22,7 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
-- 741 tests / 33 files pass. `npm run build` passes. Both verified.
+- 743 tests / 33 files pass. `npm run build` passes. Both verified.
 - Item 3 (per-line gate check + RoDTEP) is LIVE. The owner ran
   `supabase db push` (20260923000003 now local AND remote) and then
   `vercel --prod` (aliased to www.complianceos.co.in). Verified after: a
@@ -196,7 +196,20 @@ columns on every draft save, so the other order breaks invoice saving).
 Keep that order for any rollback too: never serve an older schema to this
 frontend.
 
+Clicked through in Chrome against a local stack (23 Sept): CIF issue
+refused without insurance (friendly message), issued with it, linked to a
+shipment, dashboard moved from the single-HS 21,000 to the per-line 7,348,
+claim CSV one row per line (5,344 + 2,004), Shipments shows the primary
+line HS, gate check ran per HS with the buyer screened once. That pass
+found one bug, fixed in a follow-up commit that is NOT YET DEPLOYED: RoDTEP
+Recovery judged per-line shipments by the shipment-level match type, so a
+shipment whose single-HS lookup was 'default' showed 0 filing-ready and
+DISABLED the claim-register download, even with every line an exact match.
+Live until the next `vercel --prod`. No migration needed.
+
 Known gaps, deliberately not built:
+- The gate result says "2 HS codes ... each checked" but does not list
+  them or show per_hs; the data is there, the UI doesn't render it.
 - Freight/insurance are not printed on the commercial invoice document.
 - CBAM emissions estimate and FTA savings still use the whole
   shipment_value, per HS. shipment_value is not reconciled to invoices.
