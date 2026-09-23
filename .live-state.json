@@ -10,6 +10,11 @@
       "deployedAt": "2026-09-23T03:25:19.883Z",
       "commit": "b127ed4",
       "dirty": true
+    },
+    "supabase/migrations/20260923000001_invoices.sql": {
+      "deployedAt": "2026-09-23T03:49:41.632Z",
+      "commit": "a82ea97",
+      "dirty": false
     }
   }
 }
