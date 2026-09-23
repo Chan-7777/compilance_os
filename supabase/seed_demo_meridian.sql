@@ -107,7 +107,7 @@ BEGIN
     name                   = 'Meridian Tubes & Alloys Pvt Ltd',
     size                   = 'medium',
     iec                    = '0913045672',
-    gstin                  = '27AAECM4512R1ZP',
+    gstin                  = '27AAECM4512R1Z2',
     address                = 'Plot 14, MIDC Bhosari',
     city                   = 'Pune',
     state                  = 'Maharashtra',

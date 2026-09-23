@@ -4,10 +4,11 @@ import { validateGstin, GST_STATE_CODES } from './gstin'
 // A structurally valid Maharashtra GSTIN.
 const MERIDIAN = '27AAECM4512R1Z2'
 
-// The value actually shipped in the Meridian demo seed and shown in Settings.
-// Its checksum is wrong — it ends 'P' where the algorithm requires '2'. Kept
-// as a fixture because catching exactly this is the point of the module.
-const SEED_DEMO_GSTIN = '27AAECM4512R1ZP'
+// The value the Meridian demo seed used to ship, until the seed was corrected
+// to MERIDIAN above. Its checksum is wrong — it ends 'P' where the algorithm
+// requires '2'. Kept as a regression fixture: this exact transposition is what
+// the module exists to catch, and it is how the bad seed was found.
+const BAD_CHECKSUM_GSTIN = '27AAECM4512R1ZP'
 
 describe('validateGstin', () => {
   it('accepts a well-formed GSTIN', () => {
@@ -42,8 +43,8 @@ describe('validateGstin', () => {
     expect(r.error).toMatch(/checksum/)
   })
 
-  it('catches the invalid GSTIN sitting in the Meridian demo seed', () => {
-    const r = validateGstin(SEED_DEMO_GSTIN)
+  it('catches the bad checksum that was shipping in the Meridian demo seed', () => {
+    const r = validateGstin(BAD_CHECKSUM_GSTIN)
     expect(r.valid).toBe(false)
     expect(r.error).toMatch(/checksum/)
   })
