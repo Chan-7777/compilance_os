@@ -19,6 +19,7 @@ const TITLES: Record<string, string> = {
   alerts: 'Regulatory Updates',
   fta: 'Trade Deals & Savings',
   shipments: 'Shipments',
+  invoices: 'Invoices',
   'doc-review': 'Document Review',
   'ca-dashboard': 'CA Dashboard',
   'label-validator': 'Label Checker',

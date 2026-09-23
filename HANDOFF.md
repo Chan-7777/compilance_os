@@ -137,8 +137,11 @@ Multi-line Commercial Invoice, Proforma and Packing List.
   sidebar view (paid-gated like its neighbours) to draft, issue, cancel,
   print. generateEUCommercialInvoice and EUInvoiceData are deleted; the EU
   Compliance view points to Invoices.
-- The Invoices view was type-checked and built, NOT clicked through in a
-  browser.
+- The Invoices view was clicked through in Chrome against a local stack:
+  draft, save, FX refusal, packing-list and invoice previews, issue,
+  cancel. That pass fixed six UI bugs (see the follow-up commit). Native
+  date inputs don't take typed input from chrome-devtools `fill`; set
+  them with the native value setter + an input event.
 Known gaps, deliberately not built:
 - No GST export endorsement ("supply meant for export under LUT without
   payment of IGST" / "on payment of IGST") and no IGST amount columns.

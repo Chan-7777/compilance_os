@@ -37,6 +37,7 @@ const groupTitle: React.CSSProperties = {
   fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
   color: colors.textMuted, margin: `${spacing.lg} 0 ${spacing.sm}`,
 }
+const pageStyle: React.CSSProperties = { padding: spacing.lg, maxWidth: '1200px', margin: '0 auto' }
 const grid = (cols: number): React.CSSProperties => ({
   display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: spacing.sm,
 })
@@ -58,6 +59,12 @@ function blankHeader(profile: CompanyProfile): InvoiceHeaderInput {
     destinationCountry: '', originCountry: 'India', paymentTerms: '',
     currency: 'USD', fxRateInr: '', fxRateDate: '',
   }
+}
+
+const LINE_LABELS: Record<keyof InvoiceLineInput, string> = {
+  description: 'description', hsCode: 'HS code', quantity: 'quantity', uom: 'unit', unitPrice: 'unit price',
+  marks: 'marks and numbers', packageCount: 'packages', packageKind: 'package kind',
+  netWeightKg: 'net weight kg', grossWeightKg: 'gross weight kg',
 }
 
 const blankLine = (): InvoiceLineInput => ({
@@ -151,12 +158,11 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
     }
 
     return (
-      <div>
+      <div style={pageStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md, gap: spacing.sm, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0 }}>{editing.id ? 'Edit draft' : 'New draft'} — {h.kind === 'proforma' ? 'Proforma invoice' : 'Commercial invoice'}</h2>
           <Button variant="ghost" onClick={() => { setEditing(null); setMessage(null) }}>Back to list</Button>
         </div>
-        {message && <Banner {...message} />}
         <Card>
           <CardContent>
             <div style={grid(4)}>
@@ -252,7 +258,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                   {editing.lines.map((l, i) => {
                     const cell = (key: keyof InvoiceLineInput, width: number, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
                       <td style={{ padding: 2, width }}>
-                        <input style={inputStyle} value={l[key]} onChange={e => setLine(i, { [key]: e.target.value })} {...props} />
+                        <input style={inputStyle} aria-label={`Line ${i + 1} ${LINE_LABELS[key]}`} value={l[key]} onChange={e => setLine(i, { [key]: e.target.value })} {...props} />
                       </td>
                     )
                     return (
@@ -281,17 +287,21 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             <Button size="sm" variant="outline" style={{ marginTop: spacing.sm }}
               onClick={() => setEditing(e => e && { ...e, lines: [...e.lines, blankLine()] })}>Add line</Button>
 
-            <div style={{ display: 'flex', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap' }}>
+            {message && <div style={{ marginTop: spacing.lg }}><Banner {...message} /></div>}
+            <div style={{ display: 'flex', gap: spacing.sm, marginTop: message ? 0 : spacing.lg, flexWrap: 'wrap' }}>
               <Button variant="secondary" loading={busy} disabled={busy} onClick={() => run(async () => { await save() }, 'Draft saved')}>Save draft</Button>
               <Button variant="outline" disabled={busy} onClick={() => run(async () => { await printSaved(await save(), 'invoice') })}>Save &amp; preview invoice</Button>
               <Button variant="outline" disabled={busy} onClick={() => run(async () => { await printSaved(await save(), 'packing') })}>Save &amp; preview packing list</Button>
-              <Button variant="primary" disabled={busy} onClick={() => run(async () => {
+              <Button variant="primary" disabled={busy} onClick={() => {
+                // Confirm outside run(): returning early inside it would still report success.
                 if (!window.confirm('Issue this invoice? Once issued it can never be edited: corrections mean cancelling it and issuing a new one.')) return
-                const id = await save()
-                await issueInvoice(id)
-                setEditing(null)
-                await refresh()
-              }, 'Invoice issued')}>Issue</Button>
+                void run(async () => {
+                  const id = await save()
+                  await issueInvoice(id)
+                  setEditing(null)
+                  await refresh()
+                }, 'Invoice issued')
+              }}>Issue</Button>
             </div>
           </CardContent>
         </Card>
@@ -301,7 +311,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
 
   // ── List ──
   return (
-    <div>
+    <div style={pageStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0 }}>Invoices</h2>
         <Button variant="primary" onClick={() => { setMessage(null); setEditing({ id: null, header: blankHeader(companyProfile), lines: [blankLine()] }) }}>
@@ -327,9 +337,9 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               <tbody>
                 {list.map(inv => (
                   <tr key={inv.id} style={{ borderTop: `1px solid ${colors.border}` }}>
-                    <td style={{ padding: 6, fontFamily: 'monospace' }}>{inv.invoiceNumber ?? <em style={{ color: colors.textMuted }}>unnumbered</em>}</td>
+                    <td style={{ padding: 6, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{inv.invoiceNumber ?? <em style={{ color: colors.textMuted }}>unnumbered</em>}</td>
                     <td style={{ padding: 6 }}>{inv.kind === 'proforma' ? 'Proforma' : 'Commercial'}</td>
-                    <td style={{ padding: 6 }}>{inv.invoiceDate ?? '—'}</td>
+                    <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{inv.invoiceDate ?? '—'}</td>
                     <td style={{ padding: 6 }}>{inv.buyerName ?? '—'}</td>
                     <td style={{ padding: 6 }}><Badge variant={statusVariant[inv.status]} size="sm">{inv.status}</Badge></td>
                     <td style={{ padding: 6, display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>

@@ -137,7 +137,8 @@ export const BASE_CSS = `
   .footer-brand { font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; font-size: 10px; }
 
   /* Multi-line trade documents (invoice-documents.ts) */
-  td.num, th.num { text-align: right; font-family: 'Courier New', monospace; }
+  td.num { text-align: right; font-family: 'Courier New', monospace; }
+  th.num { text-align: right; }
   td.mono { font-family: 'Courier New', monospace; }
   table.doc-lines th, table.doc-lines td { padding-left: 6px; padding-right: 6px; }
   table.doc-lines td { border-bottom: 1px solid #e5e5e5; }
