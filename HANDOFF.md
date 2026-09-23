@@ -250,7 +250,15 @@ Known limits: no transaction — a failed invoice link after a created
 shipment is reported per row, the shipment stays. Shipments with an SB are
 read in one query, so PostgREST's row cap (1000 by default) applies. One
 row per SB: a multi-item SB file keeps only its first row per SB; invoice
-lines already carry per-line HS. Not clicked through in Chrome yet.
+lines already carry per-line HS.
+Clicked through in Chrome against a local stack (23 Sept): 6-row CSV with
+"Invoice Date" as the first column -> 3 new, 2 updated, 1 invoice linked,
+wrong-IEC row rejected, 1 unchecked IEC, 1 invoice not found; the in-app
+shipment kept its name, status and FILED claim; re-importing the same file
+gave 0 new / 5 updated, 5 shipments for 5 SBs. No console errors. The
+local stack needed ports 5532x (Windows reserves 54225-54324 here) and
+[inbucket] enabled = false; those edits were reverted, not committed.
+Nit: the banner's entitlement total includes bills already claimed.
 
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
