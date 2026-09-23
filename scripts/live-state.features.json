@@ -80,16 +80,7 @@
         { "path": "src/lib/coo-validator.ts", "marker": "export" },
         { "path": "src/lib/dgft-reference-maps.ts", "marker": "export" }
       ],
-      "migrations": ["20260922000001_coo_integration.sql"],
       "note": "Blocked on three unanswered questions: credential tenancy, fixed egress IP for DGFT's whitelist, RSA key custody."
-    },
-    {
-      "name": "RISK: self-made Certificate of Origin PDF",
-      "what": "downloadCOOPdf draws a document headed CERTIFICATE OF ORIGIN with a locally generated reference number. No agency issued it. This should be withdrawn or relabelled before any customer uses it.",
-      "files": [
-        { "path": "src/lib/api.ts", "marker": "downloadCOOPdf" }
-      ],
-      "note": "Here so it stays visible. Present = the risk is still shipped."
     },
     {
       "name": "Demo seed for Meridian Tubes & Alloys",
