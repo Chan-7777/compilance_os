@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 23 Sept 2026, 8:21 am by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 23 Sept 2026, 8:39 am by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -24,7 +24,7 @@ never run reads NOT LIVE, because to a user it does not work.
 | **PARTLY UNKNOWN** | Trade agreement status comes from the database | fta_agreements overlays the built-in table at runtime, and the screen shows how old the data is. |
 | **PARTLY UNKNOWN** | CBAM emissions use EU default values | climatiq-emissions looks up the CBAM default for the HS code's CN prefix instead of failing, and the panel appears once rather than per market. |
 | **LIVE** | DGFT Certificate of Origin - Phase 1 | Maps a shipment onto the DGFT CoO payload, validates it before submission, and carries the reference maps. No live DGFT call yet. |
-| **LIVE** | Demo seed for Meridian Tubes & Alloys | Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter. |
+| **UNCERTAIN** | Demo seed for Meridian Tubes & Alloys | Re-runnable seed with 8 shipments, IGST claims, BRC/FIRC and licences, for demoing to a real exporter. |
 
 **Onboarding keeps the answers it collects - PARTLY UNKNOWN**
 
@@ -39,6 +39,11 @@ never run reads NOT LIVE, because to a user it does not work.
 
 - `function climatiq-emissions` - unknown: no deploy ever recorded
 
+**Demo seed for Meridian Tubes & Alloys - UNCERTAIN**
+
+- `supabase/seed_demo_meridian.sql` - uncertain: edited 1h ago, after the live build - the live copy is older
+- note: Pasted into the SQL editor by hand; not a migration, so it is not tracked as applied.
+
 ## Frontend
 
 | | |
@@ -46,9 +51,13 @@ never run reads NOT LIVE, because to a user it does not work.
 | Live bundle built | 23 Sept 2026, 7:41 am (1h ago) |
 | Deployment | https://compilance-mzmr93ew8-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
-| Source files changed since | **0** |
+| Source files changed since | **1** |
 
-No source file has changed since the last production deploy.
+### Not live - 1 file(s) changed after the last deploy
+
+Run `vercel --prod` to ship these.
+
+- `src/lib/gstin.test.ts` - edited 1h ago
 
 ## Edge functions
 
@@ -97,34 +106,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `65943d5` - fix: repair build errors left by the finance and FX changes (1h ago).
+Branch `recover-untracked-edge-functions` at `1dd8a70` - fix: give the Meridian demo seed a GSTIN that passes its own validator (1h ago).
 
-**27 source file(s) exist only on this machine.** If this disk dies, production cannot be rebuilt.
-
-- `M scripts/live-state.features.json`
-- `R  supabase/migrations/20260630000001_rodtep_tracker.sql -> supabase/archive/20260630000001_rodtep_tracker.sql`
-- `R  supabase/migrations/20260630000002_ca_dashboard.sql -> supabase/archive/20260630000002_ca_dashboard.sql`
-- `R  supabase/migrations/20260630000003_whatsapp_settings.sql -> supabase/archive/20260630000003_whatsapp_settings.sql`
-- `R  supabase/migrations/20260703000001_export_trackers.sql -> supabase/archive/20260703000001_export_trackers.sql`
-- `R  supabase/migrations/20260906000001_rodtep_recovery_program.sql -> supabase/archive/20260906000001_rodtep_recovery_program.sql`
-- `R  supabase/migrations/20260910000001_onboarding_completion.sql -> supabase/archive/20260910000001_onboarding_completion.sql`
-- `R  supabase/migrations/20260915000001_companies_update_policy.sql -> supabase/archive/20260915000001_companies_update_policy.sql`
-- `A  supabase/archive/README.md`
-- `R  supabase/migration_api_keys_prefix.sql -> supabase/archive/migration_api_keys_prefix.sql`
-- `R  supabase/migration_ca_dashboard.sql -> supabase/archive/migration_ca_dashboard.sql`
-- `R  supabase/migration_cbam_leads.sql -> supabase/archive/migration_cbam_leads.sql`
-- `R  supabase/migration_onboarding_profile.sql -> supabase/archive/migration_onboarding_profile.sql`
-- `R  supabase/migration_phase2.sql -> supabase/archive/migration_phase2.sql`
-- `R  supabase/migration_phase4.sql -> supabase/archive/migration_phase4.sql`
-- `R  supabase/migration_rate_limits.sql -> supabase/archive/migration_rate_limits.sql`
-- `R  supabase/migration_regulatory_feeds.sql -> supabase/archive/migration_regulatory_feeds.sql`
-- `R  supabase/migration_rodtep.sql -> supabase/archive/migration_rodtep.sql`
-- `R  supabase/migration_rodtep_tracker.sql -> supabase/archive/migration_rodtep_tracker.sql`
-- `R  supabase/migration_sanctions.sql -> supabase/archive/migration_sanctions.sql`
-- `R  supabase/migration_shipments_v2.sql -> supabase/archive/migration_shipments_v2.sql`
-- `R  supabase/migration_whatsapp_settings.sql -> supabase/archive/migration_whatsapp_settings.sql`
-- `R  supabase/schema.sql -> supabase/archive/schema.sql`
-- `M  supabase/config.toml`
-- `D  supabase/functions/underwriting-signal/index.ts`
-- `A  supabase/migrations/20260101000000_baseline_prod_schema.sql`
-- `D  supabase/migrations/20260922000001_coo_integration.sql`
+No uncommitted source changes.
