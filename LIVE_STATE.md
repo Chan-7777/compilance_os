@@ -1,6 +1,6 @@
 # What is live right now
 
-Generated 23 Sept 2026, 11:33 am by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
+Generated 23 Sept 2026, 1:32 pm by `node scripts/live-state.mjs`. Do not edit by hand - rerun it.
 
 This repo has three independent release paths and none of them is `git push`.
 The frontend ships when someone runs `vercel --prod` **from their working tree**,
@@ -39,8 +39,8 @@ never run reads NOT LIVE, because to a user it does not work.
 
 | | |
 |---|---|
-| Live bundle built | 23 Sept 2026, 11:26 am (1h ago) |
-| Deployment | https://compilance-fkn4qegpm-chandans-projects-8e0b4ca0.vercel.app |
+| Live bundle built | 23 Sept 2026, 1:30 pm (1h ago) |
+| Deployment | https://compilance-eiisp16qi-chandans-projects-8e0b4ca0.vercel.app |
 | Checked via | vercel cli |
 | Source files changed since | **0** |
 
@@ -54,13 +54,13 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 
 | Function | Code last changed | Last recorded deploy | Status |
 |---|---|---|---|
-| `climatiq-emissions` | 6d ago | never recorded | UNKNOWN - never recorded |
+| `climatiq-emissions` | 7d ago | never recorded | UNKNOWN - never recorded |
 | `compliance-ai` | 89d ago | never recorded | UNKNOWN - never recorded |
 | `contract-review` | 81d ago | never recorded | UNKNOWN - never recorded |
 | `customs-filing` | 12d ago | never recorded | UNKNOWN - never recorded |
 | `document-ocr` | 17d ago | never recorded | UNKNOWN - never recorded |
 | `document-review` | 85d ago | never recorded | UNKNOWN - never recorded |
-| `fetch-regulatory-feeds` | 189d ago | never recorded | UNKNOWN - never recorded |
+| `fetch-regulatory-feeds` | 190d ago | never recorded | UNKNOWN - never recorded |
 | `hs-checklist` | 89d ago | never recorded | UNKNOWN - never recorded |
 | `hs-lookup` | 189d ago | never recorded | UNKNOWN - never recorded |
 | `hs-mismatch-check` | 85d ago | never recorded | UNKNOWN - never recorded |
@@ -84,6 +84,7 @@ Deploy status comes from the ledger in `.live-state.json`, stamped by
 | `20260916000001_fta_agreements_read.sql` | yes | 23 Sept 2026, 8:55 am |
 | `20260923000001_invoices.sql` | yes | 23 Sept 2026, 9:19 am |
 | `20260923000002_invoice_documents.sql` | yes | 23 Sept 2026, 11:27 am |
+| `20260923000003_invoice_freight_insurance.sql` | yes | 23 Sept 2026, 1:31 pm |
 
 To check what the database really has, run this in the Supabase SQL editor:
 
@@ -95,6 +96,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `e4824c7` - chore: record the invoice-documents release; fix migration record keys (1h ago).
+Branch `recover-untracked-edge-functions` at `17a119f` - feat: gate check and RoDTEP per invoice line (phase 2 item 3) (1h ago).
 
 No uncommitted source changes.

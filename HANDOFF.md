@@ -20,12 +20,16 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 3 — COMMITTED, NOT LIVE)
+## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
 - 741 tests / 33 files pass. `npm run build` passes. Both verified.
-- Item 3 (per-line gate check + RoDTEP) is committed only. Migration
-  20260923000003_invoice_freight_insurance is NOT applied to production and
-  the frontend is NOT deployed. See the item 3 section for the release order.
+- Item 3 (per-line gate check + RoDTEP) is LIVE. The owner ran
+  `supabase db push` (20260923000003 now local AND remote) and then
+  `vercel --prod` (aliased to www.complianceos.co.in). Verified after: a
+  read-only schema dump of production has freight_amount/insurance_amount
+  with their checks and the new invoices_guard(); the live bundle
+  (index-CWHQZ43u.js) contains the per-line code. Migration stamped in
+  .live-state.json.
 - Migration 20260923000002_invoice_documents is LIVE (owner ran
   `supabase db push`; `migration list --linked` shows all four local AND
   remote). Frontend with the Invoices view deployed by the owner with
@@ -160,7 +164,7 @@ Known gaps, deliberately not built:
   user input UNESCAPED into a same-origin window. escapeHtml() now exists
   there; apply it.
 
-## PHASE 2 ITEM 3 IS DONE — committed, NOT live (23 Sept 2026)
+## PHASE 2 ITEM 3 IS DONE and LIVE (23 Sept 2026)
 Gate check and RoDTEP per invoice line. Decisions agreed with the owner:
 - An invoice is linked to a shipment by a "Shipment" picker on each row
   of the Invoices view (`linkInvoiceToShipment`). Nothing set
@@ -187,11 +191,10 @@ invoices_guard() (trigger, not a CHECK, so older issued CIF invoices can
 still be cancelled/relinked). Verified on a local stack: all 5
 migrations apply clean; 10 trigger checks; the PostgREST embed query.
 
-RELEASE ORDER MATTERS: apply the migration BEFORE deploying the frontend.
-The new frontend writes freight_amount/insurance_amount on every draft
-save; against the old schema, saving ANY invoice fails. (Reads fall back
-to single-HS figures if the columns are missing, but saves do not.)
-Then: `node scripts/live-state.mjs --record migration 20260923000003_invoice_freight_insurance.sql`.
+Released migration-first, then frontend (the frontend writes the new
+columns on every draft save, so the other order breaks invoice saving).
+Keep that order for any rollback too: never serve an older schema to this
+frontend.
 
 Known gaps, deliberately not built:
 - Freight/insurance are not printed on the commercial invoice document.
@@ -214,7 +217,7 @@ Known gaps, deliberately not built:
    exported). generateCBAMDeclaration shows the multi-row pattern.
    Include bank details + exporter letterhead. Retire
    generateEUCommercialInvoice the day the new one ships.
-3. DONE (committed, not live) — see the item 3 section above.
+3. DONE and LIVE — see the item 3 section above.
 4. `bulkImportShippingBills` (src/lib/api.ts:154) must match on
    IEC + invoice number + date and UPDATE the SB fields; insert only when
    nothing matches. As written it creates a DUPLICATE shipment for every

@@ -20,6 +20,11 @@
       "deployedAt": "2026-09-23T05:57:46.723Z",
       "commit": "e882560",
       "dirty": false
+    },
+    "20260923000003_invoice_freight_insurance.sql": {
+      "deployedAt": "2026-09-23T08:01:46.164Z",
+      "commit": "17a119f",
+      "dirty": false
     }
   }
 }
