@@ -23,9 +23,11 @@ done.
 ## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
 - 769 tests / 34 files pass. `npm run build` passes. Both verified.
-- Item 4 (shipping bill import matches instead of duplicating) is
-  COMMITTED, NOT LIVE. Frontend only, no migration: ship with
-  `vercel --prod` when the owner approves.
+- Item 4 (shipping bill import matches instead of duplicating) is LIVE.
+  Frontend only, no migration. Deployed with `vercel --prod` on the
+  owner's approval (dpl_th2T413sStFDJTz7EJHpao5qrwSw), aliased to
+  www.complianceos.co.in; live bundle index-B1pgEXgR.js matches the local
+  build and contains the new import code.
 - Item 3 (per-line gate check + RoDTEP) is LIVE. The owner ran
   `supabase db push` (20260923000003 now local AND remote) and then
   `vercel --prod` (aliased to www.complianceos.co.in). Verified after: a
@@ -221,7 +223,7 @@ Known gaps, deliberately not built:
   changes no one's figures; closing it needs a composite FK migration.
 - Shipment-level MatchBadge hidden for per-line rows; no per-line badge UI.
 
-## PHASE 2 ITEM 4 IS DONE — committed, NOT LIVE (23 Sept 2026)
+## PHASE 2 ITEM 4 IS DONE and LIVE (23 Sept 2026)
 Shipping bill import updates the matching shipment instead of inserting a
 duplicate. Rules agreed with the owner, in src/lib/sb-import.ts (pure,
 tested); bulkImportShippingBills in api.ts only loads and applies:
@@ -273,7 +275,7 @@ Nit: the banner's entitlement total includes bills already claimed.
    Include bank details + exporter letterhead. Retire
    generateEUCommercialInvoice the day the new one ships.
 3. DONE and LIVE — see the item 3 section above.
-4. DONE, committed, NOT LIVE — see the item 4 section below.
+4. DONE and LIVE — see the item 4 section below.
 4a. Branches: let two GSTINs of one company reuse an invoice number.
    GST numbers invoices per GSTIN per FY, but invoices_number_unique_per_fy
    is (company, kind, number, FY), so a second state branch's "EXP/001" is
