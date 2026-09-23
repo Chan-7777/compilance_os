@@ -29,6 +29,9 @@ export type { LabelValidatorProps } from './LabelValidator'
 export { EUCompliance } from './EUCompliance'
 export type { EUComplianceProps } from './EUCompliance'
 
+export { Invoices } from './Invoices'
+export type { InvoicesProps } from './Invoices'
+
 export { RoDTEPCalculator } from './RoDTEPCalculator'
 export type { RoDTEPCalculatorProps } from './RoDTEPCalculator'
 

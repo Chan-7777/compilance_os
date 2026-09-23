@@ -25,35 +25,6 @@ export interface GSPStatementData {
   originDeclaration: string
 }
 
-export interface EUInvoiceData {
-  invoiceNumber: string
-  invoiceDate: string
-  exporterName: string
-  exporterAddress: string
-  exporterIEC: string
-  exporterGSTIN?: string
-  buyerName: string
-  buyerAddress: string
-  buyerEORI?: string
-  buyerVAT?: string
-  productDescription: string
-  hsCode: string
-  quantity: string
-  unit: string
-  unitPrice: number
-  totalValue: number
-  currency: string
-  countryOfOrigin: string
-  incoterms: string
-  portOfLoading: string
-  portOfDischarge: string
-  paymentTerms: string
-  grossWeight: string
-  netWeight: string
-  packages: string
-  declarationText: string
-}
-
 export interface REXData {
   rexNumber: string
   exporterName: string
@@ -84,12 +55,27 @@ export interface EUDRData {
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-function openAndPrint(html: string): void {
+/** Returns false when the browser blocked the pop-up. */
+export function openAndPrint(html: string): boolean {
   const win = window.open('', '_blank')
-  if (win) {
-    win.document.write(html)
-    win.document.close()
-  }
+  if (!win) return false
+  win.document.write(html)
+  win.document.close()
+  return true
+}
+
+/**
+ * Escape text for interpolation into these documents. The print window is
+ * opened with window.open('') and so shares the app's origin: an unescaped
+ * buyer name or line description is script running with the user's session.
+ */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function today(): string {
@@ -100,7 +86,7 @@ function refNo(prefix: string): string {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`
 }
 
-/** Shared base CSS used across all four documents */
+/** Shared base CSS used across the EU documents and src/lib/invoice-documents.ts */
 export const BASE_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 13px; line-height: 1.5; }
@@ -149,6 +135,24 @@ export const BASE_CSS = `
 
   .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #bbb; }
   .footer-brand { font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; font-size: 10px; }
+
+  /* Multi-line trade documents (invoice-documents.ts) */
+  td.num, th.num { text-align: right; font-family: 'Courier New', monospace; }
+  td.mono { font-family: 'Courier New', monospace; }
+  table.doc-lines th, table.doc-lines td { padding-left: 6px; padding-right: 6px; }
+  table.doc-lines td { border-bottom: 1px solid #e5e5e5; }
+  table.doc-lines tfoot td { font-weight: 800; color: #1a1a1a; border-top: 2px solid #1a1a1a; border-bottom: none; padding-top: 9px; }
+  .letterhead { text-align: center; border-bottom: 3px double #1a1a1a; padding-bottom: 14px; margin-bottom: 16px; }
+  .letterhead-name { font-size: 22px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }
+  .letterhead-line { font-size: 11px; color: #444; margin-top: 3px; white-space: pre-line; }
+  .doc-title { text-align: center; font-size: 16px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 18px; }
+  .status-banner { border: 2px solid; border-radius: 6px; padding: 10px 14px; margin-bottom: 18px; font-weight: 700; font-size: 12px; }
+  .status-banner.draft { border-color: #a16207; color: #a16207; background: #fef9c3; }
+  .status-banner.cancelled { border-color: #b91c1c; color: #b91c1c; background: #fee2e2; }
+  .doc-flag { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #92400e; margin-bottom: 18px; }
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 3px 10px; font-size: 12px; }
+  .kv .k { color: #888; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding-top: 2px; }
+  .kv .v { color: #1a1a1a; font-weight: 600; white-space: pre-line; }
 
   @media print {
     .page { padding: 24px; }
@@ -313,159 +317,7 @@ export function generateGSPStatement(data: GSPStatementData): void {
   openAndPrint(html)
 }
 
-// ── 2. EU Customs-Compliant Commercial Invoice ────────────────────────────────
-
-export function generateEUCommercialInvoice(data: EUInvoiceData): void {
-  const ref = refNo('INV-EU')
-  const generatedOn = today()
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>EU Commercial Invoice — ${data.invoiceNumber}</title>
-<style>${BASE_CSS}
-  .inv-header-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
-  .inv-number { font-family: 'Courier New', monospace; font-size: 28px; font-weight: 900; color: #1a1a1a; letter-spacing: -1px; }
-  tfoot td { font-weight: 700; font-size: 13px; border-top: 2px solid #1a1a1a !important; border-bottom: none; padding-top: 10px; }
-</style>
-</head>
-<body>
-<div class="page">
-
-  ${PRINT_BUTTONS}
-
-  <!-- Header -->
-  <div class="header">
-    <div>
-      <div class="brand">ComplianceOS — EU Export Documents</div>
-      <div class="title">Commercial Invoice</div>
-      <div class="subtitle">EU Customs-Compliant — All Required Fields Included</div>
-    </div>
-    <div class="meta">
-      <div><strong>${ref}</strong></div>
-      <div>Generated: ${generatedOn}</div>
-    </div>
-  </div>
-
-  <!-- Invoice ID bar -->
-  <div class="inv-header-box">
-    <div>
-      <div class="data-label">Invoice Number</div>
-      <div class="inv-number">${data.invoiceNumber}</div>
-      <div style="font-size:12px;color:#666;margin-top:4px">Date: ${data.invoiceDate}</div>
-    </div>
-    <div style="text-align:right">
-      <div class="data-label" style="margin-bottom:6px">Incoterms</div>
-      <span class="pill pill-blue" style="font-size:13px;padding:5px 14px">${data.incoterms}</span>
-      <div style="margin-top:10px"><div class="data-label">Payment Terms</div><div class="data-value">${data.paymentTerms}</div></div>
-    </div>
-  </div>
-
-  <!-- Exporter & Buyer -->
-  <div class="section">
-    <div class="section-title">Parties</div>
-    <div class="grid-2">
-      <div class="info-box">
-        <div class="data-label" style="margin-bottom:8px">Exporter / Seller</div>
-        <div class="data-value" style="font-size:15px;margin-bottom:6px">${data.exporterName}</div>
-        <div style="font-size:12px;color:#555;white-space:pre-line;margin-bottom:8px">${data.exporterAddress}</div>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <div><span class="data-label">IEC: </span><span style="font-family:'Courier New',monospace;font-size:12px">${data.exporterIEC}</span></div>
-          ${data.exporterGSTIN ? `<div><span class="data-label">GSTIN: </span><span style="font-family:'Courier New',monospace;font-size:12px">${data.exporterGSTIN}</span></div>` : ''}
-        </div>
-      </div>
-      <div class="info-box">
-        <div class="data-label" style="margin-bottom:8px">Buyer / Consignee</div>
-        <div class="data-value" style="font-size:15px;margin-bottom:6px">${data.buyerName}</div>
-        <div style="font-size:12px;color:#555;white-space:pre-line;margin-bottom:8px">${data.buyerAddress}</div>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          ${data.buyerEORI ? `<div><span class="data-label">EORI: </span><span style="font-family:'Courier New',monospace;font-size:12px">${data.buyerEORI}</span></div>` : ''}
-          ${data.buyerVAT ? `<div><span class="data-label">VAT No: </span><span style="font-family:'Courier New',monospace;font-size:12px">${data.buyerVAT}</span></div>` : ''}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Shipment Route -->
-  <div class="section">
-    <div class="section-title">Shipment Details</div>
-    <div class="grid-3">
-      <div><div class="data-label">Port of Loading</div><div class="data-value">${data.portOfLoading}</div></div>
-      <div><div class="data-label">Port of Discharge</div><div class="data-value">${data.portOfDischarge}</div></div>
-      <div><div class="data-label">Country of Origin</div><div class="data-value">${data.countryOfOrigin}</div></div>
-      <div><div class="data-label">Gross Weight</div><div class="data-value">${data.grossWeight}</div></div>
-      <div><div class="data-label">Net Weight</div><div class="data-value">${data.netWeight}</div></div>
-      <div><div class="data-label">No. of Packages</div><div class="data-value">${data.packages}</div></div>
-    </div>
-  </div>
-
-  <!-- Goods Table -->
-  <div class="section">
-    <div class="section-title">Description of Goods</div>
-    <table>
-      <thead>
-        <tr>
-          <th>HS Code</th>
-          <th>Description</th>
-          <th>Qty</th>
-          <th>Unit</th>
-          <th>Unit Price</th>
-          <th style="text-align:right">Total Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="font-family:'Courier New',monospace;font-weight:600">${data.hsCode}</td>
-          <td>${data.productDescription}</td>
-          <td style="font-family:'Courier New',monospace">${data.quantity}</td>
-          <td>${data.unit}</td>
-          <td style="font-family:'Courier New',monospace">${data.currency} ${data.unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="font-family:'Courier New',monospace;text-align:right;font-weight:600">${data.currency} ${data.totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="5" style="text-align:right;padding-right:10px;border-top:2px solid #1a1a1a;padding-top:10px">TOTAL INVOICE VALUE</td>
-          <td style="font-family:'Courier New',monospace;text-align:right;font-size:15px;font-weight:900;border-top:2px solid #1a1a1a;padding-top:10px">${data.currency} ${data.totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  <!-- Customs Declarations -->
-  <div class="section">
-    <div class="section-title">Customs Declaration</div>
-    <div class="declaration-box">${data.declarationText}</div>
-  </div>
-
-  <!-- Signature Block -->
-  <div class="sig-block">
-    <div>
-      <div class="data-label">Place &amp; Date</div>
-      <div class="data-value" style="margin-top:4px">India, ${data.invoiceDate}</div>
-      <div class="sig-line">Authorised Signatory</div>
-    </div>
-    <div>
-      <div class="data-label">Company Seal &amp; Signature</div>
-      <div class="sig-line">Name, Designation</div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div class="footer-brand">ComplianceOS — EU Export Intelligence</div>
-    <div>EU customs-compliant invoice. Ref: ${ref}</div>
-  </div>
-
-</div>
-</body>
-</html>`
-
-  openAndPrint(html)
-}
-
-// ── 3. REX Supplier's Declaration ────────────────────────────────────────────
+// ── 2. REX Supplier's Declaration ────────────────────────────────────────────
 
 export function generateREXDeclaration(data: REXData): void {
   const ref = refNo('REX')
@@ -602,7 +454,7 @@ export function generateREXDeclaration(data: REXData): void {
   openAndPrint(html)
 }
 
-// ── 4. EUDR Due Diligence Statement ──────────────────────────────────────────
+// ── 3. EUDR Due Diligence Statement ──────────────────────────────────────────
 
 export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
   const ref = refNo('EUDR')

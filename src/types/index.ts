@@ -379,6 +379,7 @@ export type ViewType =
   | 'settings'
   | 'label-validator'
   | 'eu-compliance'
+  | 'invoices'
   | 'rodtep'
   | 'igst-tracker'
   | 'brc-firc'

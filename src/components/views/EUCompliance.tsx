@@ -11,11 +11,9 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import {
   generateGSPStatement,
-  generateEUCommercialInvoice,
   generateREXDeclaration,
   generateEUDRDueDiligenceStatement,
   type GSPStatementData,
-  type EUInvoiceData,
   type REXData,
   type EUDRData,
 } from '@/lib/eu-documents'
@@ -180,48 +178,6 @@ function DocumentDraftingTab({
     }
   }
 
-  // ── Section B: EU Commercial Invoice ──
-  const [inv, setInv] = useState<Omit<EUInvoiceData, 'exporterName' | 'exporterIEC'>>({
-    invoiceNumber: '',
-    invoiceDate: '',
-    exporterAddress: '',
-    exporterGSTIN: '',
-    buyerName: '',
-    buyerAddress: '',
-    buyerEORI: '',
-    buyerVAT: '',
-    productDescription: selectedProduct,
-    hsCode: '',
-    quantity: '',
-    unit: 'pcs',
-    unitPrice: 0,
-    totalValue: 0,
-    currency: 'USD',
-    incoterms: 'FOB',
-    portOfLoading: '',
-    portOfDischarge: '',
-    grossWeight: '',
-    netWeight: '',
-    packages: '',
-    paymentTerms: '',
-    countryOfOrigin: 'India',
-    declarationText: 'I declare that the information contained in this invoice is true and correct.',
-  })
-  const [invLoading, setInvLoading] = useState(false)
-
-  const handleGenerateInvoice = async () => {
-    setInvLoading(true)
-    try {
-      await generateEUCommercialInvoice({
-        ...inv,
-        exporterName: companyProfile.name,
-        exporterIEC: companyProfile.iec ?? '',
-      })
-    } finally {
-      setInvLoading(false)
-    }
-  }
-
   // ── Section C: REX Declaration ──
   const [rex, setRex] = useState<REXData>({
     rexNumber: '',
@@ -370,250 +326,14 @@ function DocumentDraftingTab({
         </Card>
       </div>
 
-      {/* Section B: EU Commercial Invoice */}
+      {/* The single-line EU commercial invoice was retired for the multi-line
+          one in the Invoices view, which prints from an issued snapshot. */}
       <div style={{ marginBottom: spacing.xl }}>
-        <SectionHeader title="EU Commercial Invoice" badge="Customs Required" badgeVariant="warning" />
+        <SectionHeader title="Commercial Invoice & Packing List" />
         <p style={sectionDescStyle}>
-          Generate a EU customs-compliant commercial invoice with all mandatory fields: HS code,
-          EORI, Incoterms, country of origin, and gross/net weight.
+          Commercial invoices now live under <strong>Invoices</strong> in the sidebar: multiple lines,
+          packing list, bank details and the buyer&apos;s EORI / VAT number.
         </p>
-        <Card>
-          <CardContent>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-              <Field label="Invoice Number">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.invoiceNumber}
-                  placeholder="e.g. INV-2024-001"
-                  onChange={e => setInv(p => ({ ...p, invoiceNumber: e.target.value }))}
-                />
-              </Field>
-              <Field label="Invoice Date">
-                <input
-                  type="date"
-                  style={inputStyle}
-                  value={inv.invoiceDate}
-                  onChange={e => setInv(p => ({ ...p, invoiceDate: e.target.value }))}
-                />
-              </Field>
-            </div>
-
-            <Field label="Buyer Name">
-              <input
-                type="text"
-                style={inputStyle}
-                value={inv.buyerName}
-                placeholder="e.g. ABC GmbH"
-                onChange={e => setInv(p => ({ ...p, buyerName: e.target.value }))}
-              />
-            </Field>
-            <Field label="Buyer Address">
-              <input
-                type="text"
-                style={inputStyle}
-                value={inv.buyerAddress}
-                placeholder="e.g. Hauptstr. 1, 10115 Berlin, Germany"
-                onChange={e => setInv(p => ({ ...p, buyerAddress: e.target.value }))}
-              />
-            </Field>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-              <Field label="Buyer EORI (optional)">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.buyerEORI ?? ''}
-                  placeholder="e.g. DE123456789"
-                  onChange={e => setInv(p => ({ ...p, buyerEORI: e.target.value }))}
-                />
-              </Field>
-              <Field label="Buyer VAT (optional)">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.buyerVAT ?? ''}
-                  placeholder="e.g. DE987654321"
-                  onChange={e => setInv(p => ({ ...p, buyerVAT: e.target.value }))}
-                />
-              </Field>
-            </div>
-
-            <Field label="Product Description">
-              <input
-                type="text"
-                style={inputStyle}
-                value={inv.productDescription}
-                onChange={e => setInv(p => ({ ...p, productDescription: e.target.value }))}
-              />
-            </Field>
-            <Field label="HS Code">
-              <input
-                type="text"
-                style={inputStyle}
-                value={inv.hsCode}
-                placeholder="e.g. 6109.10"
-                onChange={e => setInv(p => ({ ...p, hsCode: e.target.value }))}
-              />
-            </Field>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: spacing.md,
-              }}
-            >
-              <Field label="Quantity">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.quantity}
-                  placeholder="500"
-                  onChange={e => setInv(p => ({ ...p, quantity: e.target.value }))}
-                />
-              </Field>
-              <Field label="Unit">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.unit}
-                  placeholder="pcs"
-                  onChange={e => setInv(p => ({ ...p, unit: e.target.value }))}
-                />
-              </Field>
-              <Field label="Currency">
-                <select
-                  style={inputStyle}
-                  value={inv.currency}
-                  onChange={e =>
-                    setInv(p => ({ ...p, currency: e.target.value as EUInvoiceData['currency'] }))
-                  }
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="INR">INR</option>
-                </select>
-              </Field>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-              <Field label={`Unit Price (${inv.currency})`}>
-                <input
-                  type="number"
-                  style={inputStyle}
-                  value={inv.unitPrice || ''}
-                  placeholder="0.00"
-                  min={0}
-                  step="0.01"
-                  onChange={e => setInv(p => ({ ...p, unitPrice: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label={`Total Value (${inv.currency})`}>
-                <input
-                  type="number"
-                  style={inputStyle}
-                  value={inv.totalValue || ''}
-                  placeholder="0.00"
-                  min={0}
-                  step="0.01"
-                  onChange={e => setInv(p => ({ ...p, totalValue: Number(e.target.value) }))}
-                />
-              </Field>
-            </div>
-
-            <Field label="Incoterms">
-              <select
-                style={inputStyle}
-                value={inv.incoterms}
-                onChange={e =>
-                  setInv(p => ({ ...p, incoterms: e.target.value as EUInvoiceData['incoterms'] }))
-                }
-              >
-                <option value="FOB">FOB — Free on Board</option>
-                <option value="CIF">CIF — Cost, Insurance & Freight</option>
-                <option value="EXW">EXW — Ex Works</option>
-                <option value="DDP">DDP — Delivered Duty Paid</option>
-                <option value="DAP">DAP — Delivered at Place</option>
-              </select>
-            </Field>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.md }}>
-              <Field label="Port of Loading">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.portOfLoading}
-                  placeholder="e.g. INNHAVA (Nhava Sheva)"
-                  onChange={e => setInv(p => ({ ...p, portOfLoading: e.target.value }))}
-                />
-              </Field>
-              <Field label="Port of Discharge">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.portOfDischarge}
-                  placeholder="e.g. DEHAM (Hamburg)"
-                  onChange={e => setInv(p => ({ ...p, portOfDischarge: e.target.value }))}
-                />
-              </Field>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: spacing.md,
-              }}
-            >
-              <Field label="Gross Weight (kg)">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.grossWeight}
-                  placeholder="e.g. 250"
-                  onChange={e => setInv(p => ({ ...p, grossWeight: e.target.value }))}
-                />
-              </Field>
-              <Field label="Net Weight (kg)">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.netWeight}
-                  placeholder="e.g. 220"
-                  onChange={e => setInv(p => ({ ...p, netWeight: e.target.value }))}
-                />
-              </Field>
-              <Field label="No. of Packages">
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={inv.packages}
-                  placeholder="e.g. 10"
-                  onChange={e => setInv(p => ({ ...p, packages: e.target.value }))}
-                />
-              </Field>
-            </div>
-
-            <Field label="Payment Terms">
-              <input
-                type="text"
-                style={inputStyle}
-                value={inv.paymentTerms}
-                placeholder="e.g. 30% advance, 70% against BL"
-                onChange={e => setInv(p => ({ ...p, paymentTerms: e.target.value }))}
-              />
-            </Field>
-
-            <Button
-              variant="primary"
-              onClick={handleGenerateInvoice}
-              disabled={invLoading}
-              loading={invLoading}
-            >
-              Generate Invoice
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Section C: REX Supplier's Declaration */}

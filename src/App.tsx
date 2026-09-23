@@ -23,6 +23,7 @@ import {
   Settings,
   LabelValidator,
   EUCompliance,
+  Invoices,
   RoDTEPCalculator,
   DocumentReview,
   ContractReview,
@@ -883,6 +884,13 @@ function App() {
             selectedProduct={productInfo.label}
             selectedCountries={selectedCountries}
             shipments={shipments}
+          />
+        )
+      case 'invoices':
+        return gate('Invoices') ?? (
+          <Invoices
+            companyProfile={companyProfile}
+            companyId={auth.profile?.company_id ?? null}
           />
         )
       case 'rodtep':

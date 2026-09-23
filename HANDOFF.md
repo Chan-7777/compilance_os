@@ -20,9 +20,15 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026
+## State as of 23 Sept 2026 (after phase 2 item 2)
 - Branch `recover-untracked-edge-functions`, working tree clean.
-- 671 tests / 29 files pass. `npm run build` passes. Both verified.
+- 704 tests / 31 files pass. `npm run build` passes. Both verified.
+- **Migration 20260923000002_invoice_documents is COMMITTED BUT NOT IN
+  PRODUCTION.** Tested on a local stack only. It must be pushed
+  (`supabase db push`, owner's approval) BEFORE the next `vercel --prod`:
+  the new Invoices view writes its columns, so a frontend deployed first
+  fails every invoice save. Then stamp it with
+  `node scripts/live-state.mjs --record migration <file>`.
 - Frontend IS deployed: live bundle 23 Sept 7:41 am. One source file has
   changed since (src/lib/gstin.test.ts — a test, so deployed behaviour is
   unchanged). The previously-pending `vercel --prod` is done.
@@ -113,6 +119,35 @@ deploy path is unaffected.
    invoice row at issue; block updates with a trigger. Corrections go via
    credit/debit note or cancel-and-reissue.
 5. Never generate a Bill of Lading. The shipping line issues it.
+
+## PHASE 2 ITEM 2 IS DONE (code) — not deployed
+Multi-line Commercial Invoice, Proforma and Packing List.
+- `supabase/migrations/20260923000002_invoice_documents.sql`: exporter bank
+  snapshot (name, branch, account, IFSC, SWIFT, AD code), payment_terms,
+  buyer_tax_id (EORI/VAT), origin_country on invoices; marks, package
+  count/kind, net/gross kg on lines (gross >= net). invoices_guard() was
+  NOT changed: it diffs to_jsonb(NEW) - mutable, so new columns are
+  immutable after issue automatically. Verified on a local stack: 40
+  behaviour checks as signed-in users (immutability of the new columns,
+  constraints, RLS across companies, anon, rendered HTML from fetched rows).
+- `src/lib/invoice-documents.ts`: pure HTML builders from the snapshot
+  only (a test asserts it imports nothing but eu-documents). Every field
+  HTML-escaped. Unnumbered drafts print "Not yet numbered".
+- `src/lib/invoices.ts`: data layer; `src/components/views/Invoices.tsx`:
+  sidebar view (paid-gated like its neighbours) to draft, issue, cancel,
+  print. generateEUCommercialInvoice and EUInvoiceData are deleted; the EU
+  Compliance view points to Invoices.
+- The Invoices view was type-checked and built, NOT clicked through in a
+  browser.
+Known gaps, deliberately not built:
+- No GST export endorsement ("supply meant for export under LUT without
+  payment of IGST" / "on payment of IGST") and no IGST amount columns.
+  CGST Rule 46 requires one on an export invoice, and it decides the IGST
+  refund route. Needs its own migration + decision.
+- No amount-in-words line; no signatory name (item 6 masters).
+- The GSP / REX / EUDR generators in eu-documents.ts still interpolate
+  user input UNESCAPED into a same-origin window. escapeHtml() now exists
+  there; apply it.
 
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
