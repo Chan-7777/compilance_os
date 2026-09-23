@@ -153,6 +153,7 @@ export function Sidebar({
     { id: 'rodtep',          label: 'RoDTEP Recovery',    Icon: RoDTEPIcon },
     { id: 'shipments',       label: 'Shipments',          Icon: ShipmentsIcon },
     { id: 'invoices',        label: 'Invoices',           Icon: DocReviewIcon },
+    { id: 'masters',         label: 'Masters',            Icon: DocReviewIcon },
     { id: 'doc-review',      label: 'Document Review',    Icon: DocReviewIcon },
     { id: 'contract-review' as ViewType, label: 'Contract Review',    Icon: DocReviewIcon },
     ...(euEnabled ? [{ id: 'eu-compliance' as ViewType, label: 'EU Compliance', Icon: EUIcon }] : []),

@@ -20,9 +20,15 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 5 — LIVE)
-- Branch `recover-untracked-edge-functions`, working tree clean.
-- 793 tests / 36 files pass. `npm run build` passes. Both verified (item 5).
+## State as of 23 Sept 2026 (after phase 2 item 6 — COMMITTED, NOT LIVE)
+- Branch `recover-untracked-edge-functions`.
+- 832 tests / 37 files pass (`npm test`). `npm run build` passes. 16 DB
+  tests pass on a local stack (`npm run test:integration`, see item 6).
+- Item 6 (masters) is committed but NOT released. Migration
+  20260924000001_masters is local only. Release migration-first, then
+  frontend: the new frontend reads buyers/products/bank_accounts/signatories
+  and writes invoices.signatory_* on every draft save, so an older schema
+  breaks invoice saving.
 - Item 4 (shipping bill import matches instead of duplicating) is LIVE.
   Frontend only, no migration. Deployed with `vercel --prod` on the
   owner's approval (dpl_th2T413sStFDJTz7EJHpao5qrwSw), aliased to
@@ -313,6 +319,62 @@ Known gaps:
 - Settings' api_keys query returns 400 on the local stack (pre-existing).
 - Main bundle +~100 kB raw from the port list; lazy-load it if it matters.
 
+## PHASE 2 ITEM 6 IS DONE — COMMITTED, NOT LIVE (23 Sept 2026)
+Buyer / product / bank account / signatory masters. Decisions agreed with
+the owner:
+- Masters only PREFILL a draft. Picking one copies values into the form;
+  the invoice stores values. There is NO foreign key from invoices to any
+  master (ON DELETE SET NULL would UPDATE issued invoices, which the guard
+  refuses, so a used master could never be deleted).
+- company_registrations (branches) stays SEPARATE, with 4a. Not built.
+- Default bank + default signatory fill NEW drafts only; an existing draft is
+  never refilled. At most one default of each per company (partial unique
+  index); marking a new default clears the old one first.
+- Amount in words IS in: pure, print-only, no column. International system
+  (million) for foreign currencies, lakh/crore for INR; an unknown currency
+  keeps its code and prints the minor part as nn/100.
+Migration `20260924000001_masters.sql`: 4 tables, per-company RLS
+(select/insert/update/delete on get_user_company_id(), WITH CHECK on
+writes), anon revoked, no CA read policy. Required: buyer name + country;
+product description + 4-8 digit HS + unit; bank name + account; signatory
+name. IFSC/SWIFT/currency/Incoterm checks match invoices. Duplicates refused
+per company ignoring case/spaces: buyers (name, country), products
+(description, HS), banks (bank name, account without spaces), signatories
+(name). invoices gains signatory_name / signatory_designation (nullable,
+no default); invoices_guard() unchanged and freezes them after issue.
+Nothing existing is rewritten: verified on a local stack by fingerprinting
+an issued and a draft invoice before and after applying the migration
+(same md5 of every existing column, same updated_at, lines unchanged,
+signatory NULL). Older invoices print exactly the old signature block.
+Code: src/lib/masters.ts (pure prefill + validation, tested; DB calls),
+src/components/views/Masters.tsx (sidebar "Masters", paid-gated),
+Invoices.tsx pickers (buyer, consignee, bank, signatory, product per line)
+and a signatory section. Picking a buyer whose default currency differs
+CLEARS the typed FX rate and says so — a USD rate must never sit on a EUR
+invoice.
+Tests: src/lib/masters.test.ts (npm test). src/lib/masters.integration.test.ts
+needs a local stack and runs only under `npm run test:integration` (the
+default vitest config now excludes *.integration.test.*):
+  LOCAL_SUPABASE_URL=http://127.0.0.1:55321 LOCAL_SUPABASE_ANON_KEY=<supabase status> npm run test:integration
+It signs up throwaway users and REFUSES any non-localhost URL. It checks
+refusals by SQLSTATE (23xxx / 42501), so a missing table can't pass them.
+Clicked through in Chrome on a local stack (5532x, inbucket off, reverted):
+blank buyer refused in words; duplicate buyer (case/space) refused in
+words; bad IFSC refused; default bank moved and back; new draft arrived
+with default SBI + signatory; USD rate typed, EUR buyer picked -> rate
+cleared with a note; product filled a line; saved, DB row held the copies;
+issued; printed with "Euros Four Thousand Nine Hundred Only" and the
+signatory; then every master edited and deleted in the UI -> issued row and
+line md5 + updated_at unchanged, reprint identical. Only console error:
+the expected 409 from the duplicate test.
+Known gaps:
+- Masters are not seeded from past invoices (deliberate: no backfill).
+- A buyer's default payment terms / Incoterm are copied only when set; a
+  previously picked buyer's terms then remain in the form.
+- Product unit price has no currency; it is copied as typed.
+- Line product picker column appears only when products exist; below
+  1440px lines are cards with the picker at the top.
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -336,7 +398,10 @@ Known gaps:
    a branch picker — fold into item 6. The import already matches by GSTIN
    and needs no change when this lands.
 5. DONE and LIVE — see the item 5 section above.
-6. Buyer / product / signatory / bank masters.
+6. DONE, committed, NOT LIVE — see the item 6 section above. Next step
+   is the owner's release: `supabase db push`, then `vercel --prod`, then
+   stamp with `node scripts/live-state.mjs --record migration
+   20260924000001_masters.sql`.
 
 ## Production writes already applied — do not repeat
 Both were run on 23 Sept with the owner's approval.

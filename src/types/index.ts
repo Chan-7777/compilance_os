@@ -388,6 +388,7 @@ export type ViewType =
   | 'label-validator'
   | 'eu-compliance'
   | 'invoices'
+  | 'masters'
   | 'rodtep'
   | 'igst-tracker'
   | 'brc-firc'

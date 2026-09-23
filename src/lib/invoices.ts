@@ -54,6 +54,10 @@ export interface InvoiceHeaderInput {
   /** Invoice currency. Needed for CFR/CPT (freight) and CIF/CIP (both). */
   freightAmount: string
   insuranceAmount: string
+
+  /** Printed under "Authorised Signatory"; usually filled from a signatory master. */
+  signatoryName: string
+  signatoryDesignation: string
 }
 
 export interface InvoiceLineInput {
@@ -138,6 +142,8 @@ export function invoiceHeaderToRow(h: InvoiceHeaderInput): Record<string, unknow
     fx_rate_source: fx === null ? null : 'manual',
     freight_amount: decimal(h.freightAmount),
     insurance_amount: decimal(h.insuranceAmount),
+    signatory_name: text(h.signatoryName),
+    signatory_designation: text(h.signatoryDesignation),
   }
 }
 

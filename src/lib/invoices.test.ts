@@ -13,7 +13,7 @@ const header = (over: Partial<InvoiceHeaderInput> = {}): InvoiceHeaderInput => (
   consigneeName: '', consigneeAddress: '', consigneeCountry: '',
   incoterm: '', incotermPlace: '', portOfLoading: '', portOfDischarge: '', destinationCountry: '',
   originCountry: '', paymentTerms: '', currency: '', fxRateInr: '', fxRateDate: '',
-  freightAmount: '', insuranceAmount: '', ...over,
+  freightAmount: '', insuranceAmount: '', signatoryName: '', signatoryDesignation: '', ...over,
 })
 
 const line = (over: Partial<InvoiceLineInput> = {}): InvoiceLineInput => ({

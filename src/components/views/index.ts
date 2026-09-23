@@ -31,6 +31,8 @@ export type { EUComplianceProps } from './EUCompliance'
 
 export { Invoices } from './Invoices'
 export type { InvoicesProps } from './Invoices'
+export { Masters } from './Masters'
+export type { MastersProps } from './Masters'
 
 export { RoDTEPCalculator } from './RoDTEPCalculator'
 export type { RoDTEPCalculatorProps } from './RoDTEPCalculator'

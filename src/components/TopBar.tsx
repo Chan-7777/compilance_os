@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
   fta: 'Trade Deals & Savings',
   shipments: 'Shipments',
   invoices: 'Invoices',
+  masters: 'Buyers, Products, Banks & Signatories',
   'doc-review': 'Document Review',
   'ca-dashboard': 'CA Dashboard',
   'label-validator': 'Label Checker',

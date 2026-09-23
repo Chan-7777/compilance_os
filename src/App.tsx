@@ -24,6 +24,7 @@ import {
   LabelValidator,
   EUCompliance,
   Invoices,
+  Masters,
   RoDTEPCalculator,
   DocumentReview,
   ContractReview,
@@ -913,6 +914,10 @@ function App() {
             companyProfile={companyProfile}
             companyId={auth.profile?.company_id ?? null}
           />
+        )
+      case 'masters':
+        return gate('Masters') ?? (
+          <Masters companyId={auth.profile?.company_id ?? null} />
         )
       case 'rodtep':
         return gate('RoDTEP Calculator') ?? (

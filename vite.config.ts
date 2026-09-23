@@ -64,7 +64,9 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-      exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+      // *.integration.test.* need a local Supabase stack; they run under
+      // vitest.integration.config.ts (npm run test:integration).
+      exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'src/**/*.integration.{test,spec}.*'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html'],

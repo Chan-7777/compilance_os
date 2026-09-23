@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   buildCommercialInvoiceHtml, buildPackingListHtml, buildProformaInvoiceHtml,
-  invoiceDocumentFromRows, invoiceTotals, type InvoiceDocument, type InvoiceLine, type InvoiceSnapshot,
+  amountInWords, invoiceDocumentFromRows, invoiceTotals, type InvoiceDocument, type InvoiceLine, type InvoiceSnapshot,
 } from './invoice-documents'
 
 function snapshot(over: Partial<InvoiceSnapshot> = {}): InvoiceSnapshot {
@@ -20,6 +20,7 @@ function snapshot(over: Partial<InvoiceSnapshot> = {}): InvoiceSnapshot {
     destinationCountry: 'Germany', originCountry: 'India', paymentTerms: '30% advance',
     currency: 'USD', fxRateInr: 83.45, fxRateDate: '2026-09-20', fxRateSource: 'manual',
     freightAmount: null, insuranceAmount: null, shipmentId: null,
+    signatoryName: null, signatoryDesignation: null,
     issuedAt: '2026-09-20T10:00:00Z', cancelledAt: null, cancelReason: null,
     ...over,
   }
@@ -145,7 +146,8 @@ describe('escaping', () => {
   it('escapes every user-typed field', () => {
     const evil = '<img src=x onerror=alert(1)>'
     const d = doc(
-      { buyerName: evil, buyerAddress: evil, exporterName: evil, exporterBankAccount: evil, paymentTerms: evil, cancelReason: evil },
+      { buyerName: evil, buyerAddress: evil, exporterName: evil, exporterBankAccount: evil, paymentTerms: evil, cancelReason: evil,
+        signatoryName: evil, signatoryDesignation: evil },
       [line(1, { description: evil, marks: evil, packageKind: evil, uom: evil })],
     )
     for (const html of [buildCommercialInvoiceHtml(d), buildPackingListHtml(d)]) {
@@ -182,5 +184,69 @@ describe('invoiceDocumentFromRows / invoiceTotals', () => {
     expect(t.netWeightKg).toBe(2000)
     expect(t.linesMissingPacking).toEqual([1])
     expect(t.amountInr).toBeNull()
+  })
+})
+
+describe('signatory (item 6)', () => {
+  it('prints the snapshot signatory name and designation under the signature line', () => {
+    const d = doc({ signatoryName: 'Anita Deshmukh', signatoryDesignation: 'Director' })
+    for (const html of [buildCommercialInvoiceHtml(d), buildPackingListHtml(d), buildProformaInvoiceHtml(doc({ kind: 'proforma', signatoryName: 'Anita Deshmukh' }))]) {
+      expect(html).toContain('Anita Deshmukh')
+      expect(html).toContain('Authorised Signatory')
+    }
+    expect(buildCommercialInvoiceHtml(d)).toContain('Director')
+  })
+
+  it('prints exactly the old block when the invoice has no signatory (every invoice issued before item 6)', () => {
+    const html = buildCommercialInvoiceHtml(doc())
+    expect(html).toContain(`<div class="sig-line">Authorised Signatory</div>
+    </div>
+  </div>`)
+    expect(html).not.toContain('sig-name')
+  })
+
+  it('maps the snapshot columns from the row', () => {
+    const d = invoiceDocumentFromRows({ id: 'x', kind: 'commercial', status: 'issued', currency: 'USD',
+      signatory_name: 'Anita Deshmukh', signatory_designation: '' }, [])
+    expect(d.invoice.signatoryName).toBe('Anita Deshmukh')
+    expect(d.invoice.signatoryDesignation).toBeNull()
+  })
+})
+
+describe('amountInWords', () => {
+  it('uses the international system for foreign currencies', () => {
+    expect(amountInWords(5000, 'USD')).toBe('US Dollars Five Thousand Only')
+    expect(amountInWords(1234567.89, 'USD'))
+      .toBe('US Dollars One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven and Cents Eighty Nine Only')
+    expect(amountInWords(100000, 'EUR')).toBe('Euros One Hundred Thousand Only')
+    expect(amountInWords(0.5, 'GBP')).toBe('Pounds Sterling Zero and Pence Fifty Only')
+    expect(amountInWords(2000000000, 'USD')).toBe('US Dollars Two Billion Only')
+  })
+
+  it('uses lakh and crore for rupees', () => {
+    expect(amountInWords(417250, 'INR')).toBe('Rupees Four Lakh Seventeen Thousand Two Hundred Fifty Only')
+    expect(amountInWords(12345678.05, 'INR')).toBe('Rupees One Crore Twenty Three Lakh Forty Five Thousand Six Hundred Seventy Eight and Paise Five Only')
+    expect(amountInWords(1500000000, 'INR')).toBe('Rupees One Hundred Fifty Crore Only')
+  })
+
+  it('handles teens, round tens and the singular', () => {
+    expect(amountInWords(1, 'USD')).toBe('US Dollars One Only')
+    expect(amountInWords(19.1, 'USD')).toBe('US Dollars Nineteen and Cents Ten Only')
+    expect(amountInWords(90, 'AED')).toBe('UAE Dirhams Ninety Only')
+  })
+
+  it('does not guess a name for a currency it does not know', () => {
+    expect(amountInWords(12.34, 'XYZ')).toBe('XYZ Twelve and 34/100 Only')
+  })
+
+  it('rounds to the cent first, so float noise never prints', () => {
+    expect(amountInWords(0.1 + 0.2, 'USD')).toBe('US Dollars Zero and Cents Thirty Only')
+    expect(amountInWords(2.999, 'USD')).toBe('US Dollars Three Only')
+  })
+
+  it('is printed under the total on invoices, not on the packing list', () => {
+    expect(buildCommercialInvoiceHtml(doc())).toContain('US Dollars Five Thousand Only')
+    expect(buildProformaInvoiceHtml(doc({ kind: 'proforma' }))).toContain('US Dollars Five Thousand Only')
+    expect(buildPackingListHtml(doc())).not.toContain('Five Thousand')
   })
 })

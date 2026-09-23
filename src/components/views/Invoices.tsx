@@ -18,6 +18,10 @@ import {
   type InvoiceHeaderInput, type InvoiceLineInput, type InvoiceListItem,
 } from '@/lib/invoices'
 import { printCommercialInvoice, printPackingList, printProformaInvoice, type InvoiceDocument } from '@/lib/invoice-documents'
+import {
+  NO_MASTERS, applyBank, applyBuyer, applyConsignee, applyDefaults, applyProduct, applySignatory, loadMasters,
+  type Masters,
+} from '@/lib/masters'
 import type { CompanyProfile } from '@/types'
 
 export interface InvoicesProps {
@@ -71,6 +75,7 @@ function blankHeader(profile: CompanyProfile): InvoiceHeaderInput {
     incoterm: 'FOB', incotermPlace: '', portOfLoading: profile.portOfLoading ?? '', portOfDischarge: '',
     destinationCountry: '', originCountry: 'India', paymentTerms: '',
     currency: 'USD', fxRateInr: '', fxRateDate: '', freightAmount: '', insuranceAmount: '',
+    signatoryName: '', signatoryDesignation: '',
   }
 }
 
@@ -107,6 +112,7 @@ function formFromDocument(doc: InvoiceDocument): { header: InvoiceHeaderInput; l
       portOfDischarge: s(i.portOfDischarge), destinationCountry: s(i.destinationCountry), originCountry: s(i.originCountry),
       paymentTerms: s(i.paymentTerms), currency: i.currency, fxRateInr: s(i.fxRateInr), fxRateDate: s(i.fxRateDate),
       freightAmount: s(i.freightAmount), insuranceAmount: s(i.insuranceAmount),
+      signatoryName: s(i.signatoryName), signatoryDesignation: s(i.signatoryDesignation),
     },
     lines: doc.lines.map(l => ({
       description: l.description, hsCode: l.hsCode, quantity: s(l.quantity), uom: l.uom, unitPrice: s(l.unitPrice),
@@ -124,6 +130,28 @@ async function printSaved(id: string, which: 'invoice' | 'packing') {
 }
 
 const statusVariant = { draft: 'warning', issued: 'success', cancelled: 'danger' } as const
+
+/**
+ * "Fill from master" dropdown. It copies values into the draft and resets, so
+ * it never shows a selection: the draft holds values, not a link to a master.
+ */
+function MasterPick<T extends { id: string }>({ label, items, text, onPick }: {
+  label: string; items: T[]; text: (item: T) => string; onPick: (item: T) => void
+}) {
+  if (items.length === 0) return null
+  return (
+    <label>
+      <span style={labelStyle}>{label}</span>
+      <select style={inputStyle} value="" onChange={e => {
+        const item = items.find(x => x.id === e.target.value)
+        if (item) onPick(item)
+      }}>
+        <option value="">Choose from Masters…</option>
+        {items.map(item => <option key={item.id} value={item.id}>{text(item)}</option>)}
+      </select>
+    </label>
+  )
+}
 
 export function Invoices({ companyProfile, companyId }: InvoicesProps) {
   const [list, setList] = useState<InvoiceListItem[]>([])
@@ -150,6 +178,14 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
     if (!companyId) return
     listShipmentOptions(companyId).then(setShipments, () => setShipments([]))
   }, [companyId])
+
+  // Masters only prefill; without them the form works exactly as before.
+  const [masters, setMasters] = useState<Masters>(NO_MASTERS)
+  useEffect(() => {
+    if (!companyId) return
+    loadMasters(companyId).then(setMasters, () => setMasters(NO_MASTERS))
+  }, [companyId])
+  const [fxNote, setFxNote] = useState<string | null>(null)
 
   const run = async (fn: () => Promise<void>, ok?: string) => {
     setBusy(true); setMessage(null)
@@ -221,6 +257,12 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
 
             <div style={groupTitle}>Bank for payment</div>
             <div style={g(3)}>
+              {masters.banks.length > 0 && (
+                <div style={{ gridColumn: FULL_ROW }}>
+                  <MasterPick label="Fill bank" items={masters.banks} text={k => `${k.bankName} · ${k.accountNumber}${k.isDefault ? ' (default)' : ''}`}
+                    onPick={k => setEditing(e => e && { ...e, header: applyBank(e.header, k) })} />
+                </div>
+              )}
               {field('Bank', 'exporterBankName')}
               {field('Branch', 'exporterBankBranch')}
               {field('Account number', 'exporterBankAccount')}
@@ -232,11 +274,20 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             <div style={groupTitle}>Buyer and consignee</div>
             <div style={g(2)}>
               <div style={{ display: 'grid', gap: spacing.sm, alignContent: 'start' }}>
+                <MasterPick label="Fill buyer" items={masters.buyers} text={b => `${b.name} · ${b.country}`} onPick={b => {
+                  const next = applyBuyer(h, b)
+                  setFxNote(next.currency !== h.currency && h.fxRateInr
+                    ? `Currency changed to ${next.currency}, the buyer's default. The exchange rate was cleared: enter INR per 1 ${next.currency}.`
+                    : null)
+                  setEditing(e => e && { ...e, header: next })
+                }} />
                 {field('Buyer name', 'buyerName')}
                 {area('Buyer address', 'buyerAddress')}
                 <div style={g(2)}>{field('Buyer country', 'buyerCountry')}{field('Tax ID / EORI / VAT', 'buyerTaxId')}</div>
               </div>
               <div style={{ display: 'grid', gap: spacing.sm, alignContent: 'start' }}>
+                <MasterPick label="Fill consignee" items={masters.buyers} text={b => `${b.name} · ${b.country}`}
+                  onPick={b => setEditing(e => e && { ...e, header: applyConsignee(e.header, b) })} />
                 {field('Consignee name (blank = same as buyer)', 'consigneeName')}
                 {area('Consignee address', 'consigneeAddress')}
                 {field('Consignee country', 'consigneeCountry')}
@@ -264,7 +315,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               <label>
                 <span style={labelStyle}>Currency</span>
                 <select style={inputStyle} value={h.currency} onChange={e => setH({ currency: e.target.value })}>
-                  {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                  {(CURRENCIES.includes(h.currency) ? CURRENCIES : [...CURRENCIES, h.currency]).map(c => <option key={c}>{c}</option>)}
                 </select>
               </label>
               {field(`INR per 1 ${h.currency}`, 'fxRateInr', { inputMode: 'decimal', placeholder: h.kind === 'commercial' ? 'required to issue' : 'optional' })}
@@ -288,6 +339,20 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               </>
             )}
 
+            {fxNote && !h.fxRateInr && (
+              <p role="status" style={{ fontSize: '0.8rem', color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: borderRadius.md, padding: '6px 10px', margin: `${spacing.sm} 0 0` }}>
+                {fxNote}
+              </p>
+            )}
+
+            <div style={groupTitle}>Authorised signatory</div>
+            <div style={g(3)}>
+              <MasterPick label="Fill signatory" items={masters.signatories} text={x => `${x.name}${x.designation ? ` · ${x.designation}` : ''}`}
+                onPick={x => setEditing(e => e && { ...e, header: applySignatory(e.header, x) })} />
+              {field('Name (printed under the signature)', 'signatoryName')}
+              {field('Designation', 'signatoryDesignation', { placeholder: 'e.g. Director' })}
+            </div>
+
             <div style={groupTitle}>Lines</div>
             {linesAsCards ? (
               <div style={{ display: 'grid', gap: spacing.md }}>
@@ -305,6 +370,8 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                         <Button size="sm" variant="ghost" disabled={editing.lines.length === 1}
                           onClick={() => setEditing(e => e && { ...e, lines: e.lines.filter((_, j) => j !== i) })}>Remove</Button>
                       </div>
+                      <MasterPick label="Fill from product" items={masters.products} text={p => `${p.description} · HS ${p.hsCode}`}
+                        onPick={p => setLine(i, applyProduct(l, p))} />
                       {f('description', 'Description')}
                       <div style={grid(2)}>
                         {f('hsCode', 'HS code', { inputMode: 'numeric' })}
@@ -328,7 +395,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 1100 }}>
                 <thead>
                   <tr style={{ textAlign: 'left', color: colors.textMuted }}>
-                    {['#', 'Description', 'HS code', 'Qty', 'Unit', 'Unit price', 'Marks & nos.', 'Pkgs', 'Pkg kind', 'Net kg', 'Gross kg', ''].map(t => (
+                    {['#', ...(masters.products.length ? ['Product'] : []), 'Description', 'HS code', 'Qty', 'Unit', 'Unit price', 'Marks & nos.', 'Pkgs', 'Pkg kind', 'Net kg', 'Gross kg', ''].map(t => (
                       <th key={t} style={{ padding: '4px 4px', fontWeight: 600 }}>{t}</th>
                     ))}
                   </tr>
@@ -343,6 +410,17 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                     return (
                       <tr key={i}>
                         <td style={{ padding: 2, color: colors.textMuted }}>{i + 1}</td>
+                        {masters.products.length > 0 && (
+                          <td style={{ padding: 2, width: 130 }}>
+                            <select style={inputStyle} aria-label={`Line ${i + 1} fill from product`} value="" onChange={e => {
+                              const p = masters.products.find(x => x.id === e.target.value)
+                              if (p) setLine(i, applyProduct(l, p))
+                            }}>
+                              <option value="">Choose…</option>
+                              {masters.products.map(p => <option key={p.id} value={p.id}>{p.description} · HS {p.hsCode}</option>)}
+                            </select>
+                          </td>
+                        )}
                         {cell('description', 260)}
                         {cell('hsCode', 100, { inputMode: 'numeric' })}
                         {cell('quantity', 80, { inputMode: 'decimal' })}
@@ -407,6 +485,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
       {inv.status === 'draft' && (
         <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(async () => {
           const doc = await fetchInvoiceDocument(inv.id)
+          setFxNote(null)
           setEditing({ id: inv.id, ...formFromDocument(doc) })
         })}>Edit</Button>
       )}
@@ -432,7 +511,11 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
     <div style={pageStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0 }}>Invoices</h2>
-        <Button variant="primary" onClick={() => { setMessage(null); setEditing({ id: null, header: blankHeader(companyProfile), lines: [blankLine()] }) }}>
+        <Button variant="primary" onClick={() => {
+          setMessage(null); setFxNote(null)
+          // Default bank and signatory go into NEW drafts only; an existing draft is never refilled.
+          setEditing({ id: null, header: applyDefaults(blankHeader(companyProfile), masters.banks, masters.signatories), lines: [blankLine()] })
+        }}>
           New invoice
         </Button>
       </div>

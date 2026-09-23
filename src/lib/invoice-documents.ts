@@ -65,6 +65,9 @@ export interface InvoiceSnapshot {
   insuranceAmount: number | null
   /** Link to the shipment this invoice covers; editable even after issue. */
   shipmentId: string | null
+  /** NULL on invoices issued before signatories existed; they print unnamed, as before. */
+  signatoryName: string | null
+  signatoryDesignation: string | null
 
   issuedAt: string | null
   cancelledAt: string | null
@@ -144,6 +147,8 @@ export function invoiceDocumentFromRows(row: Row, lineRows: Row[]): InvoiceDocum
     freightAmount: num(row.freight_amount),
     insuranceAmount: num(row.insurance_amount),
     shipmentId: str(row.shipment_id),
+    signatoryName: str(row.signatory_name),
+    signatoryDesignation: str(row.signatory_designation),
     issuedAt: str(row.issued_at),
     cancelledAt: str(row.cancelled_at),
     cancelReason: str(row.cancel_reason),
@@ -227,6 +232,66 @@ function isoDate(value: string | null): string {
 }
 
 const orDash = (v: string | null | undefined) => (v ? esc(v) : '—')
+
+// ── Amount in words ──────────────────────────────────────────────────────────
+
+const ONES = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+  'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+/** 1..999 */
+function hundreds(n: number): string {
+  const words: string[] = []
+  if (n >= 100) { words.push(`${ONES[Math.floor(n / 100)]} Hundred`); n %= 100 }
+  if (n >= 20) { words.push(TENS[Math.floor(n / 10)]); n %= 10 }
+  if (n > 0) words.push(ONES[n])
+  return words.join(' ')
+}
+
+/** Whole number in words: million/billion, or lakh/crore for rupees. */
+function integerWords(n: number, indian: boolean): string {
+  if (n === 0) return ONES[0]
+  const scales: [number, string][] = indian
+    ? [[1e7, 'Crore'], [1e5, 'Lakh'], [1e3, 'Thousand']]
+    : [[1e9, 'Billion'], [1e6, 'Million'], [1e3, 'Thousand']]
+  const words: string[] = []
+  for (const [size, name] of scales) {
+    if (n >= size) {
+      const count = Math.floor(n / size)
+      // Above 99 crore the crore count itself runs past lakh; say it plainly.
+      words.push(`${indian && size === 1e7 ? integerWords(count, false) : hundreds(count)} ${name}`)
+      n %= size
+    }
+  }
+  if (n > 0) words.push(hundreds(n))
+  return words.join(' ')
+}
+
+const CURRENCY_WORDS: Record<string, [string, string]> = {
+  USD: ['US Dollars', 'Cents'], EUR: ['Euros', 'Cents'], GBP: ['Pounds Sterling', 'Pence'],
+  INR: ['Rupees', 'Paise'], AED: ['UAE Dirhams', 'Fils'], SAR: ['Saudi Riyals', 'Halalas'],
+  AUD: ['Australian Dollars', 'Cents'], CAD: ['Canadian Dollars', 'Cents'], SGD: ['Singapore Dollars', 'Cents'],
+  CHF: ['Swiss Francs', 'Centimes'], CNY: ['Chinese Yuan', 'Fen'],
+}
+
+/**
+ * "US Dollars Five Thousand and Cents Fifty Only". Rounded to the cent first.
+ * Rupees use lakh/crore; everything else the international system a foreign
+ * buyer reads. A currency not in the table keeps its code and writes the
+ * minor part as a fraction rather than guess a name.
+ */
+export function amountInWords(amount: number, currency: string): string {
+  const cents = Math.round(Math.abs(amount) * 100)
+  const major = Math.floor(cents / 100)
+  const minor = cents % 100
+  const indian = currency === 'INR'
+  const names = CURRENCY_WORDS[currency]
+  const main = `${names ? names[0] : currency} ${integerWords(major, indian)}`
+  if (minor === 0) return `${main} Only`
+  return names
+    ? `${main} and ${names[1]} ${integerWords(minor, false)} Only`
+    : `${main} and ${String(minor).padStart(2, '0')}/100 Only`
+}
 
 // ── Shared blocks ────────────────────────────────────────────────────────────
 
@@ -336,9 +401,17 @@ function signatureBlock(inv: InvoiceSnapshot): string {
     <div></div>
     <div style="text-align:right">
       <div class="data-label">For ${orDash(inv.exporterName)}</div>
-      <div class="sig-line">Authorised Signatory</div>
+      <div class="sig-line">Authorised Signatory</div>${signatoryName(inv)}
     </div>
   </div>`
+}
+
+/** Nothing at all when the invoice carries no signatory, so older invoices print as they did. */
+function signatoryName(inv: InvoiceSnapshot): string {
+  if (!inv.signatoryName) return ''
+  return `
+      <div class="sig-name" style="font-size:12px;font-weight:600;margin-top:4px">${esc(inv.signatoryName)}</div>${inv.signatoryDesignation ? `
+      <div style="font-size:11px;color:#555">${esc(inv.signatoryDesignation)}</div>` : ''}`
 }
 
 function page(title: string, body: string): string {
@@ -437,6 +510,7 @@ function invoiceHtml(doc: InvoiceDocument, which: 'commercial' | 'proforma'): st
         ${fxLine}
       </tfoot>
     </table>
+    <div style="font-size:12px;margin-top:8px"><span class="data-label">Amount in words: </span>${esc(amountInWords(totals.amount, inv.currency))}</div>
   </div>
 
   ${proformaNote}
