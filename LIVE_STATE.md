@@ -95,8 +95,6 @@ Loose `supabase/*.sql` files are not tracked here at all - they were pasted in b
 
 ## Uncommitted work
 
-Branch `recover-untracked-edge-functions` at `e882560` - fix: make the Invoices view usable on phones and tablets (1h ago).
+Branch `recover-untracked-edge-functions` at `e4824c7` - chore: record the invoice-documents release; fix migration record keys (1h ago).
 
-**1 source file(s) exist only on this machine.** If this disk dies, production cannot be rebuilt.
-
-- `M scripts/live-state.mjs`
+No uncommitted source changes.

@@ -150,6 +150,8 @@ Known gaps, deliberately not built:
   payment of IGST" / "on payment of IGST") and no IGST amount columns.
   CGST Rule 46 requires one on an export invoice, and it decides the IGST
   refund route. Needs its own migration + decision.
+  PARKED (23 Sept 2026): the owner is checking with someone before we
+  decide. Do not build it until they come back with an answer.
 - No amount-in-words line; no signatory name (item 6 masters).
 - The GSP / REX / EUDR generators in eu-documents.ts still interpolate
   user input UNESCAPED into a same-origin window. escapeHtml() now exists
