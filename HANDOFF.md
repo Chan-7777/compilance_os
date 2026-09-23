@@ -20,7 +20,7 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 3 — LIVE)
+## State as of 23 Sept 2026 (after phase 2 item 5 — LIVE)
 - Branch `recover-untracked-edge-functions`, working tree clean.
 - 793 tests / 36 files pass. `npm run build` passes. Both verified (item 5).
 - Item 4 (shipping bill import matches instead of duplicating) is LIVE.
@@ -262,9 +262,12 @@ local stack needed ports 5532x (Windows reserves 54225-54324 here) and
 [inbucket] enabled = false; those edits were reverted, not committed.
 Nit: the banner's entitlement total includes bills already claimed.
 
-## PHASE 2 ITEM 5 IS DONE — committed, NOT deployed (23 Sept 2026)
+## PHASE 2 ITEM 5 IS DONE and LIVE (23 Sept 2026)
 Settings: State is a picker, Port of Loading is a searchable code field.
-Frontend only, no migration. Ships when the owner runs `vercel --prod`.
+Frontend only, no migration. Deployed with `vercel --prod` on the owner's
+approval (dpl_DmmKXmZGcEsKMF3hwjmNS61fBzoB), aliased to
+www.complianceos.co.in; live bundle index-DvJOBd3E.js matches the local
+build and contains the picker code.
 
 The source is NOT the two PDFs the plan named. TN No.25 has no code
 tables (field names only) and Notification 39's annexure is RoDTEP 4R
@@ -332,7 +335,7 @@ Known gaps:
    ideally a company_registrations master (GSTIN, state, address, port) as
    a branch picker — fold into item 6. The import already matches by GSTIN
    and needs no change when this lands.
-5. DONE, committed, NOT deployed — see the item 5 section above.
+5. DONE and LIVE — see the item 5 section above.
 6. Buyer / product / signatory / bank masters.
 
 ## Production writes already applied — do not repeat
