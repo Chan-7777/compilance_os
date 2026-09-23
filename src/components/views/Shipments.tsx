@@ -71,7 +71,6 @@ export function Shipments({
   const [hasDraft, setHasDraft] = useState(false)
   const [showFinancePanel, setShowFinancePanel] = useState(false)
   const [financeForm, setFinanceForm] = useState({ invoiceValue: '', buyerName: '', invoiceRef: '' })
-  const [tredsEligibility, setTredsEligibility] = useState<null | { eligible: boolean; reason: string; maxAmount: number }>(null)
   const [lcDownloading, setLcDownloading] = useState(false)
   const [hsMismatchResults, setHsMismatchResults] = useState<Record<string, HSMismatchResult>>({})
   const [hsMismatchLoading, setHsMismatchLoading] = useState<Record<string, boolean>>({})
@@ -497,24 +496,6 @@ export function Shipments({
     }
   }
 
-  const checkTReDSEligibility = () => {
-    const value = parseFloat(financeForm.invoiceValue) || 0
-    if (!companyProfile.iec) {
-      setTredsEligibility({ eligible: false, reason: 'IEC number required. Add it in Settings → Company Details.', maxAmount: 0 })
-      return
-    }
-    if (value < 100000) {
-      setTredsEligibility({ eligible: false, reason: 'Minimum invoice value is ₹1,00,000 for TReDS.', maxAmount: 0 })
-      return
-    }
-    setTredsEligibility({
-      eligible: true,
-      // "IEC verified" was a lie: this only checks the field is non-empty.
-      // Nothing is checked against DGFT.
-      reason: 'IEC present and invoice above the ₹1,00,000 threshold. This is a self-check against the platform rules — the IEC itself has not been verified with DGFT.',
-      maxAmount: Math.round(value * 0.9),
-    })
-  }
 
   const handleDownloadLCTemplate = () => {
     setLcDownloading(true)

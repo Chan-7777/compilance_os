@@ -203,7 +203,7 @@ export async function bulkImportShippingBills(
       date: r.date,
       hs_code: hsDigits,
       shipment_value: r.fobValue,
-      value_currency: currency,
+      value_currency: (r.currency || 'USD').toUpperCase(),
       shipping_bill_no: sb,
       buyer_name: r.buyerName?.trim() || null,
       rodtep_rate: rate.rate,
