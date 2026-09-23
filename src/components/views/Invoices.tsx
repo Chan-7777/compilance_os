@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
+import { useMobile } from '@/hooks/useMobile'
 import { colors, spacing, borderRadius } from '@theme/index'
 import {
   listInvoices, fetchInvoiceDocument, saveInvoiceDraft, issueInvoice, cancelInvoice, deleteInvoiceDraft,
@@ -41,6 +42,17 @@ const pageStyle: React.CSSProperties = { padding: spacing.lg, maxWidth: '1200px'
 const grid = (cols: number): React.CSSProperties => ({
   display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: spacing.sm,
 })
+// Up to `cols` columns, dropping one whenever a field would get narrower than
+// 170px. It sizes from the space the form actually has (the sidebar takes
+// 228px on a tablet), so no viewport breakpoint can be wrong for it.
+const fluidGrid = (cols: number): React.CSSProperties => ({
+  display: 'grid',
+  gridTemplateColumns: `repeat(auto-fill, minmax(max(170px, calc((100% - ${cols - 1} * ${spacing.sm}) / ${cols})), 1fr))`,
+  gap: spacing.sm,
+})
+// Takes the whole row at any column count (a span of 2 in a 1-column grid
+// would add a column and overflow).
+const FULL_ROW = '1 / -1'
 
 function blankHeader(profile: CompanyProfile): InvoiceHeaderInput {
   // Prefilled from the profile once, when the draft is started. From then on
@@ -112,6 +124,12 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
   const [editing, setEditing] = useState<{ id: string | null; header: InvoiceHeaderInput; lines: InvoiceLineInput[] } | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null)
+  // Header grids reflow on their own (fluidGrid). The invoice list becomes
+  // cards on phones; the line table needs ~1100px of form, which only a wide
+  // desktop has, so lines become cards below that.
+  const isMobile = useMobile()
+  const linesAsCards = useMobile(1440)
+  const g = fluidGrid
 
   const refresh = useCallback(async () => {
     if (!companyId) return
@@ -165,7 +183,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
         </div>
         <Card>
           <CardContent>
-            <div style={grid(4)}>
+            <div style={g(4)}>
               <label>
                 <span style={labelStyle}>Document</span>
                 <select style={inputStyle} value={h.kind} onChange={e => setH({ kind: e.target.value as InvoiceHeaderInput['kind'] })}>
@@ -179,18 +197,18 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             </div>
 
             <div style={groupTitle}>Exporter (copied onto this invoice)</div>
-            <div style={grid(3)}>
+            <div style={g(3)}>
               {field('Name', 'exporterName')}
               {field('IEC', 'exporterIec')}
               {field('GSTIN', 'exporterGstin')}
             </div>
-            <div style={{ ...grid(3), marginTop: spacing.sm }}>
-              <div style={{ gridColumn: 'span 2' }}>{area('Address', 'exporterAddress')}</div>
+            <div style={{ ...g(3), marginTop: spacing.sm }}>
+              <div style={{ gridColumn: FULL_ROW }}>{area('Address', 'exporterAddress')}</div>
               {field('State code', 'exporterStateCode')}
             </div>
 
             <div style={groupTitle}>Bank for payment</div>
-            <div style={grid(3)}>
+            <div style={g(3)}>
               {field('Bank', 'exporterBankName')}
               {field('Branch', 'exporterBankBranch')}
               {field('Account number', 'exporterBankAccount')}
@@ -200,13 +218,13 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             </div>
 
             <div style={groupTitle}>Buyer and consignee</div>
-            <div style={grid(2)}>
-              <div style={{ display: 'grid', gap: spacing.sm }}>
+            <div style={g(2)}>
+              <div style={{ display: 'grid', gap: spacing.sm, alignContent: 'start' }}>
                 {field('Buyer name', 'buyerName')}
                 {area('Buyer address', 'buyerAddress')}
-                <div style={grid(2)}>{field('Buyer country', 'buyerCountry')}{field('Tax ID / EORI / VAT', 'buyerTaxId')}</div>
+                <div style={g(2)}>{field('Buyer country', 'buyerCountry')}{field('Tax ID / EORI / VAT', 'buyerTaxId')}</div>
               </div>
-              <div style={{ display: 'grid', gap: spacing.sm }}>
+              <div style={{ display: 'grid', gap: spacing.sm, alignContent: 'start' }}>
                 {field('Consignee name (blank = same as buyer)', 'consigneeName')}
                 {area('Consignee address', 'consigneeAddress')}
                 {field('Consignee country', 'consigneeCountry')}
@@ -214,7 +232,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             </div>
 
             <div style={groupTitle}>Shipment and terms</div>
-            <div style={grid(4)}>
+            <div style={g(4)}>
               <label>
                 <span style={labelStyle}>Incoterm</span>
                 <select style={inputStyle} value={h.incoterm} onChange={e => setH({ incoterm: e.target.value })}>
@@ -226,11 +244,11 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               {field('Port of discharge', 'portOfDischarge')}
               {field('Final destination', 'destinationCountry')}
               {field('Country of origin', 'originCountry')}
-              <div style={{ gridColumn: 'span 2' }}>{field('Payment terms', 'paymentTerms', { placeholder: 'e.g. 30% advance, 70% against BL' })}</div>
+              <div style={{ gridColumn: FULL_ROW }}>{field('Payment terms', 'paymentTerms', { placeholder: 'e.g. 30% advance, 70% against BL' })}</div>
             </div>
 
             <div style={groupTitle}>Currency and exchange rate</div>
-            <div style={grid(4)}>
+            <div style={g(4)}>
               <label>
                 <span style={labelStyle}>Currency</span>
                 <select style={inputStyle} value={h.currency} onChange={e => setH({ currency: e.target.value })}>
@@ -245,6 +263,41 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
             </div>
 
             <div style={groupTitle}>Lines</div>
+            {linesAsCards ? (
+              <div style={{ display: 'grid', gap: spacing.md }}>
+                {editing.lines.map((l, i) => {
+                  const f = (key: keyof InvoiceLineInput, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+                    <label>
+                      <span style={labelStyle}>{label}</span>
+                      <input style={inputStyle} aria-label={`Line ${i + 1} ${LINE_LABELS[key]}`} value={l[key]} onChange={e => setLine(i, { [key]: e.target.value })} {...props} />
+                    </label>
+                  )
+                  return (
+                    <div key={i} style={{ border: `1px solid ${colors.border}`, borderRadius: borderRadius.md, padding: spacing.sm, display: 'grid', gap: spacing.sm }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ fontSize: '0.85rem' }}>Line {i + 1}</strong>
+                        <Button size="sm" variant="ghost" disabled={editing.lines.length === 1}
+                          onClick={() => setEditing(e => e && { ...e, lines: e.lines.filter((_, j) => j !== i) })}>Remove</Button>
+                      </div>
+                      {f('description', 'Description')}
+                      <div style={grid(2)}>
+                        {f('hsCode', 'HS code', { inputMode: 'numeric' })}
+                        {f('uom', 'Unit', { placeholder: 'KGS' })}
+                        {f('quantity', 'Quantity', { inputMode: 'decimal' })}
+                        {f('unitPrice', 'Unit price', { inputMode: 'decimal' })}
+                      </div>
+                      {f('marks', 'Marks & nos.')}
+                      <div style={grid(2)}>
+                        {f('packageCount', 'Packages', { inputMode: 'numeric' })}
+                        {f('packageKind', 'Package kind', { placeholder: 'cartons' })}
+                        {f('netWeightKg', 'Net kg', { inputMode: 'decimal' })}
+                        {f('grossWeightKg', 'Gross kg', { inputMode: 'decimal' })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 1100 }}>
                 <thead>
@@ -284,6 +337,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                 </tbody>
               </table>
             </div>
+            )}
             <Button size="sm" variant="outline" style={{ marginTop: spacing.sm }}
               onClick={() => setEditing(e => e && { ...e, lines: [...e.lines, blankLine()] })}>Add line</Button>
 
@@ -310,6 +364,32 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
   }
 
   // ── List ──
+  const rowActions = (inv: InvoiceListItem) => (
+    <>
+      {inv.status === 'draft' && (
+        <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(async () => {
+          const doc = await fetchInvoiceDocument(inv.id)
+          setEditing({ id: inv.id, ...formFromDocument(doc) })
+        })}>Edit</Button>
+      )}
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => printSaved(inv.id, 'invoice'))}>
+        {inv.kind === 'proforma' ? 'Proforma' : 'Invoice'}
+      </Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => printSaved(inv.id, 'packing'))}>Packing list</Button>
+      {inv.status === 'issued' && (
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => {
+          const reason = window.prompt('Reason for cancelling? The number stays reserved and cannot be reused.')
+          if (reason && reason.trim()) void run(async () => { await cancelInvoice(inv.id, reason); await refresh() }, 'Invoice cancelled')
+        }}>Cancel</Button>
+      )}
+      {inv.status === 'draft' && (
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => {
+          if (window.confirm('Delete this draft?')) void run(async () => { await deleteInvoiceDraft(inv.id); await refresh() })
+        }}>Delete</Button>
+      )}
+    </>
+  )
+
   return (
     <div style={pageStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm, flexWrap: 'wrap' }}>
@@ -326,6 +406,23 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
         <CardContent>
           {list.length === 0 ? (
             <p style={{ margin: 0, color: colors.textMuted }}>No invoices yet.</p>
+          ) : isMobile ? (
+            <div style={{ display: 'grid' }}>
+              {list.map((inv, n) => (
+                <div key={inv.id} style={{ padding: `${spacing.sm} 0`, borderTop: n ? `1px solid ${colors.border}` : 'none', display: 'grid', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: spacing.sm, alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 600, overflowWrap: 'anywhere' }}>
+                      {inv.invoiceNumber ?? <em style={{ color: colors.textMuted }}>unnumbered</em>}
+                    </span>
+                    <Badge variant={statusVariant[inv.status]} size="sm">{inv.status}</Badge>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
+                    {inv.kind === 'proforma' ? 'Proforma' : 'Commercial'} · {inv.invoiceDate ?? 'no date'} · {inv.buyerName ?? 'no buyer'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{rowActions(inv)}</div>
+                </div>
+              ))}
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
@@ -342,28 +439,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                     <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{inv.invoiceDate ?? '—'}</td>
                     <td style={{ padding: 6 }}>{inv.buyerName ?? '—'}</td>
                     <td style={{ padding: 6 }}><Badge variant={statusVariant[inv.status]} size="sm">{inv.status}</Badge></td>
-                    <td style={{ padding: 6, display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      {inv.status === 'draft' && (
-                        <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(async () => {
-                          const doc = await fetchInvoiceDocument(inv.id)
-                          setEditing({ id: inv.id, ...formFromDocument(doc) })
-                        })}>Edit</Button>
-                      )}
-                      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => printSaved(inv.id, 'invoice'))}>
-                        {inv.kind === 'proforma' ? 'Proforma' : 'Invoice'}
-                      </Button>
-                      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => printSaved(inv.id, 'packing'))}>Packing list</Button>
-                      {inv.status === 'issued' && (
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => {
-                          const reason = window.prompt('Reason for cancelling? The number stays reserved and cannot be reused.')
-                          if (reason && reason.trim()) void run(async () => { await cancelInvoice(inv.id, reason); await refresh() }, 'Invoice cancelled')
-                        }}>Cancel</Button>
-                      )}
-                      {inv.status === 'draft' && (
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => {
-                          if (window.confirm('Delete this draft?')) void run(async () => { await deleteInvoiceDraft(inv.id); await refresh() })
-                        }}>Delete</Button>
-                      )}
+                    <td style={{ padding: 6, display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>{rowActions(inv)}
                     </td>
                   </tr>
                 ))}
