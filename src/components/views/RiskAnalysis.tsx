@@ -337,7 +337,7 @@ export function RiskAnalysis({ selectedProduct, riskResults, companyProfile, hsC
             }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: colors.text }}>Embedded emissions estimate</h3>
               <p style={{ margin: `${spacing.xs} 0 ${spacing.md} 0`, color: colors.textMuted, fontSize: '0.875rem' }}>
-                Carbon embedded in one shipment, from Climatiq emission factors. Declarations use EU default values when no estimate is available.
+                Estimated carbon embedded in one shipment, from generic Climatiq emission factors — not measured at your facility or your suppliers'. Declarations fall back to EU default values when no estimate is available. Replace both with actual supplier data before filing.
               </p>
               <div style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', flexWrap: 'wrap' }}>
                 <label htmlFor="cbam-weight" style={{ fontSize: '0.8125rem', color: colors.textMuted }}>Shipment weight</label>

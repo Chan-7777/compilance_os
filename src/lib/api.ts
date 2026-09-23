@@ -950,97 +950,100 @@ export function generateDealPack(
   generateBankReadyDealPack(shipment, companyProfile, checkedItems)
 }
 
-export async function downloadCOOPdf(shipmentId: string, shipment?: Partial<Shipment>): Promise<Blob> {
+/**
+ * Worksheet an exporter takes to their issuing agency to APPLY for a
+ * Certificate of Origin. It is deliberately not a certificate.
+ *
+ * This replaces downloadCOOPdf, which drew an A4 document headed
+ * "CERTIFICATE OF ORIGIN" with a locally generated reference number, a
+ * declaration and signature lines. No agency issued it and nothing verified
+ * it, but it left the customer's premises and could reach a bank or a foreign
+ * customs broker. Watermarking it was a stopgap; with the DGFT API integration
+ * frozen there is nothing to replace it with, so the lookalike goes.
+ *
+ * India-UK CETA has been in force since 15 July, so UK shipments need a real
+ * preferential certificate — which makes a convincing-looking fake worse, not
+ * better.
+ */
+export async function generateCoOApplicationSheet(
+  shipmentId: string,
+  shipment?: Partial<Shipment>
+): Promise<Blob> {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const ref = `COO-${shipmentId.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`
   const today = new Date().toISOString().slice(0, 10)
-  const W = 210, margin = 20
+  const W = 210, margin = 18
+  const BLANK = '________________________'
 
-  // Border
-  doc.setDrawColor(30, 60, 114); doc.setLineWidth(1.2)
-  doc.rect(10, 10, W - 20, 277)
-  doc.setLineWidth(0.4); doc.rect(12, 12, W - 24, 273)
+  doc.setFillColor(243, 244, 246)
+  doc.rect(0, 0, W, 26, 'F')
+  doc.setTextColor(17, 24, 39); doc.setFontSize(14); doc.setFont('helvetica', 'bold')
+  doc.text('Certificate of Origin — Application Worksheet', margin, 13)
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(75, 85, 99)
+  doc.text('Working document. This is NOT a Certificate of Origin and has no legal effect.', margin, 20)
 
-  // Header band
-  doc.setFillColor(30, 60, 114); doc.rect(12, 12, W - 24, 22, 'F')
-  doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.setFont('helvetica', 'bold')
-  doc.text('CERTIFICATE OF ORIGIN', W / 2, 22, { align: 'center' })
-  doc.setFontSize(9); doc.setFont('helvetica', 'normal')
-  doc.text('(Non-Preferential)', W / 2, 30, { align: 'center' })
+  doc.setDrawColor(220, 38, 38); doc.setLineWidth(0.6)
+  doc.rect(margin, 32, W - margin * 2, 20)
+  doc.setTextColor(185, 28, 28); doc.setFontSize(9); doc.setFont('helvetica', 'bold')
+  doc.text('Only a designated issuing agency can issue a Certificate of Origin.', margin + 4, 39)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(75, 85, 99)
+  doc.text('Take this worksheet to your chamber of commerce, EIC or the DGFT eCoO portal.', margin + 4, 45)
+  doc.text('Do not send it to a buyer, bank or customs broker as evidence of origin.', margin + 4, 50)
 
-  // Diagonal "unofficial draft" watermark — this PDF is generated locally and is
-  // not issued by DGFT or any chamber/agency; it must never be mistaken for a
-  // real certificate before the DGFT CoO API integration goes live.
-  doc.saveGraphicsState?.()
-  doc.setTextColor(220, 60, 60)
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  ;(doc as any).setGState?.(new (doc as any).GState({ opacity: 0.5 }))
-  doc.text('UNOFFICIAL DRAFT PREVIEW — NOT ISSUED BY DGFT OR ISSUING AGENCY', W / 2, 38.5, {
-    align: 'center', angle: 0,
-  })
-  ;(doc as any).setGState?.(new (doc as any).GState({ opacity: 1 }))
-  doc.restoreGraphicsState?.()
-  doc.setTextColor(20, 20, 20)
-
-  doc.setTextColor(20, 20, 20)
-  doc.setFontSize(9); doc.setFont('helvetica', 'bold')
-  doc.text(`Reference No: ${ref}`, margin, 44)
-  doc.text(`Date of Issue: ${today}`, W - margin, 44, { align: 'right' })
-  doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3)
-  doc.line(margin, 47, W - margin, 47)
-
-  let y = 53
-  const row = (label: string, value: string) => {
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 80, 80)
-    doc.text(label.toUpperCase(), margin, y)
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 20); doc.setFontSize(10)
-    doc.text(value || '—', margin, y + 5); y += 14
+  let y = 62
+  const section = (label: string) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(107, 114, 128)
+    doc.text(label.toUpperCase(), margin, y); y += 2
+    doc.setDrawColor(229, 231, 235); doc.setLineWidth(0.3)
+    doc.line(margin, y, W - margin, y); y += 6
+  }
+  const field = (label: string, value?: string | number | null) => {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(107, 114, 128)
+    doc.text(label, margin, y)
+    const shown = value === undefined || value === null || value === '' ? BLANK : String(value)
+    doc.setFontSize(10); doc.setTextColor(17, 24, 39)
+    doc.text(shown, margin + 62, y)
+    y += 8
   }
 
-  row('Exporter / Producer', shipment?.exporterName ?? 'As per company profile')
-  row('Consignee', shipment?.buyer ?? 'Foreign Buyer')
-  row('Country of Origin', 'India')
-  row('Country of Destination', shipment?.country ?? '—')
-  row('Description of Goods', shipment?.name ?? shipment?.product ?? '—')
-  row('HS Code (RITC)', shipment?.hsCode ?? '—')
-  row('Quantity', shipment?.quantity ? `${shipment.quantity} units` : '—')
-  row('Invoice Number', `INV-${shipmentId.slice(0, 8).toUpperCase()}`)
-  row('Invoice Date', shipment?.date ?? today)
-  row('FOB Value (USD)', shipment?.shipmentValue ? `USD ${shipment.shipmentValue.toLocaleString()}` : '—')
-  row('Port of Loading', 'JNPT, Mumbai, India')
-  row('Transport Mode', shipment?.transportMode ?? 'Sea')
+  section('Exporter')
+  field('Firm name', shipment?.exporterName)
+  field('IEC', undefined)
+  field('GSTIN', undefined)
+  field('Address', undefined)
 
-  doc.line(margin, y, W - margin, y); y += 6
-  doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(60, 60, 60)
-  const decl = 'The undersigned hereby declares that the above details are correct, that all goods were produced in India and comply with the origin requirements specified in trade agreements applicable to exports from India.'
-  const lines = doc.splitTextToSize(decl, W - margin * 2)
-  doc.text(lines, margin, y); y += lines.length * 4 + 10
+  section('Consignee')
+  field('Name', shipment?.buyer ?? shipment?.buyerName)
+  field('Country', shipment?.country)
+  field('Address', undefined)
 
-  // Issuing authority box
-  doc.setFillColor(245, 247, 252); doc.setDrawColor(30, 60, 114); doc.setLineWidth(0.5)
-  doc.rect(margin, y, W - margin * 2, 28, 'FD')
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(30, 60, 114)
-  doc.text('Issuing Authority', margin + 4, y + 7)
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 20); doc.setFontSize(9)
-  doc.text('Federation of Indian Export Organisations (FIEO)', margin + 4, y + 14)
-  doc.text('/ Export Inspection Council (EIC) / Chamber of Commerce', margin + 4, y + 20)
-  y += 36
+  section('Goods')
+  field('Description', shipment?.name ?? shipment?.product)
+  field('HS code (8 digit)', shipment?.hsCode)
+  field('Quantity', shipment?.quantity)
+  field('Unit of measure', undefined)
+  field('Invoice number', undefined)
+  field('Invoice date', shipment?.date)
+  field('FOB value', shipment?.shipmentValue)
+  field('Marks and numbers', undefined)
 
-  // Signature lines
-  const sigY = Math.min(y + 10, 265)
-  doc.setDrawColor(80, 80, 80)
-  doc.line(margin, sigY, margin + 55, sigY)
-  doc.line(W - margin - 55, sigY, W - margin, sigY)
-  doc.setFontSize(8); doc.setTextColor(80, 80, 80)
-  doc.text('Authorised Signatory', margin, sigY + 5)
-  doc.text('Stamp & Signature of Issuing Body', W - margin, sigY + 5, { align: 'right' })
+  section('Shipment')
+  field('Port of loading', undefined)
+  field('Port of discharge', undefined)
+  field('Transport mode', shipment?.transportMode)
+  field('Vessel / flight', undefined)
+  field('Departure date', undefined)
 
-  doc.setFontSize(7); doc.setTextColor(220, 60, 60); doc.setFont('helvetica', 'bold')
-  doc.text('UNOFFICIAL DRAFT PREVIEW — NOT ISSUED BY DGFT OR ISSUING AGENCY', W / 2, 278, { align: 'center' })
-  doc.setFontSize(7); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal')
-  doc.text('Generated by ComplianceOS · For official use, get this countersigned by your Chamber of Commerce or FIEO', W / 2, 284, { align: 'center' })
+  section('Origin claim')
+  field('Trade agreement', undefined)
+  field('Origin criterion', undefined)
+
+  doc.setFontSize(7); doc.setTextColor(156, 163, 175)
+  doc.text(
+    `Prepared by ComplianceOS from shipment ${shipmentId.slice(0, 8).toUpperCase()} on ${today}. `
+    + 'Blank fields are not held in your ComplianceOS record and must be completed before you apply.',
+    margin, 285, { maxWidth: W - margin * 2 }
+  )
 
   return doc.output('blob')
 }

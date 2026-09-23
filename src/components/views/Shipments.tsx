@@ -11,7 +11,7 @@ import { colors, spacing, borderRadius } from '@theme/index'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { PRODUCT_CATEGORIES } from '@/data/products'
 import { isCBAMScope, getCBAMSector } from '@/data/cbam-hs-codes'
-import { runGateCheck, downloadCOOPdf, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing, checkHSMismatch } from '@/lib/api'
+import { runGateCheck, generateCoOApplicationSheet, generateDealPack, classifyProductHSCode, calculateLandedCost, generateCustomsPayload, processInvoiceOCR, submitTReDSFinancing, checkHSMismatch } from '@/lib/api'
 import type { HSMismatchResult } from '@/lib/api'
 import type { Shipment, CountryCode, GateCheckResult, LandedCostResult, CompanyProfile } from '@/types'
 import { GateStamp } from '@/components/GateStamp'
@@ -419,15 +419,15 @@ export function Shipments({
   const handleDownloadCOO = async (shipmentId: string) => {
     try {
       const s = shipments.find(x => x.id === shipmentId)
-      const blob = await downloadCOOPdf(shipmentId, s)
+      const blob = await generateCoOApplicationSheet(shipmentId, s)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `coo_${shipmentId}.pdf`
+      a.download = `coo_application_worksheet_${shipmentId}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err: any) {
-      toastError(`CoO download failed: ${err?.message ?? 'Please try again'}`)
+      toastError(`Worksheet download failed: ${err?.message ?? 'Please try again'}`)
     }
   }
 
@@ -668,7 +668,7 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
                   <Button variant="ghost" onClick={() => handleDownloadCOO(shipment.id)}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                      Download CoO PDF
+                      CoO application worksheet
                     </span>
                   </Button>
                 )}
@@ -852,25 +852,21 @@ label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:
             <div style={{ display: 'flex', gap: spacing.md, flexWrap: 'wrap' as const }}>
               {/* TReDS */}
               <div style={{ flex: '1 1 280px', padding: spacing.md, backgroundColor: colors.white, borderRadius: borderRadius.lg, border: `1px solid ${colors.border}` }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: spacing.xs }}>TReDS Invoice Discounting</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.md }}>Discount your export invoice with a bank on the TReDS platform. Get paid before buyer pays.</div>
-                {!companyProfile.iec && (
-                  <div style={{ fontSize: '0.75rem', color: colors.surfaces.warningText, backgroundColor: colors.surfaces.warningBg, padding: '6px 8px', borderRadius: borderRadius.sm, marginBottom: spacing.sm }}>
-                    Add your IEC in Settings → Company Details to check eligibility
-                  </div>
-                )}
-                <button onClick={checkTReDSEligibility} disabled={!financeForm.invoiceValue}
-                  style={{ padding: '8px 16px', backgroundColor: colors.accent, color: 'white', border: 'none', borderRadius: borderRadius.md, cursor: financeForm.invoiceValue ? 'pointer' : 'not-allowed', fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit', opacity: financeForm.invoiceValue ? 1 : 0.5, marginBottom: spacing.sm }}>
-                  Check TReDS Eligibility
-                </button>
-                {tredsEligibility && (
-                  <div style={{ padding: '8px 10px', borderRadius: borderRadius.sm, fontSize: '0.8rem', backgroundColor: tredsEligibility.eligible ? colors.surfaces.successBg : colors.surfaces.dangerBg, border: `1px solid ${tredsEligibility.eligible ? colors.status.success : colors.status.error}44`, color: tredsEligibility.eligible ? colors.surfaces.successText : colors.surfaces.dangerText }}>
-                    {tredsEligibility.reason}
-                    {tredsEligibility.eligible && tredsEligibility.maxAmount > 0 && (
-                      <div style={{ fontWeight: 700, marginTop: 4 }}>Max discounting: ₹{tredsEligibility.maxAmount.toLocaleString('en-IN')}</div>
-                    )}
-                  </div>
-                )}
+                {/* No financing platform is connected: treds-financing returns
+                    503 with no key and 501 with one, so nothing here can
+                    succeed. Export invoices also need an ITFS platform rather
+                    than TReDS. Offering a button that always fails is worse
+                    than saying so. */}
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: spacing.xs }}>Export Invoice Financing</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textMuted, marginBottom: spacing.md }}>
+                  Discounting an export invoice to get paid before your buyer pays runs on an ITFS
+                  platform. We have not connected one yet, so we cannot check your eligibility or
+                  raise a financing request from here.
+                </div>
+                <div style={{ fontSize: '0.75rem', color: colors.surfaces.neutralText, backgroundColor: colors.surfaces.neutralBg, padding: '8px 10px', borderRadius: borderRadius.sm }}>
+                  Coming when an ITFS partner is live. In the meantime your AD bank can quote for
+                  post-shipment finance against the same invoice.
+                </div>
               </div>
 
               {/* Bank LC */}

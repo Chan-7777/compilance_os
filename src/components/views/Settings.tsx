@@ -10,6 +10,7 @@ import { Badge } from '@/components/Badge'
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/Tabs'
 import { colors, spacing, borderRadius } from '@theme/index'
 import { PRODUCT_CATEGORIES } from '@/data'
+import { validateGstin } from '@/lib/gstin'
 import { fetchAPIKeys, revokeAPIKey, fetchNotificationSettings, updateNotificationSettings, sendWhatsAppAlert } from '@/lib/api'
 import type { NotificationSettings } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
@@ -268,11 +269,31 @@ export function Settings({
                       id="gstin"
                       type="text"
                       value={companyProfile.gstin ?? ''}
-                      onChange={e => onUpdateProfile({ ...companyProfile, gstin: e.target.value })}
+                      onChange={e => onUpdateProfile({ ...companyProfile, gstin: e.target.value.toUpperCase() })}
                       style={inputStyle}
                       placeholder="e.g. 27AABCU9603R1Z5"
                       maxLength={15}
                     />
+                    {/* A transposed digit here reaches the RoDTEP claim
+                        register, the LC template and the CoO worksheet. Catch
+                        it at entry, not at filing. */}
+                    {(() => {
+                      const raw = companyProfile.gstin ?? ''
+                      if (raw.trim().length === 0) return null
+                      const check = validateGstin(raw, companyProfile.state)
+                      if (check.valid) {
+                        return (
+                          <div style={{ marginTop: spacing.xs, fontSize: '0.75rem', color: colors.surfaces.successText }}>
+                            Valid · {check.stateFromCode}
+                          </div>
+                        )
+                      }
+                      return (
+                        <div style={{ marginTop: spacing.xs, fontSize: '0.75rem', color: colors.surfaces.dangerText }}>
+                          {check.error}
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* ICEGATE / Customs Filing Fields */}
