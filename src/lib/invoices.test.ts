@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  friendlyInvoiceError, invoiceHeaderToRow, invoiceLinesToRows,
+  exporterGstinProblem, friendlyInvoiceError, invoiceHeaderToRow, invoiceLinesToRows,
   type InvoiceHeaderInput, type InvoiceLineInput,
 } from './invoices'
 
@@ -100,7 +100,8 @@ describe('friendlyInvoiceError', () => {
   it.each([
     ['new row for relation "invoices" violates check constraint "invoices_issue_requires_snapshot"', /To issue, fill in/],
     ['... "invoices_commercial_issue_requires_real_fx"', /exchange rate/],
-    ['duplicate key value violates unique constraint "invoices_number_unique_per_fy"', /already used/],
+    ['duplicate key value violates unique constraint "invoices_number_unique_per_fy"', /already used in this financial year under this GSTIN/],
+    ['Invoice number B/1 is already used in this financial year (invoices_number_blank_gstin)', /without a GSTIN/],
     ['Cannot issue invoice 1 with no line items', /Add at least one line/],
     ['Invoice 1 is issued and cannot be edited. Cancel and reissue', /Cancel it and issue a new one/],
   ])('%s', (raw, expected) => {
@@ -109,5 +110,38 @@ describe('friendlyInvoiceError', () => {
 
   it('passes unknown messages through', () => {
     expect(friendlyInvoiceError('network down')).toBe('network down')
+  })
+})
+
+describe('exporterGstinProblem', () => {
+  const MH = '27AAECM4512R1Z2'
+  const GJ = '24AAECM4512R1Z8'          // same PAN, Gujarat branch
+  const OTHER_PAN = '27AABCP9876Q1ZB'   // valid, another business
+
+  it('allows a blank GSTIN: the database decides what it collides with', () => {
+    expect(exporterGstinProblem('', MH)).toBeNull()
+    expect(exporterGstinProblem('   ', null)).toBeNull()
+  })
+
+  it('refuses a GSTIN that fails format, state code or checksum, whatever the company has', () => {
+    expect(exporterGstinProblem('27AAECM4512R1Z3', null)).toMatch(/checksum/)
+    expect(exporterGstinProblem('27AAECM4512R', MH)).toMatch(/15 characters/)
+    expect(exporterGstinProblem('99AAECM4512R1Z2', MH)).toMatch(/state code/)
+  })
+
+  it('accepts another branch of the same PAN, in any case and spacing', () => {
+    expect(exporterGstinProblem(GJ, MH)).toBeNull()
+    expect(exporterGstinProblem(` ${GJ.toLowerCase()} `, MH)).toBeNull()
+    expect(exporterGstinProblem(MH, MH)).toBeNull()
+  })
+
+  it("refuses a GSTIN under another PAN than the company's", () => {
+    expect(exporterGstinProblem(OTHER_PAN, MH)).toMatch(/AABCP9876Q.*AAECM4512R/)
+  })
+
+  it('skips the PAN check when the company has no GSTIN, or an invalid one', () => {
+    expect(exporterGstinProblem(OTHER_PAN, null)).toBeNull()
+    expect(exporterGstinProblem(OTHER_PAN, '')).toBeNull()
+    expect(exporterGstinProblem(OTHER_PAN, '27AAECM4512R1Z3')).toBeNull()
   })
 })

@@ -5,7 +5,7 @@ import {
 
 const IEC = 'AAECM4512R'
 const GST_MH = '27AAECM4512R1Z2'
-const GST_GJ = '24AAECM4512R1Z6'
+const GST_GJ = '24AAECM4512R1Z8'
 
 function row(over: Partial<ShippingBillRow> = {}): ShippingBillRow {
   return {
@@ -271,7 +271,7 @@ describe('planShippingBillImport — branches under different GSTINs', () => {
   })
 
   it('picks the invoice of the branch whose GSTIN is on the row', () => {
-    const plan = planShippingBillImport([row({ ...onInvoice, gstin: ' 24aaecm4512r1z6' })], twoBranches())
+    const plan = planShippingBillImport([row({ ...onInvoice, gstin: ' 24aaecm4512r1z8' })], twoBranches())
     const a = plan.actions[0]
     expect(a.kind).toBe('update')
     if (a.kind !== 'update') return

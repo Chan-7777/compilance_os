@@ -22,8 +22,11 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
 - Branch `recover-untracked-edge-functions`.
-- 832 tests / 37 files pass (`npm test`). `npm run build` passes. 16 DB
+- 838 tests / 37 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
+- Item 4a (branches) is COMMITTED, NOT LIVE. Migration
+  20260924000002_invoice_number_per_gstin is local only; release it
+  (`supabase db push`) before `vercel --prod`. See the item 4a section.
 - Item 6 (masters) is LIVE. The owner ran `supabase db push`
   (20260924000001 now local AND remote), then `vercel --prod`
   (aliased to www.complianceos.co.in). Verified after: a read-only schema
@@ -380,6 +383,49 @@ Known gaps:
 - Line product picker column appears only when products exist; below
   1440px lines are cards with the picker at the top.
 
+## PHASE 2 ITEM 4a IS DONE — committed, NOT LIVE (23 Sept 2026)
+Two GSTINs (branches) of one company may reuse an invoice number. Decisions
+agreed with the owner:
+- invoices_number_unique_per_fy keeps its NAME and gains the GSTIN,
+  normalised in the index (upper, every space removed, NULL/''/blank all
+  one "no GSTIN" key): the app upper-cases, a direct API write need not.
+- A no-GSTIN invoice clashes with EVERY branch (it could be any of them):
+  trigger invoices_number_blank_gstin_guard, advisory lock on (company,
+  kind, number, FY), 23505 with "invoices_number_blank_gstin" in the text.
+  Without it, clearing a draft's GSTIN took a branch's number (shown on a
+  local stack with the index alone, rolled back). It returns early when
+  number/date/GSTIN/kind are unchanged, so cancel/relink never trip it.
+- Save refuses an exporter GSTIN that fails validateGstin (format, state
+  code, checksum), and one whose PAN (chars 3-12) differs from the
+  company's GSTIN when that is on file and valid (exporterGstinProblem).
+  Blank stays allowed.
+- Invoices list shows the GSTIN under the number.
+- company_registrations master: DEFERRED by the owner. If built: extra
+  branches only (companies row stays the default, no is_default), prefill
+  exporter_gstin/state_code/address/port_of_loading, no FK.
+- Import: unchanged, verified (loads exporter_gstin, matches it ignoring
+  case/spaces); an integration test runs it over real branch invoices.
+Proof nothing is rewritten: on a local stack with 20 invoices (draft,
+issued, cancelled), 4 lines and a linked shipment, md5 of every column of
+every row identical before and after the migration. Loosening only: the
+new key is the old key plus a column. Production invoices was one 8 kB
+page (`supabase inspect db table-stats --linked`, 23 Sept), so the index
+rebuild's write lock is milliseconds.
+Tests: src/lib/invoices-branches.integration.test.ts (12), plus unit tests
+in invoices.test.ts. The sb-import fixture GSTIN 24AAECM4512R1Z6 failed its
+own checksum; now 24AAECM4512R1Z8.
+Clicked through in Chrome on a local stack (5532x, inbucket off,
+reverted): BR/001 issued under 27..., same BR/001 saved and issued under
+24..., list tells them apart; blank GSTIN, " 27aaecm4512r1z2 ", a
+checksum typo and another PAN each refused in words with nothing written;
+cancelled the 27... one and its number stayed reserved. Console: only the
+three expected 409s.
+Gotcha: right after `supabase db reset`/restart, integration signups can
+fail with "JWT issued at future" (container clock); wait ~20s and rerun.
+Release: migration first (`supabase db push`, then
+`node scripts/live-state.mjs --record migration 20260924000002_invoice_number_per_gstin.sql`),
+then `vercel --prod`. Either order is safe (no new columns), keep the habit.
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -394,7 +440,8 @@ Known gaps:
    generateEUCommercialInvoice the day the new one ships.
 3. DONE and LIVE — see the item 3 section above.
 4. DONE and LIVE — see the item 4 section below.
-4a. Branches: let two GSTINs of one company reuse an invoice number.
+4a. DONE, NOT LIVE — see the item 4a section above. Original brief:
+   Branches: let two GSTINs of one company reuse an invoice number.
    GST numbers invoices per GSTIN per FY, but invoices_number_unique_per_fy
    is (company, kind, number, FY), so a second state branch's "EXP/001" is
    refused at save. Needs a migration rebuilding that index with

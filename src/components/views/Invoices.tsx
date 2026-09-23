@@ -217,7 +217,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
       </label>
     )
     const save = async () => {
-      const id = await saveInvoiceDraft(companyId, editing.id, h, editing.lines)
+      const id = await saveInvoiceDraft(companyId, editing.id, h, editing.lines, companyProfile.gstin)
       setEditing(e => e && { ...e, id })
       await refresh()
       return id
@@ -539,6 +539,7 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
                   </div>
                   <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>
                     {inv.kind === 'proforma' ? 'Proforma' : 'Commercial'} · {inv.invoiceDate ?? 'no date'} · {inv.buyerName ?? 'no buyer'}
+                    {inv.exporterGstin && <> · GSTIN <span style={{ fontFamily: 'monospace' }}>{inv.exporterGstin}</span></>}
                   </div>
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{rowActions(inv)}</div>
                 </div>
@@ -555,7 +556,11 @@ export function Invoices({ companyProfile, companyId }: InvoicesProps) {
               <tbody>
                 {list.map(inv => (
                   <tr key={inv.id} style={{ borderTop: `1px solid ${colors.border}` }}>
-                    <td style={{ padding: 6, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{inv.invoiceNumber ?? <em style={{ color: colors.textMuted }}>unnumbered</em>}</td>
+                    <td style={{ padding: 6, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                      {inv.invoiceNumber ?? <em style={{ color: colors.textMuted }}>unnumbered</em>}
+                      {/* Two branches may share a number; the GSTIN tells them apart. */}
+                      {inv.exporterGstin && <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{inv.exporterGstin}</div>}
+                    </td>
                     <td style={{ padding: 6 }}>{inv.kind === 'proforma' ? 'Proforma' : 'Commercial'}</td>
                     <td style={{ padding: 6, whiteSpace: 'nowrap' }}>{inv.invoiceDate ?? '—'}</td>
                     <td style={{ padding: 6 }}>{inv.buyerName ?? '—'}</td>

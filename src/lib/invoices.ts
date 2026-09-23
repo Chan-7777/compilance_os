@@ -10,6 +10,7 @@
 
 import { supabase } from './supabase'
 import type { LinkedInvoice } from './shipment-lines'
+import { validateGstin } from './gstin'
 import { invoiceDocumentFromRows, type InvoiceDocument, type InvoiceKind, type InvoiceStatus } from './invoice-documents'
 
 /** Everything on the invoice row a user can type into a draft. */
@@ -81,6 +82,8 @@ export interface InvoiceListItem {
   invoiceNumber: string | null
   invoiceDate: string | null
   buyerName: string | null
+  /** Which registration (branch) issued it. Two branches may share a number. */
+  exporterGstin: string | null
   currency: string
   updatedAt: string
 }
@@ -193,6 +196,25 @@ export function invoiceLinesToRows(
   return { rows, errors }
 }
 
+/**
+ * A GSTIN typed on an invoice, checked before save. Returns the problem in
+ * words, or null. Blank is allowed (the database makes a no-GSTIN number
+ * clash with every branch). A branch GSTIN always carries the company's PAN
+ * (characters 3-12), so one under another PAN is another business's; checked
+ * only when the company's own GSTIN is on file and valid.
+ */
+export function exporterGstinProblem(gstin: string, companyGstin: string | null | undefined): string | null {
+  const g = gstin.replace(/\s+/g, '').toUpperCase()
+  if (g === '') return null
+  const check = validateGstin(g)
+  if (!check.valid) return `Exporter GSTIN: ${check.error}`
+  const company = (companyGstin ?? '').replace(/\s+/g, '').toUpperCase()
+  if (company && validateGstin(company).valid && company.slice(2, 12) !== g.slice(2, 12)) {
+    return `Exporter GSTIN ${g} is under PAN ${g.slice(2, 12)}, but your company's GSTIN is under PAN ${company.slice(2, 12)}. A branch GSTIN carries the same PAN as the company.`
+  }
+  return null
+}
+
 /** Turn the database's refusals into something an exporter can act on. */
 export function friendlyInvoiceError(message: string): string {
   if (message.includes('invoices_issue_requires_snapshot')) {
@@ -201,8 +223,11 @@ export function friendlyInvoiceError(message: string): string {
   if (message.includes('invoices_commercial_issue_requires_real_fx')) {
     return 'A commercial invoice needs the exchange rate you are invoicing at: INR per unit of currency, and its date.'
   }
+  if (message.includes('invoices_number_blank_gstin')) {
+    return 'That invoice number is already used in this financial year. An invoice without a GSTIN can\'t share its number with any branch: add the GSTIN it was issued under, or use another number.'
+  }
   if (message.includes('invoices_number_unique_per_fy')) {
-    return 'That invoice number is already used in this financial year (cancelled numbers stay reserved).'
+    return 'That invoice number is already used in this financial year under this GSTIN (cancelled numbers stay reserved).'
   }
   if (message.includes('with no line items')) return 'Add at least one line before issuing.'
   if (message.includes('needs a freight amount') || message.includes('needs an insurance amount')) {
@@ -227,7 +252,7 @@ function fail(error: { message: string } | null, fallback: string): never {
 export async function listInvoices(companyId: string): Promise<InvoiceListItem[]> {
   const { data, error } = await supabase
     .from('invoices')
-    .select('id, shipment_id, kind, status, invoice_number, invoice_date, buyer_name, currency, updated_at')
+    .select('id, shipment_id, kind, status, invoice_number, invoice_date, buyer_name, exporter_gstin, currency, updated_at')
     .eq('company_id', companyId)
     .order('updated_at', { ascending: false })
   if (error) fail(error, 'Could not load invoices')
@@ -239,6 +264,7 @@ export async function listInvoices(companyId: string): Promise<InvoiceListItem[]
     invoiceNumber: r.invoice_number,
     invoiceDate: r.invoice_date,
     buyerName: r.buyer_name,
+    exporterGstin: r.exporter_gstin,
     currency: r.currency,
     updatedAt: r.updated_at,
   }))
@@ -264,7 +290,10 @@ export async function saveInvoiceDraft(
   id: string | null,
   header: InvoiceHeaderInput,
   lines: InvoiceLineInput[],
+  companyGstin?: string | null,
 ): Promise<string> {
+  const gstinProblem = exporterGstinProblem(header.exporterGstin, companyGstin)
+  if (gstinProblem) throw new Error(gstinProblem)
   const { rows, errors } = invoiceLinesToRows(lines)
   if (errors.length) throw new Error(errors.join('\n'))
   const row = invoiceHeaderToRow(header)
