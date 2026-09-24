@@ -22,7 +22,7 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
 - Branch `recover-untracked-edge-functions`.
-- 838 tests / 37 files pass (`npm test`). `npm run build` passes. 28 DB
+- 930 tests / 38 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
 - Item 4a (branches) is LIVE. The owner ran `supabase db push`
   (20260924000002 now local AND remote), recorded it in .live-state.json,
@@ -183,9 +183,8 @@ Known gaps, deliberately not built:
   PARKED (23 Sept 2026): the owner is checking with someone before we
   decide. Do not build it until they come back with an answer.
 - No amount-in-words line; no signatory name (item 6 masters).
-- The GSP / REX / EUDR generators in eu-documents.ts still interpolate
-  user input UNESCAPED into a same-origin window. escapeHtml() now exists
-  there; apply it.
+- FIXED 24 Sept (committed, NOT live — see "GSP/REX/EUDR escaping"): the
+  GSP / REX / EUDR generators interpolated user input unescaped.
 
 ## PHASE 2 ITEM 3 IS DONE and LIVE (23 Sept 2026)
 Gate check and RoDTEP per invoice line. Decisions agreed with the owner:
@@ -430,6 +429,50 @@ Release: migration first (`supabase db push`, then
 `node scripts/live-state.mjs --record migration 20260924000002_invoice_number_per_gstin.sql`),
 then `vercel --prod`. Either order is safe (no new columns), keep the habit.
 
+## GSP/REX/EUDR escaping — DONE, committed, NOT LIVE (24 Sept 2026)
+Frontend only. Needs `vercel --prod` on the owner's say-so to ship.
+The three generators in src/lib/eu-documents.ts wrote every field raw
+into a window.open('') page, which shares the app's origin: a buyer name
+like `<img src=x onerror=...>` ran script with the user's session. Now
+every value from `data` goes through esc() (= escapeHtml) where it is
+interpolated, numbers included, plus the derived EUDR ddRef (built from
+hsCode). Only BASE_CSS, PRINT_BUTTONS, ref and generatedOn stay raw —
+module constants / clock values, no parameters. Rule is at the top of the
+file: escape at the interpolation site, never pre-escape `data`.
+Tests: src/lib/eu-documents.test.ts (92). A payload in EVERY field of each
+interface (a full Record, so a new field that isn't listed fails the type
+check; number fields too, via a cast): no <img/<script in the output, all
+five entities, no script/img elements after parsing, payload shown
+literally and escaped once. Six golden files in
+src/lib/__snapshots__/eu-documents/ were captured from the code BEFORE the
+fix; clean input is byte-identical after it. Shown failing first: 83
+failed / 9 passed on the old code, 92 passed on the new.
+Clicked through in Chrome on a local stack (5532x, inbucket off,
+reverted): each document with the payload in every form field AND in
+companies.name / iec: no alert, no script/img elements, text shown
+literally, layout unchanged; then each with normal values ("Meridian
+Tubes & Alloys" reads correctly). No console errors.
+Findings, not fixed:
+- The EUDR form is unreachable for every catalogue product. It shows only
+  when isEUDRInScope(selectedProduct) matches, and it matches the product
+  LABEL; none of the 9 labels in src/data/products.ts contains an EUDR
+  commodity. The click-through set user_settings.selected_product =
+  'leather' on the local stack to reach it.
+- The EUDR form has no input for HS code, invoice number or operator
+  address; they print blank. The GSP form labels value "(INR)" but
+  prints the currency (USD default).
+- Other same-origin windows still write user input UNESCAPED (not touched,
+  owner to decide):
+  - Shipments.tsx handleDownloadLCTemplate: financeForm.buyerName /
+    invoiceRef, companyProfile.name / iec / gstin / portOfLoading.
+  - deal-pack.ts generateBankReadyDealPack: nothing escaped — shipment
+    name / product / country / date / hsCode (these also arrive via SB CSV
+    import, i.e. from a third party), company name, gate reasons, risk
+    details, FTA notes, recommendations. Worst of the four.
+  - rodtep-report.ts: companyName, hsCode, matchedHs.
+  - cbam-report.ts: rows escaped; only `quarter` goes raw into refNo
+    (date-derived, low risk).
+
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
    chain — write it as a normal migration after 20260916000001.
@@ -490,6 +533,8 @@ that company's demo rows and rebuilds them.
 - IGST and BRC records have a nullable shipment_id FK the UIs never
   populate, so every claim is retyped and orphaned.
 - Hide GSP/REX where India's preferences are suspended.
+- Escape the LC template, deal pack and RoDTEP report (see "GSP/REX/EUDR
+  escaping"), deal pack first.
 - recovery-digest exists in the repo but was never deployed.
 - Edge function deploys must be stamped with
   `node scripts/live-state.mjs --record function <name>` or LIVE_STATE

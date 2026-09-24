@@ -78,6 +78,11 @@ export function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;')
 }
 
+// Every value from `data` (and anything derived from it) goes through esc()
+// where it is interpolated, numbers included. Only module constants
+// (BASE_CSS, PRINT_BUTTONS), ref and generatedOn are written raw.
+const esc = escapeHtml
+
 function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
 }
@@ -185,7 +190,7 @@ export function generateGSPStatement(data: GSPStatementData): void {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GSP Statement on Origin — ${data.invoiceNumber}</title>
+<title>GSP Statement on Origin — ${esc(data.invoiceNumber)}</title>
 <style>${BASE_CSS}</style>
 </head>
 <body>
@@ -203,8 +208,8 @@ export function generateGSPStatement(data: GSPStatementData): void {
     <div class="meta">
       <div><strong>${ref}</strong></div>
       <div>Generated: ${generatedOn}</div>
-      <div>Invoice: <strong>${data.invoiceNumber}</strong></div>
-      <div>Invoice Date: ${data.invoiceDate}</div>
+      <div>Invoice: <strong>${esc(data.invoiceNumber)}</strong></div>
+      <div>Invoice Date: ${esc(data.invoiceDate)}</div>
     </div>
   </div>
 
@@ -220,14 +225,14 @@ export function generateGSPStatement(data: GSPStatementData): void {
     <div class="grid-2">
       <div class="info-box">
         <div class="data-label" style="margin-bottom:8px">Exporter (India)</div>
-        <div class="data-value" style="font-size:14px;margin-bottom:4px">${data.exporterName}</div>
-        <div style="font-size:12px;color:#555;white-space:pre-line">${data.exporterAddress}</div>
-        <div style="margin-top:8px"><span class="data-label">IEC: </span><span style="font-family:'Courier New',monospace;font-size:12px">${data.exporterIEC}</span></div>
+        <div class="data-value" style="font-size:14px;margin-bottom:4px">${esc(data.exporterName)}</div>
+        <div style="font-size:12px;color:#555;white-space:pre-line">${esc(data.exporterAddress)}</div>
+        <div style="margin-top:8px"><span class="data-label">IEC: </span><span style="font-family:'Courier New',monospace;font-size:12px">${esc(data.exporterIEC)}</span></div>
       </div>
       <div class="info-box">
         <div class="data-label" style="margin-bottom:8px">Buyer (EU)</div>
-        <div class="data-value" style="font-size:14px;margin-bottom:4px">${data.buyerName}</div>
-        <div style="font-size:12px;color:#555">${data.buyerCountry}</div>
+        <div class="data-value" style="font-size:14px;margin-bottom:4px">${esc(data.buyerName)}</div>
+        <div style="font-size:12px;color:#555">${esc(data.buyerCountry)}</div>
       </div>
     </div>
   </div>
@@ -247,11 +252,11 @@ export function generateGSPStatement(data: GSPStatementData): void {
       </thead>
       <tbody>
         <tr>
-          <td style="font-family:'Courier New',monospace;font-weight:600">${data.hsCode}</td>
-          <td>${data.productDescription}</td>
-          <td style="font-family:'Courier New',monospace">${data.quantity}</td>
-          <td>${data.unit}</td>
-          <td style="font-family:'Courier New',monospace">${data.currency} ${data.shipmentValue.toLocaleString('en-IN')}</td>
+          <td style="font-family:'Courier New',monospace;font-weight:600">${esc(data.hsCode)}</td>
+          <td>${esc(data.productDescription)}</td>
+          <td style="font-family:'Courier New',monospace">${esc(data.quantity)}</td>
+          <td>${esc(data.unit)}</td>
+          <td style="font-family:'Courier New',monospace">${esc(data.currency)} ${esc(data.shipmentValue.toLocaleString('en-IN'))}</td>
         </tr>
       </tbody>
     </table>
@@ -260,7 +265,7 @@ export function generateGSPStatement(data: GSPStatementData): void {
   <!-- Origin Declaration -->
   <div class="section">
     <div class="section-title">Origin Declaration</div>
-    <div class="declaration-box">${originDeclaration}</div>
+    <div class="declaration-box">${esc(originDeclaration)}</div>
   </div>
 
   <!-- Duty Analysis -->
@@ -271,19 +276,19 @@ export function generateGSPStatement(data: GSPStatementData): void {
         <div class="grid-2" style="gap:12px">
           <div>
             <div class="data-label">MFN (Standard) Rate</div>
-            <div style="font-family:'Courier New',monospace;font-size:24px;font-weight:900;color:#ef4444">${data.mfnRate}%</div>
+            <div style="font-family:'Courier New',monospace;font-size:24px;font-weight:900;color:#ef4444">${esc(data.mfnRate)}%</div>
           </div>
           <div>
             <div class="data-label">GSP Preferential Rate</div>
-            <div style="font-family:'Courier New',monospace;font-size:24px;font-weight:900;color:#10b981">${data.gspRate}%</div>
+            <div style="font-family:'Courier New',monospace;font-size:24px;font-weight:900;color:#10b981">${esc(data.gspRate)}%</div>
           </div>
         </div>
       </div>
       <div>
         ${savingsPositive ? `<div class="savings-box">
           <div class="savings-label">Estimated Duty Savings (this shipment)</div>
-          <div class="savings-amount">${data.currency} ${dutySavings.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:#15803d;margin-top:4px">Based on (${data.mfnRate}% − ${data.gspRate}%) × ${data.currency} ${data.shipmentValue.toLocaleString('en-IN')}</div>
+          <div class="savings-amount">${esc(data.currency)} ${esc(dutySavings.toLocaleString('en-IN'))}</div>
+          <div style="font-size:10px;color:#15803d;margin-top:4px">Based on (${esc(data.mfnRate)}% − ${esc(data.gspRate)}%) × ${esc(data.currency)} ${esc(data.shipmentValue.toLocaleString('en-IN'))}</div>
         </div>` : `<div class="info-box">
           <div class="data-label">Savings</div>
           <div style="font-size:12px;color:#666;margin-top:4px">No duty differential — MFN and GSP rates are equal for this commodity.</div>
@@ -332,7 +337,7 @@ export function generateREXDeclaration(data: REXData): void {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>REX Declaration — ${data.invoiceNumber}</title>
+<title>REX Declaration — ${esc(data.invoiceNumber)}</title>
 <style>${BASE_CSS}</style>
 </head>
 <body>
@@ -350,8 +355,8 @@ export function generateREXDeclaration(data: REXData): void {
     <div class="meta">
       <div><strong>${ref}</strong></div>
       <div>Generated: ${generatedOn}</div>
-      <div>Invoice: <strong>${data.invoiceNumber}</strong></div>
-      <div>Invoice Date: ${data.invoiceDate}</div>
+      <div>Invoice: <strong>${esc(data.invoiceNumber)}</strong></div>
+      <div>Invoice Date: ${esc(data.invoiceDate)}</div>
     </div>
   </div>
 
@@ -359,7 +364,7 @@ export function generateREXDeclaration(data: REXData): void {
   <div class="info-box blue" style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:center">
     <div>
       <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#1d4ed8;margin-bottom:4px">Registered Exporter Number</div>
-      <div style="font-family:'Courier New',monospace;font-size:28px;font-weight:900;color:#1e3a8a;letter-spacing:2px">${data.rexNumber}</div>
+      <div style="font-family:'Courier New',monospace;font-size:28px;font-weight:900;color:#1e3a8a;letter-spacing:2px">${esc(data.rexNumber)}</div>
     </div>
     <span class="pill pill-blue" style="font-size:12px;padding:6px 16px">REX Registered</span>
   </div>
@@ -371,15 +376,15 @@ export function generateREXDeclaration(data: REXData): void {
       <div class="grid-3">
         <div>
           <div class="data-label">Exporter Name</div>
-          <div class="data-value" style="font-size:14px">${data.exporterName}</div>
+          <div class="data-value" style="font-size:14px">${esc(data.exporterName)}</div>
         </div>
         <div>
           <div class="data-label">IEC Number</div>
-          <div style="font-family:'Courier New',monospace;font-size:14px;font-weight:600">${data.exporterIEC}</div>
+          <div style="font-family:'Courier New',monospace;font-size:14px;font-weight:600">${esc(data.exporterIEC)}</div>
         </div>
         <div>
           <div class="data-label">Address</div>
-          <div style="font-size:12px;color:#555">${data.exporterAddress}</div>
+          <div style="font-size:12px;color:#555">${esc(data.exporterAddress)}</div>
         </div>
       </div>
     </div>
@@ -400,11 +405,11 @@ export function generateREXDeclaration(data: REXData): void {
       </thead>
       <tbody>
         <tr>
-          <td style="font-family:'Courier New',monospace;font-weight:600">${data.hsCode}</td>
-          <td>${data.productDescription}</td>
-          <td style="font-family:'Courier New',monospace">${data.shipmentValue.toLocaleString('en-IN')}</td>
-          <td>${data.currency}</td>
-          <td><span class="pill pill-green">${data.originCriteria}</span></td>
+          <td style="font-family:'Courier New',monospace;font-weight:600">${esc(data.hsCode)}</td>
+          <td>${esc(data.productDescription)}</td>
+          <td style="font-family:'Courier New',monospace">${esc(data.shipmentValue.toLocaleString('en-IN'))}</td>
+          <td>${esc(data.currency)}</td>
+          <td><span class="pill pill-green">${esc(data.originCriteria)}</span></td>
         </tr>
       </tbody>
     </table>
@@ -414,7 +419,7 @@ export function generateREXDeclaration(data: REXData): void {
   <div class="section">
     <div class="section-title">Origin Criteria</div>
     <div class="info-box">
-      <div class="data-label" style="margin-bottom:6px">Applied Criterion: ${data.originCriteria}</div>
+      <div class="data-label" style="margin-bottom:6px">Applied Criterion: ${esc(data.originCriteria)}</div>
       <div style="font-size:12px;color:#444;line-height:1.7">${originExplanation}</div>
     </div>
   </div>
@@ -423,9 +428,9 @@ export function generateREXDeclaration(data: REXData): void {
   <div class="section">
     <div class="section-title">Supplier's Declaration</div>
     <div class="declaration-box">
-      The exporter of the products covered by this document (Registered Exporter No. <strong>${data.rexNumber}</strong>) declares that, except where otherwise clearly indicated, these products are of Indian preferential origin under the EU Generalised System of Preferences (GSP). The origin criterion applied is: <strong>${data.originCriteria}</strong>.
+      The exporter of the products covered by this document (Registered Exporter No. <strong>${esc(data.rexNumber)}</strong>) declares that, except where otherwise clearly indicated, these products are of Indian preferential origin under the EU Generalised System of Preferences (GSP). The origin criterion applied is: <strong>${esc(data.originCriteria)}</strong>.
       <br><br>
-      This declaration applies to invoice <strong>${data.invoiceNumber}</strong> dated <strong>${data.invoiceDate}</strong> for goods with a total value of <strong>${data.currency} ${data.shipmentValue.toLocaleString('en-IN')}</strong>.
+      This declaration applies to invoice <strong>${esc(data.invoiceNumber)}</strong> dated <strong>${esc(data.invoiceDate)}</strong> for goods with a total value of <strong>${esc(data.currency)} ${esc(data.shipmentValue.toLocaleString('en-IN'))}</strong>.
     </div>
   </div>
 
@@ -438,7 +443,7 @@ export function generateREXDeclaration(data: REXData): void {
     </div>
     <div>
       <div class="data-label">REX Registered Exporter — Seal &amp; Signature</div>
-      <div class="sig-line">Name, Designation &amp; REX No. ${data.rexNumber}</div>
+      <div class="sig-line">Name, Designation &amp; REX No. ${esc(data.rexNumber)}</div>
     </div>
   </div>
 
@@ -466,7 +471,7 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EUDR Due Diligence Statement — ${data.invoiceNumber}</title>
+<title>EUDR Due Diligence Statement — ${esc(data.invoiceNumber)}</title>
 <style>${BASE_CSS}
   .eudr-badge { display:inline-flex; align-items:center; gap:8px; background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:10px 18px; }
   .eudr-badge-text { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#15803d; }
@@ -489,8 +494,8 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
     <div class="meta">
       <div><strong>${ref}</strong></div>
       <div>Generated: ${generatedOn}</div>
-      <div>Invoice: <strong>${data.invoiceNumber}</strong></div>
-      <div>DD Ref: <strong>${ddRef}</strong></div>
+      <div>Invoice: <strong>${esc(data.invoiceNumber)}</strong></div>
+      <div>DD Ref: <strong>${esc(ddRef)}</strong></div>
     </div>
   </div>
 
@@ -514,15 +519,15 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
       <div class="grid-2">
         <div>
           <div class="data-label">Operator Name</div>
-          <div class="data-value" style="font-size:15px;margin-bottom:8px">${data.operatorName}</div>
+          <div class="data-value" style="font-size:15px;margin-bottom:8px">${esc(data.operatorName)}</div>
           <div class="data-label">Operator Address</div>
-          <div style="font-size:12px;color:#555;white-space:pre-line">${data.operatorAddress}</div>
+          <div style="font-size:12px;color:#555;white-space:pre-line">${esc(data.operatorAddress)}</div>
         </div>
         <div>
           <div class="data-label">Due Diligence Reference</div>
-          <div style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;margin-bottom:8px">${ddRef}</div>
+          <div style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;margin-bottom:8px">${esc(ddRef)}</div>
           <div class="data-label">Declaration Date</div>
-          <div class="data-value">${data.declarationDate}</div>
+          <div class="data-value">${esc(data.declarationDate)}</div>
         </div>
       </div>
     </div>
@@ -543,11 +548,11 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
       </thead>
       <tbody>
         <tr>
-          <td style="font-family:'Courier New',monospace;font-weight:600">${data.hsCode}</td>
-          <td>${data.productDescription}</td>
-          <td><span class="pill pill-yellow">${data.commodityType}</span></td>
-          <td>${data.quantity}</td>
-          <td>${data.countryOfProduction}</td>
+          <td style="font-family:'Courier New',monospace;font-weight:600">${esc(data.hsCode)}</td>
+          <td>${esc(data.productDescription)}</td>
+          <td><span class="pill pill-yellow">${esc(data.commodityType)}</span></td>
+          <td>${esc(data.quantity)}</td>
+          <td>${esc(data.countryOfProduction)}</td>
         </tr>
       </tbody>
     </table>
@@ -559,13 +564,13 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
     <div class="grid-2">
       <div class="info-box">
         <div class="data-label">Traceability System / Certification</div>
-        <div class="data-value" style="margin-top:6px;font-size:14px">${data.traceabilitySystem}</div>
+        <div class="data-value" style="margin-top:6px;font-size:14px">${esc(data.traceabilitySystem)}</div>
         <div style="font-size:11px;color:#666;margin-top:6px">Third-party certification scheme used to verify origin and non-deforestation compliance.</div>
       </div>
       <div class="info-box">
         <div class="data-label">Geolocation of Production Area</div>
         ${data.geoCoordinates
-          ? `<div style="font-family:'Courier New',monospace;font-size:13px;font-weight:600;margin-top:6px">${data.geoCoordinates}</div>
+          ? `<div style="font-family:'Courier New',monospace;font-size:13px;font-weight:600;margin-top:6px">${esc(data.geoCoordinates)}</div>
              <div style="font-size:11px;color:#666;margin-top:6px">GPS coordinates of production plot(s) as required under Article 9 of EUDR.</div>`
           : `<div style="font-size:12px;color:#92400e;margin-top:6px;font-style:italic">GPS coordinates not provided. Required for full EUDR Article 9 compliance — contact supplier to obtain plot-level geolocation data.</div>`}
       </div>
@@ -578,15 +583,15 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
     <div class="declaration-box">
       I, the undersigned, acting as the responsible operator for the products described in this document, hereby declare that:
       <br><br>
-      1. The products covered by this due diligence statement (invoice <strong>${data.invoiceNumber}</strong>) have not been produced on land subject to deforestation or forest degradation after 31 December 2020, in accordance with Article 3 of EU Regulation 2023/1115.
+      1. The products covered by this due diligence statement (invoice <strong>${esc(data.invoiceNumber)}</strong>) have not been produced on land subject to deforestation or forest degradation after 31 December 2020, in accordance with Article 3 of EU Regulation 2023/1115.
       <br><br>
-      2. The relevant commodities — classified as <strong>${data.commodityType}</strong> — have been produced in compliance with the applicable legislation of the country of production (<strong>${data.countryOfProduction}</strong>), including land use rights, environmental, and human rights laws.
+      2. The relevant commodities — classified as <strong>${esc(data.commodityType)}</strong> — have been produced in compliance with the applicable legislation of the country of production (<strong>${esc(data.countryOfProduction)}</strong>), including land use rights, environmental, and human rights laws.
       <br><br>
       3. Due diligence has been exercised in accordance with Article 8 of Regulation (EU) 2023/1115, and records are retained and available for inspection by competent authorities for a period of five (5) years.
       <br><br>
-      4. Traceability information is maintained through: <strong>${data.traceabilitySystem}</strong>.
+      4. Traceability information is maintained through: <strong>${esc(data.traceabilitySystem)}</strong>.
       <br><br>
-      Due Diligence Reference: <strong>${ddRef}</strong>
+      Due Diligence Reference: <strong>${esc(ddRef)}</strong>
     </div>
   </div>
 
@@ -603,12 +608,12 @@ export function generateEUDRDueDiligenceStatement(data: EUDRData): void {
   <div class="sig-block">
     <div>
       <div class="data-label">Place &amp; Date</div>
-      <div class="data-value" style="margin-top:4px">${data.declarationDate}</div>
+      <div class="data-value" style="margin-top:4px">${esc(data.declarationDate)}</div>
       <div class="sig-line">Operator / Authorised Representative</div>
     </div>
     <div>
       <div class="data-label">Operator Seal &amp; Signature</div>
-      <div class="sig-line">Name, Title &amp; DD Ref: ${ddRef}</div>
+      <div class="sig-line">Name, Title &amp; DD Ref: ${esc(ddRef)}</div>
     </div>
   </div>
 
