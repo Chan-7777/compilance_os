@@ -8,6 +8,7 @@ import { generateChecklist } from '@/utils/checklist-generator'
 import { FTA_DATABASE } from '@/data/fta'
 import { REGULATORY_DB } from '@/data/regulatory-db'
 import { colors } from '@theme/index'
+import { escapeHtml as esc } from './eu-documents'
 import type { Shipment, CompanyProfile, CountryCode } from '@/types'
 
 const MFN_RATES: Record<string, number> = {
@@ -72,11 +73,15 @@ export function generateBankReadyDealPack(
   const refNo = `COS-${shipment.id.toUpperCase().slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
 
+  // The pack opens in a same-origin window, and shipment fields also arrive
+  // from imported shipping-bill files. Every string goes through esc() where
+  // it is interpolated; only theme colours, numbers computed above, `today`
+  // and choices between literal strings are written raw.
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Export Compliance Summary — ${shipment.name}</title>
+<title>Export Compliance Summary — ${esc(shipment.name)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 13px; line-height: 1.5; }
@@ -161,10 +166,10 @@ export function generateBankReadyDealPack(
       <div class="subtitle">Compliance position only — no shipping, customs or bank documents are attached</div>
     </div>
     <div class="meta">
-      <div><strong>${refNo}</strong></div>
+      <div><strong>${esc(refNo)}</strong></div>
       <div>Generated: ${today}</div>
-      <div>Exporter: <strong>${companyProfile.name || 'Exporter'}</strong></div>
-      <div>Company size: ${companyProfile.size}</div>
+      <div>Exporter: <strong>${esc(companyProfile.name || 'Exporter')}</strong></div>
+      <div>Company size: ${esc(companyProfile.size)}</div>
     </div>
   </div>
 
@@ -175,7 +180,7 @@ export function generateBankReadyDealPack(
       <div class="gate-status">${gateStatus}</div>
     </div>
     <ul class="gate-reasons">
-      ${gateReasons.map(r => `<li>${r}</li>`).join('')}
+      ${gateReasons.map(r => `<li>${esc(r)}</li>`).join('')}
     </ul>
   </div>
 
@@ -183,12 +188,12 @@ export function generateBankReadyDealPack(
   <div class="section">
     <div class="section-title">Shipment Details</div>
     <div class="grid-3">
-      <div><div class="data-label">Shipment Name</div><div class="data-value">${shipment.name}</div></div>
-      <div><div class="data-label">Product</div><div class="data-value cap">${shipment.product}</div></div>
-      <div><div class="data-label">Destination</div><div class="data-value">${countryData?.flag || ''} ${countryData?.name || shipment.country}</div></div>
-      <div><div class="data-label">Ship Date</div><div class="data-value">${shipment.date}</div></div>
-      ${shipment.hsCode ? `<div><div class="data-label">HS Code</div><div class="data-value mono">${shipment.hsCode}</div></div>` : ''}
-      ${shipmentValue > 0 ? `<div><div class="data-label">Shipment Value</div><div class="data-value mono">₹${shipmentValue.toLocaleString('en-IN')}</div></div>` : ''}
+      <div><div class="data-label">Shipment Name</div><div class="data-value">${esc(shipment.name)}</div></div>
+      <div><div class="data-label">Product</div><div class="data-value cap">${esc(shipment.product)}</div></div>
+      <div><div class="data-label">Destination</div><div class="data-value">${esc(countryData?.flag || '')} ${esc(countryData?.name || shipment.country)}</div></div>
+      <div><div class="data-label">Ship Date</div><div class="data-value">${esc(shipment.date)}</div></div>
+      ${shipment.hsCode ? `<div><div class="data-label">HS Code</div><div class="data-value mono">${esc(shipment.hsCode)}</div></div>` : ''}
+      ${shipmentValue > 0 ? `<div><div class="data-label">Shipment Value</div><div class="data-value mono">₹${esc(shipmentValue.toLocaleString('en-IN'))}</div></div>` : ''}
     </div>
   </div>
 
@@ -201,7 +206,7 @@ export function generateBankReadyDealPack(
           <span class="score-num">${risk.score}</span>
           <span class="score-denom">/100</span>
         </div>
-        <div class="score-level">${risk.level} risk</div>
+        <div class="score-level">${esc(risk.level)} risk</div>
       </div>
       <div>
         <table>
@@ -210,9 +215,9 @@ export function generateBankReadyDealPack(
             ${risk.factors.slice(0, 7).map(f => {
               const dotColor = f.severity === 'high' ? colors.status.error : f.severity === 'medium' ? colors.status.pending : f.severity === 'positive' ? colors.status.success : colors.textMuted
               return `<tr>
-                <td style="font-weight:600;white-space:nowrap">${f.category}</td>
-                <td><span class="dot" style="background:${dotColor}"></span>${f.severity}</td>
-                <td style="color:#666;font-size:11px">${f.detail}</td>
+                <td style="font-weight:600;white-space:nowrap">${esc(f.category)}</td>
+                <td><span class="dot" style="background:${dotColor}"></span>${esc(f.severity)}</td>
+                <td style="color:#666;font-size:11px">${esc(f.detail)}</td>
               </tr>`
             }).join('')}
           </tbody>
@@ -252,12 +257,12 @@ export function generateBankReadyDealPack(
     <div class="grid-2">
       <div>
         <div class="data-label">Agreement</div>
-        <div class="data-value" style="margin-bottom:8px">${fta?.name || 'No active FTA'}</div>
+        <div class="data-value" style="margin-bottom:8px">${esc(fta?.name || 'No active FTA')}</div>
         <span class="pill ${fta?.preferentialTariff ? 'pill-green' : fta?.status === 'Under Negotiation' ? 'pill-yellow' : 'pill-gray'}">
-          ${fta?.preferentialTariff ? 'Preferential Tariff Available' : fta?.status || 'No FTA'}
+          ${esc(fta?.preferentialTariff ? 'Preferential Tariff Available' : fta?.status || 'No FTA')}
         </span>
-        ${fta?.effectiveDate ? `<div style="font-size:11px;color:#aaa;margin-top:6px">Effective: ${fta.effectiveDate}</div>` : ''}
-        <div style="font-size:11px;color:#888;margin-top:8px">${fta?.notes || ''}</div>
+        ${fta?.effectiveDate ? `<div style="font-size:11px;color:#aaa;margin-top:6px">Effective: ${esc(fta.effectiveDate)}</div>` : ''}
+        <div style="font-size:11px;color:#888;margin-top:8px">${esc(fta?.notes || '')}</div>
       </div>
       <div>
         ${fta?.preferentialTariff ? `
@@ -270,7 +275,7 @@ export function generateBankReadyDealPack(
           <div class="savings-amount">₹${ftaSavings.toLocaleString('en-IN')}</div>
           <div style="font-size:10px;color:#15803d;margin-top:3px">Certificate of Origin required to unlock</div>
         </div>` : ''}
-        ` : `<div><div class="data-label">Notes</div><div style="font-size:12px;color:#666;margin-top:4px">Standard MFN rates apply. ${fta?.notes || ''}</div></div>`}
+        ` : `<div><div class="data-label">Notes</div><div style="font-size:12px;color:#666;margin-top:4px">Standard MFN rates apply. ${esc(fta?.notes || '')}</div></div>`}
       </div>
     </div>
   </div>
@@ -292,7 +297,7 @@ export function generateBankReadyDealPack(
         <div style="font-size:12px;color:#555;margin-top:4px">
           ${cbamApplicable
             ? 'Embedded emissions declaration required. Verified carbon data must be provided to EU importer before shipment.'
-            : `${shipment.product.charAt(0).toUpperCase() + shipment.product.slice(1)} to ${shipment.country} is currently outside CBAM scope. Monitor for regulatory expansion.`}
+            : `${esc(shipment.product.charAt(0).toUpperCase() + shipment.product.slice(1))} to ${esc(shipment.country)} is currently outside CBAM scope. Monitor for regulatory expansion.`}
         </div>
       </div>
     </div>
@@ -303,7 +308,7 @@ export function generateBankReadyDealPack(
   <div class="section">
     <div class="section-title">Recommended Actions Before Financing</div>
     <ul class="rec-list">
-      ${risk.recommendations.map((r, i) => `<li><span class="rec-num">${String(i + 1).padStart(2, '0')}</span>${r}</li>`).join('')}
+      ${risk.recommendations.map((r, i) => `<li><span class="rec-num">${String(i + 1).padStart(2, '0')}</span>${esc(r)}</li>`).join('')}
     </ul>
   </div>` : ''}
 

@@ -22,7 +22,7 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
 - Branch `recover-untracked-edge-functions`.
-- 930 tests / 38 files pass (`npm test`). `npm run build` passes. 28 DB
+- 960 tests / 39 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
 - Item 4a (branches) is LIVE. The owner ran `supabase db push`
   (20260924000002 now local AND remote), recorded it in .live-state.json,
@@ -465,13 +465,37 @@ Findings, not fixed:
   owner to decide):
   - Shipments.tsx handleDownloadLCTemplate: financeForm.buyerName /
     invoiceRef, companyProfile.name / iec / gstin / portOfLoading.
-  - deal-pack.ts generateBankReadyDealPack: nothing escaped — shipment
-    name / product / country / date / hsCode (these also arrive via SB CSV
-    import, i.e. from a third party), company name, gate reasons, risk
-    details, FTA notes, recommendations. Worst of the four.
+  - deal-pack.ts: FIXED 24 Sept, see "Deal pack escaping" below.
   - rodtep-report.ts: companyName, hsCode, matchedHs.
   - cbam-report.ts: rows escaped; only `quarter` goes raw into refNo
     (date-derived, low risk).
+
+## Deal pack escaping — DONE, committed, NOT LIVE (24 Sept 2026)
+Frontend only; ships with the EU-documents fix on the next `vercel --prod`.
+generateBankReadyDealPack (Shipments -> expand a shipment -> Download Deal
+Pack) wrote everything raw into a same-origin window, including shipment
+name / product / country / hsCode, which also arrive from imported SB
+files. Now every string goes through esc() (escapeHtml imported from
+eu-documents) where it is interpolated: shipment fields, refNo (built from
+the id), company name and size, gate reasons, risk factor category /
+severity / detail (detail can carry the country), FTA name / status /
+notes / effective date, country name and flag, recommendations. Raw:
+theme colours, numbers computed in the function, `today`, choices between
+literal strings. Rule is in a comment above the template.
+Tests: src/lib/deal-pack.test.ts (30). Payload in each field one at a time
+and in every string field of Shipment and CompanyProfile at once; hostile
+shipmentValue. 24 failed / 6 passed on the old code, 30 pass now.
+Goldens in src/lib/__snapshots__/deal-pack/ were captured from the OLD
+code (BLOCKED / CONDITIONAL / APPROVED, FTA preferential and MFN, CBAM in
+and out, optional HS/value rows) and are compared as parsed DOM, not bytes:
+the static recommendation "buyer's" is now written buyer&#39;s, identical
+once parsed. A separate test pins that apostrophe as the ONLY byte change.
+Clicked through in Chrome on a local stack (5532x, inbucket off,
+reverted): a shipment with hostile name / product / country / HS and a
+hostile company name -> no alert, no script/img, all shown literally,
+layout intact; a normal EU steel shipment rendered as before. No console
+errors. The local DB keeps two test shipments on the throwaway
+xss-eu-docs@example.test account.
 
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
@@ -533,8 +557,8 @@ that company's demo rows and rebuilds them.
 - IGST and BRC records have a nullable shipment_id FK the UIs never
   populate, so every claim is retyped and orphaned.
 - Hide GSP/REX where India's preferences are suspended.
-- Escape the LC template, deal pack and RoDTEP report (see "GSP/REX/EUDR
-  escaping"), deal pack first.
+- Escape the LC template and RoDTEP report (see "GSP/REX/EUDR
+  escaping").
 - recovery-digest exists in the repo but was never deployed.
 - Edge function deploys must be stamped with
   `node scripts/live-state.mjs --record function <name>` or LIVE_STATE
