@@ -1,40 +1,8 @@
-import { escapeHtml as esc } from './eu-documents'
-
-const MATCH_COPY: Record<string, { label: string; color: string; bg: string; border: string; text: string }> = {
-  exact:   { label: 'EXACT MATCH — FILING-READY', color: '#15803D', bg: '#F0FDF4', border: '#86EFAC', text: 'The 8-digit HS code was found in DGFT Appendix 4R. This rate can be declared on the shipping bill as-is.' },
-  prefix:  { label: 'ESTIMATED — CONFIRM RITC BEFORE FILING', color: '#C2410C', bg: '#FFF7ED', border: '#FED7AA', text: 'No 8-digit row exists for this code; the rate was taken from the same 6-digit sub-heading. Confirm the exact RITC on the shipping bill with your CHA before filing.' },
-  default: { label: 'NOT IN SCHEDULE — DO NOT FILE ON THIS FIGURE', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', text: 'This HS code was not found in Appendix 4R. The 0.5% shown is a placeholder only. Either the product is not RoDTEP-eligible or the code needs correcting.' },
-}
-
-export function generateRoDTEPReport(
-  hsCode: string,
-  exportValue: number,
-  rate: number,
-  companyName: string,
-  matchType: 'exact' | 'prefix' | 'default' = 'exact',
-  matchedHs: string | null = null
-): void {
-  const entitlement = Math.round(exportValue * (rate / 100))
-  const match = MATCH_COPY[matchType] ?? MATCH_COPY.exact
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  const refNo = `RODTEP-${Date.now().toString(36).toUpperCase()}`
-
-  const fmtINR = (v: number) => {
-    if (v >= 1_00_00_000) return `₹${(v / 1_00_00_000).toFixed(2)} Cr`
-    if (v >= 1_00_000) return `₹${(v / 1_00_000).toFixed(2)} L`
-    return `₹${v.toLocaleString('en-IN')}`
-  }
-
-  const chapter = parseInt(hsCode.replace(/\D/g, '').slice(0, 2), 10)
-  const notif60Flag = !isNaN(chapter) && chapter >= 25
-
-  // Same-origin window: every parameter goes through esc() where it is
-  // interpolated. Only MATCH_COPY, refNo and today are written raw.
-  const html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RoDTEP Recovery Estimate — ${esc(companyName)}</title>
+<title>RoDTEP Recovery Estimate — </title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; font-size: 13px; line-height: 1.5; }
@@ -74,39 +42,39 @@ export function generateRoDTEPReport(
       <div class="title">RoDTEP Recovery Estimate</div>
     </div>
     <div class="meta">
-      <div><strong>${refNo}</strong></div>
-      <div>Generated: ${today}</div>
-      <div>Exporter: <strong>${esc(companyName || 'Exporter')}</strong></div>
+      <div><strong>RODTEP-MUF5JWW0</strong></div>
+      <div>Generated: 24 Sept 2026</div>
+      <div>Exporter: <strong>Exporter</strong></div>
     </div>
   </div>
   <div class="hero">
     <div class="hero-item">
       <div class="hero-label">Estimated Entitlement</div>
-      <div class="hero-value">${esc(fmtINR(entitlement))}</div>
-      <div class="hero-sub">On export value of ${esc(fmtINR(exportValue))}</div>
+      <div class="hero-value">₹240</div>
+      <div class="hero-sub">On export value of ₹48,000</div>
     </div>
     <div class="hero-item">
       <div class="hero-label">RoDTEP Rate</div>
-      <div class="hero-value">${esc(rate)}%</div>
+      <div class="hero-value">0.5%</div>
       <div class="hero-sub">of FOB export value</div>
     </div>
     <div class="hero-item">
       <div class="hero-label">HS Code</div>
-      <div class="hero-value" style="font-size:24px">${esc(hsCode)}</div>
+      <div class="hero-value" style="font-size:24px">0901.11</div>
       <div class="hero-sub">Appendix 4R / Notification 60</div>
     </div>
   </div>
-  <div class="flag" style="background:${match.bg};border-color:${match.border};color:${match.color}"><strong>${match.label}.</strong> ${match.text}</div>
-  ${notif60Flag ? `<div class="flag"><strong>Notification 60/2025-26 applies:</strong> RoDTEP rates for HS chapters 25+ were revised (effective Feb 2026). The rate shown reflects the updated schedule.</div>` : ''}
+  <div class="flag" style="background:#FEF2F2;border-color:#FECACA;color:#B91C1C"><strong>NOT IN SCHEDULE — DO NOT FILE ON THIS FIGURE.</strong> This HS code was not found in Appendix 4R. The 0.5% shown is a placeholder only. Either the product is not RoDTEP-eligible or the code needs correcting.</div>
+  
   <div class="section">
     <div class="section-title">Calculation Breakdown (audit trail)</div>
     <div class="grid-2">
-      <div><div class="data-label">Export Value (FOB)</div><div class="data-value mono">${esc(fmtINR(exportValue))}</div></div>
-      <div><div class="data-label">RoDTEP Rate</div><div class="data-value mono">${esc(rate)}% of FOB</div></div>
-      <div><div class="data-label">Entitlement</div><div class="data-value mono" style="color:#15803D">${esc(fmtINR(entitlement))}</div></div>
-      <div><div class="data-label">Schedule row used</div><div class="data-value mono">${esc(matchedHs ?? 'none')}</div></div>
+      <div><div class="data-label">Export Value (FOB)</div><div class="data-value mono">₹48,000</div></div>
+      <div><div class="data-label">RoDTEP Rate</div><div class="data-value mono">0.5% of FOB</div></div>
+      <div><div class="data-label">Entitlement</div><div class="data-value mono" style="color:#15803D">₹240</div></div>
+      <div><div class="data-label">Schedule row used</div><div class="data-value mono">none</div></div>
       <div><div class="data-label">Source</div><div class="data-value">DGFT Appendix 4R, as amended by Notification 60/2025-26 (23 Feb 2026)</div></div>
-      <div><div class="data-label">Formula</div><div class="data-value mono" style="font-size:12px">${esc(fmtINR(exportValue))} × ${esc(rate)}% = ${esc(fmtINR(entitlement))}</div></div>
+      <div><div class="data-label">Formula</div><div class="data-value mono" style="font-size:12px">₹48,000 × 0.5% = ₹240</div></div>
     </div>
   </div>
   <div class="section">
@@ -124,11 +92,4 @@ export function generateRoDTEPReport(
   </div>
 </div>
 </body>
-</html>`
-
-  const win = window.open('', '_blank')
-  if (win) {
-    win.document.write(html)
-    win.document.close()
-  }
-}
+</html>

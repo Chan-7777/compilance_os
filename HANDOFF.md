@@ -22,7 +22,7 @@ done.
 
 ## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
 - Branch `recover-untracked-edge-functions`.
-- 960 tests / 39 files pass (`npm test`). `npm run build` passes. 28 DB
+- 998 tests / 41 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
 - Item 4a (branches) is LIVE. The owner ran `supabase db push`
   (20260924000002 now local AND remote), recorded it in .live-state.json,
@@ -461,14 +461,14 @@ Findings, not fixed:
 - The EUDR form has no input for HS code, invoice number or operator
   address; they print blank. The GSP form labels value "(INR)" but
   prints the currency (USD default).
-- Other same-origin windows still write user input UNESCAPED (not touched,
-  owner to decide):
-  - Shipments.tsx handleDownloadLCTemplate: financeForm.buyerName /
-    invoiceRef, companyProfile.name / iec / gstin / portOfLoading.
+- Other same-origin windows that wrote user input unescaped:
   - deal-pack.ts: FIXED 24 Sept, see "Deal pack escaping" below.
-  - rodtep-report.ts: companyName, hsCode, matchedHs.
+  - LC template and rodtep-report.ts: FIXED 24 Sept, see "LC template and
+    RoDTEP report escaping" below.
   - cbam-report.ts: rows escaped; only `quarter` goes raw into refNo
-    (date-derived, low risk).
+    (date-derived, low risk). The only window.open page left unfixed.
+  The two Blob paths (CoO worksheet PDF, claim-register CSV) are downloads
+  (a.download), not pages rendered on the app's origin.
 
 ## Deal pack escaping — DONE, committed, NOT LIVE (24 Sept 2026)
 Frontend only; ships with the EU-documents fix on the next `vercel --prod`.
@@ -496,6 +496,35 @@ hostile company name -> no alert, no script/img, all shown literally,
 layout intact; a normal EU steel shipment rendered as before. No console
 errors. The local DB keeps two test shipments on the throwaway
 xss-eu-docs@example.test account.
+
+## LC template and RoDTEP report escaping — DONE, committed, NOT LIVE (24 Sept 2026)
+Frontend only; ships with the two fixes above on the next `vercel --prod`.
+- LC template (Shipments -> Finance This Order -> Download LC Template):
+  the HTML was built inline in Shipments.tsx. Moved VERBATIM to
+  src/lib/lc-template.ts buildLCTemplateHtml() (text diffed line by line
+  against the old inline template: identical), goldens captured from that,
+  THEN escaped: buyer name, invoice ref, amount, company name / IEC / GSTIN
+  / port of loading. Only theme colours stay raw.
+- RoDTEP report (RoDTEP Recovery -> Calculate -> Download Report): escaped
+  companyName (title + meta), hsCode, matchedHs, rate and both amounts.
+  MATCH_COPY, refNo and today stay raw. The calculator validates only that
+  the HS has 4+ digits and passes the raw text on, so "7304<img ...>" did
+  reach the report; it now prints literally.
+Tests: src/lib/lc-template.test.ts (21), src/lib/rodtep-report.test.ts (17).
+30 failed / 8 passed before escaping, 38 pass now. Goldens (lc-template:
+filled, blank; rodtep-report: exact + Notification 60 flag, prefix at crore
+scale, default with no row and blank name) are byte-identical after.
+Clicked through in Chrome on a local stack (5532x, inbucket off,
+reverted): hostile buyer / ref / company name / IEC / port on the LC
+template and a hostile HS + company name on the report -> no alert, no
+script/img, shown literally; normal values render as before. No console
+errors. The local stack has no rate table, so every code reads "not in
+schedule, 0.5%" there.
+Findings, not fixed:
+- The LC template's "LC Amount (USD / INR)" always prints ₹ (same class
+  of bug as the audit's currency finding).
+- The report's "How to Claim" says credit reaches the scrip ledger
+  "within 30 days". Not checked against any source.
 
 ## Next work (phase 2), in order
 1. `invoices` + `invoice_line_items` migration. Now lands on a working
@@ -557,8 +586,8 @@ that company's demo rows and rebuilds them.
 - IGST and BRC records have a nullable shipment_id FK the UIs never
   populate, so every claim is retyped and orphaned.
 - Hide GSP/REX where India's preferences are suspended.
-- Escape the LC template and RoDTEP report (see "GSP/REX/EUDR
-  escaping").
+- cbam-report.ts: escape `quarter` in refNo (low risk; the last print
+  window not escaped end to end).
 - recovery-digest exists in the repo but was never deployed.
 - Edge function deploys must be stamped with
   `node scripts/live-state.mjs --record function <name>` or LIVE_STATE
