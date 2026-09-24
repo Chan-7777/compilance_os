@@ -20,8 +20,14 @@ concluding anything is deployed.
 noUnusedLocals and catches more. Always `npm run build` before declaring
 done.
 
-## State as of 23 Sept 2026 (after phase 2 item 6 — LIVE)
+## State as of 24 Sept 2026 (after the print-window escaping — LIVE)
 - Branch `recover-untracked-edge-functions`.
+- Print-window escaping is LIVE (538a909 EU documents, 080a8c2 deal pack,
+  bd07077 LC template + RoDTEP report). Frontend only, deployed with
+  `vercel --prod` on the owner's approval (dpl_GTtW3h75CBmKzLRcbmg41E7xcusV),
+  aliased to www.complianceos.co.in and complianceos.co.in; the live bundle
+  index-DW3BLDjw.js is byte-identical to the local build of bd07077 and
+  contains the escaping. LIVE_STATE: 0 files changed since the live build.
 - 998 tests / 41 files pass (`npm test`). `npm run build` passes. 28 DB
   tests pass on a local stack (`npm run test:integration`, see item 6).
 - Item 4a (branches) is LIVE. The owner ran `supabase db push`
@@ -183,7 +189,7 @@ Known gaps, deliberately not built:
   PARKED (23 Sept 2026): the owner is checking with someone before we
   decide. Do not build it until they come back with an answer.
 - No amount-in-words line; no signatory name (item 6 masters).
-- FIXED 24 Sept (committed, NOT live — see "GSP/REX/EUDR escaping"): the
+- FIXED and LIVE 24 Sept (see "GSP/REX/EUDR escaping"): the
   GSP / REX / EUDR generators interpolated user input unescaped.
 
 ## PHASE 2 ITEM 3 IS DONE and LIVE (23 Sept 2026)
@@ -429,8 +435,8 @@ Release: migration first (`supabase db push`, then
 `node scripts/live-state.mjs --record migration 20260924000002_invoice_number_per_gstin.sql`),
 then `vercel --prod`. Either order is safe (no new columns), keep the habit.
 
-## GSP/REX/EUDR escaping — DONE, committed, NOT LIVE (24 Sept 2026)
-Frontend only. Needs `vercel --prod` on the owner's say-so to ship.
+## GSP/REX/EUDR escaping — DONE and LIVE (24 Sept 2026)
+Frontend only. LIVE with the release noted under "State" above.
 The three generators in src/lib/eu-documents.ts wrote every field raw
 into a window.open('') page, which shares the app's origin: a buyer name
 like `<img src=x onerror=...>` ran script with the user's session. Now
@@ -470,8 +476,8 @@ Findings, not fixed:
   The two Blob paths (CoO worksheet PDF, claim-register CSV) are downloads
   (a.download), not pages rendered on the app's origin.
 
-## Deal pack escaping — DONE, committed, NOT LIVE (24 Sept 2026)
-Frontend only; ships with the EU-documents fix on the next `vercel --prod`.
+## Deal pack escaping — DONE and LIVE (24 Sept 2026)
+Frontend only. LIVE with the release noted under "State" above.
 generateBankReadyDealPack (Shipments -> expand a shipment -> Download Deal
 Pack) wrote everything raw into a same-origin window, including shipment
 name / product / country / hsCode, which also arrive from imported SB
@@ -497,8 +503,8 @@ layout intact; a normal EU steel shipment rendered as before. No console
 errors. The local DB keeps two test shipments on the throwaway
 xss-eu-docs@example.test account.
 
-## LC template and RoDTEP report escaping — DONE, committed, NOT LIVE (24 Sept 2026)
-Frontend only; ships with the two fixes above on the next `vercel --prod`.
+## LC template and RoDTEP report escaping — DONE and LIVE (24 Sept 2026)
+Frontend only. LIVE with the release noted under "State" above.
 - LC template (Shipments -> Finance This Order -> Download LC Template):
   the HTML was built inline in Shipments.tsx. Moved VERBATIM to
   src/lib/lc-template.ts buildLCTemplateHtml() (text diffed line by line
